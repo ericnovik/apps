@@ -78,12 +78,201 @@
             {x: 32, y: 64},        // (1.4,1) -> (32, 64)
             {x: -32, y: 64}        // (0.6,1) -> (-32, 64)
         ],
-        5: [ // Type 5 (Hexagon-ish)
-            {x: -80, y: 0}, {x: -40, y: -68}, {x: 40, y: -68}, {x: 80, y: 0}, {x: 0, y: 40}
-        ],
-        15: [ // Type 15 (Approximate for tiling game)
-            {x: -60, y: -40}, {x: 40, y: -40}, {x: 90, y: 30}, {x: 20, y: 80}, {x: -70, y: 50}
-        ]
+        5: (function() {
+            // Type 5: a=b, d=e; angles: A=60°, C=120°
+            function solveType5(a, d, angleBDeg) {
+                const rad = deg => deg * Math.PI / 180;
+                const angleB = rad(angleBDeg);
+
+                // 1. Place A at (0,0)
+                const A = { x: 0, y: 0 };
+
+                // 2. Place B on X-axis at distance 'a'
+                const B = { x: a, y: 0 };
+
+                // 3. Place E based on Angle A (fixed at 60°) and distance 'd'
+                // Type 5 definition: d = e (side EA = side DE)
+                const E = { 
+                    x: d * Math.cos(rad(60)), 
+                    y: d * Math.sin(rad(60)) 
+                };
+
+                // 4. Place C based on B, angle B, and distance 'a'
+                // Type 5 definition: a = b (side AB = side BC)
+                // Note: Direction starts at 0 (East). B is pivot.
+                // To turn interior angle B, we subtract from 180 relative to vector AB.
+                const dirBC = Math.PI - angleB; 
+                const C = {
+                    x: B.x + a * Math.cos(dirBC),
+                    y: B.y + a * Math.sin(dirBC)
+                };
+
+                // 5. Find D
+                // D is the intersection of:
+                //   a. A ray starting from C at Angle C (fixed at 120°)
+                //   b. A circle around E with radius 'd'
+                
+                // Direction of CD: Previous direction (BC) + 60° turn (since interior C is 120°)
+                const dirCD = dirBC + rad(60);
+                const vx = Math.cos(dirCD);
+                const vy = Math.sin(dirCD);
+                
+                // Vector E->C
+                const dx = C.x - E.x;
+                const dy = C.y - E.y;
+
+                // Solve Quadratic: |(C - E) + t*v|^2 = d^2
+                const A_quad = 1; 
+                const B_quad = 2 * (dx * vx + dy * vy);
+                const C_quad = (dx*dx + dy*dy) - (d*d);
+
+                const discriminant = B_quad*B_quad - 4*A_quad*C_quad;
+
+                // Construct Partial Result (for debugging visualization)
+                const result = { A, B, C, E, dirCD, valid: false };
+
+                if (discriminant < 0) {
+                    // No real intersection = Impossible geometry
+                    return result; 
+                }
+
+                // Calculate t (distance from C to D along the ray)
+                // We take the smaller root usually to keep it convex, 
+                // though strictly we should check t > 0
+                const t = (-B_quad - Math.sqrt(discriminant)) / 2;
+
+                if (t < 0) {
+                    // Intersection exists but it's "behind" C
+                    return result;
+                }
+
+                const D = {
+                    x: C.x + t * vx,
+                    y: C.y + t * vy
+                };
+
+                return { ...result, D, valid: true };
+            }
+            
+            // Try different parameter combinations to find a valid closed shape
+            const size = 100;
+            let bestResult = null;
+            let bestError = Infinity;
+            
+            // Try different values for a, d, and angleB
+            for (let a = size * 0.8; a <= size * 1.2; a += size * 0.1) {
+                for (let d = size * 0.6; d <= size * 1.0; d += size * 0.1) {
+                    for (let angleB = 100; angleB <= 140; angleB += 5) {
+                        const result = solveType5(a, d, angleB);
+                        
+                        if (result.valid && result.D) {
+                            // Check if the shape closes properly (EA should equal d)
+                            const distEA = Math.sqrt(
+                                (result.A.x - result.E.x)**2 + 
+                                (result.A.y - result.E.y)**2
+                            );
+                            
+                            // Check if DE equals d
+                            const distDE = Math.sqrt(
+                                (result.D.x - result.E.x)**2 + 
+                                (result.D.y - result.E.y)**2
+                            );
+                            
+                            // Calculate errors
+                            const errorEA = Math.abs(distEA - d);
+                            const errorDE = Math.abs(distDE - d);
+                            
+                            // Check angles
+                            const vecAB = {x: result.B.x - result.A.x, y: result.B.y - result.A.y};
+                            const vecAE = {x: result.E.x - result.A.x, y: result.E.y - result.A.y};
+                            const dotA = vecAB.x * vecAE.x + vecAB.y * vecAE.y;
+                            const lenAB = Math.sqrt(vecAB.x**2 + vecAB.y**2);
+                            const lenAE = Math.sqrt(vecAE.x**2 + vecAE.y**2);
+                            const angleA = Math.acos(Math.max(-1, Math.min(1, dotA / (lenAB * lenAE)))) * 180 / Math.PI;
+                            const errorAngleA = Math.abs(angleA - 60);
+                            
+                            const vecCB = {x: result.B.x - result.C.x, y: result.B.y - result.C.y};
+                            const vecCD = {x: result.D.x - result.C.x, y: result.D.y - result.C.y};
+                            const dotC = vecCB.x * vecCD.x + vecCB.y * vecCD.y;
+                            const lenCB = Math.sqrt(vecCB.x**2 + vecCB.y**2);
+                            const lenCD = Math.sqrt(vecCD.x**2 + vecCD.y**2);
+                            const angleC = Math.acos(Math.max(-1, Math.min(1, dotC / (lenCB * lenCD)))) * 180 / Math.PI;
+                            const errorAngleC = Math.abs(angleC - 120);
+                            
+                            const totalError = errorEA + errorDE + errorAngleA * 5 + errorAngleC * 5;
+                            
+                            if (totalError < bestError) {
+                                bestError = totalError;
+                                bestResult = result;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (!bestResult || !bestResult.valid) {
+                // Fallback if no valid solution found
+                return [{x: -50, y: 0}, {x: 50, y: 0}, {x: 25, y: 43}, {x: -25, y: 43}, {x: -50, y: 0}];
+            }
+            
+            const verts = [bestResult.A, bestResult.B, bestResult.C, bestResult.D, bestResult.E];
+            
+            // Center around origin
+            const cx = verts.reduce((s, v) => s + v.x, 0) / 5;
+            const cy = verts.reduce((s, v) => s + v.y, 0) / 5;
+            return verts.map(v => ({x: v.x - cx, y: v.y - cy}));
+        })(),
+        15: (function() {
+            // Type 15: a=c=e, b=2a; angles: A=150°, B=60°, C=135°, D=105°, E=90°
+            // Generate using the provided logic
+            function generateType15Pentagon(size, centerX = 0, centerY = 0) {
+                // 1. Define the geometry relative to Vertex E at (0,0)
+                // We walk E -> A -> B -> C -> D -> E based on the angles.
+                // Lengths: a=size, b=2*size, c=size, e=size.
+                
+                const s = size; 
+                const sqrt3 = Math.sqrt(3);
+
+                // Raw coordinates derived from the angles and side lengths:
+                // We start with side DE on the x-axis, then rotate later to match the image.
+                const E = { x: 0, y: 0 };
+                const A = { x: 0, y: s }; // Angle E=90 implies A is vertical from E
+                const B = { x: -s, y: s * (1 + sqrt3) }; // Derived from Angle A=150, Length b=2s
+                const C = { x: -1.5 * s, y: s * (1 + sqrt3 / 2) }; // Derived from Angle B=60, Length c=s
+                const D = { x: -s, y: 0 }; // Derived from geometry closing the loop
+                
+                // 2. Align the shape to match the image (Side CD horizontal at the bottom)
+                // In raw coords, Vector CD is sloping down. We rotate by 75 degrees.
+                const angleOffset = 75 * (Math.PI / 180); 
+                const cosTheta = Math.cos(angleOffset);
+                const sinTheta = Math.sin(angleOffset);
+
+                const rawVerts = [A, B, C, D, E];
+                
+                const rotatedVerts = rawVerts.map(v => ({
+                    x: v.x * cosTheta - v.y * sinTheta,
+                    y: v.x * sinTheta + v.y * cosTheta
+                }));
+
+                // 3. Center the polygon on the requested coordinates
+                // Find bounding box
+                const minX = Math.min(...rotatedVerts.map(v => v.x));
+                const maxX = Math.max(...rotatedVerts.map(v => v.x));
+                const minY = Math.min(...rotatedVerts.map(v => v.y));
+                const maxY = Math.max(...rotatedVerts.map(v => v.y));
+
+                const currentCenterX = (minX + maxX) / 2;
+                const currentCenterY = (minY + maxY) / 2;
+
+                return rotatedVerts.map(v => ({
+                    x: v.x - currentCenterX + centerX,
+                    y: v.y - currentCenterY + centerY
+                }));
+            }
+            
+            // Generate with size 50, centered at origin
+            return generateType15Pentagon(50, 0, 0);
+        })()
     };
 
     const COLORS = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#FFB347", "#9B59B6", "#E74C3C", "#3498DB", "#2ECC71", "#F39C12"];
