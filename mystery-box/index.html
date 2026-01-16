@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystery Box Game</title>
+    <link rel="stylesheet" href="mystery-box.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Mystery Box Game</h1>
+        
+        <!-- Tally Display (always visible) -->
+        <div id="tallyDisplay" class="tally-display">
+            <div class="tally-item">
+                <span class="tally-label">Rounds Played:</span>
+                <span class="tally-value" id="tallyRounds">0</span>
+            </div>
+            <div class="tally-item">
+                <span class="tally-label">Total Winnings:</span>
+                <span class="tally-value positive" id="tallyWinnings">$0.00</span>
+            </div>
+            <div class="tally-item">
+                <span class="tally-label">Total Losses:</span>
+                <span class="tally-value negative" id="tallyLosses">$0.00</span>
+            </div>
+            <div class="tally-item total">
+                <span class="tally-label">Net Result:</span>
+                <span class="tally-value" id="tallyNet">$0.00</span>
+            </div>
+        </div>
+        
+        <!-- Configuration Phase -->
+        <div id="configPhase" class="phase">
+            <h2>Game Configuration</h2>
+            <div class="config-section">
+                <h3>Gross Payoffs</h3>
+                <p>Payoffs include your initial ball cost plus winnings.</p>
+                <div class="config-inputs">
+                    <div class="config-input">
+                        <label for="payoff025">Proportion 0.25 (25% Red):</label>
+                        <div class="config-input-row">
+                            <input type="number" id="payoff025" value="15" min="0" step="0.01">
+                            <div class="config-hint">Implied probability: <span id="implied025">-</span></div>
+                        </div>
+                    </div>
+                    <div class="config-input">
+                        <label for="payoff050">Proportion 0.50 (50% Red):</label>
+                        <div class="config-input-row">
+                            <input type="number" id="payoff050" value="20" min="0" step="0.01">
+                            <div class="config-hint">Implied probability: <span id="implied050">-</span></div>
+                        </div>
+                    </div>
+                    <div class="config-input">
+                        <label for="payoff075">Proportion 0.75 (75% Red):</label>
+                        <div class="config-input-row">
+                            <input type="number" id="payoff075" value="35" min="0" step="0.01">
+                            <div class="config-hint">Implied probability: <span id="implied075">-</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="config-section">
+                <h3>Number of Balls</h3>
+                <p>How many balls should be drawn initially?</p>
+                <div class="config-input">
+                    <label for="numBalls">Number of Balls:</label>
+                    <input type="number" id="numBalls" value="5" min="1" max="50" step="1">
+                </div>
+            </div>
+            <div class="config-section">
+                <h3>Price Per Ball</h3>
+                <p>Set separate prices for initial and additional balls.</p>
+                <div class="config-inputs">
+                    <div class="config-input">
+                        <label for="initialBallPrice">Initial Ball Price ($):</label>
+                        <input type="number" id="initialBallPrice" value="1" min="0" step="0.01">
+                    </div>
+                    <div class="config-input">
+                        <label for="additionalBallPrice">Additional Ball Price ($):</label>
+                        <input type="number" id="additionalBallPrice" value="0.50" min="0" step="0.01">
+                    </div>
+                </div>
+            </div>
+            <div class="buttons" style="margin-top: 30px;">
+                <button onclick="startGame()" class="btn btn-primary">Start Game</button>
+                <button onclick="showSimulation()" class="btn btn-secondary">Simulation</button>
+            </div>
+        </div>
+
+        <!-- Simulation Phase -->
+        <div id="simulationPhase" class="phase hidden">
+            <h2>Simulation</h2>
+            <div class="config-section">
+                <h3>Simulation Settings</h3>
+                <p>Run simulated games using the optimal strategy.</p>
+                <div class="config-input-row simulation-settings-row">
+                    <div class="config-input">
+                        <label for="simGames">Number of Games:</label>
+                        <input type="number" id="simGames" value="100" min="1" step="1">
+                    </div>
+                    <button onclick="runSimulation()" class="btn btn-secondary">Run Simulation</button>
+                </div>
+            </div>
+            <div id="simulationSection" class="simulation-section hidden">
+                <div class="simulation-chart">
+                    <h3>Cumulative Net Earnings</h3>
+                    <canvas id="simCumulativeChart"></canvas>
+                </div>
+                <div class="simulation-chart">
+                    <h3>Average Net Earnings</h3>
+                    <canvas id="simAverageChart"></canvas>
+                    <div class="chart-summary">
+                        <div class="chart-summary-row">
+                            <span class="summary-label">Implied prior average:</span>
+                            <span id="simAverageImplied">$0.0000</span>
+                        </div>
+                        <div class="chart-summary-row">
+                            <span class="summary-label">Uniform prior average:</span>
+                            <span id="simAverageUniform">$0.0000</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="simulation-summary">
+                    <h3>Simulation Summary</h3>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">Implied prior cumulative:</span>
+                        <span id="simSummaryImpliedCumulative">$0.00</span>
+                    </div>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">Implied prior average:</span>
+                        <span id="simSummaryImpliedAverage">$0.00</span>
+                    </div>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">Uniform prior cumulative:</span>
+                        <span id="simSummaryUniformCumulative">$0.00</span>
+                    </div>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">Uniform prior average:</span>
+                        <span id="simSummaryUniformAverage">$0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons" style="margin-top: 20px;">
+                <button onclick="backToConfigFromSimulation()" class="btn btn-primary">Back to Configuration</button>
+            </div>
+        </div>
+        
+        <!-- Box Selection Phase -->
+        <div id="boxSelection" class="phase hidden">
+            <h2>Choose a Mystery Box</h2>
+            <p>Choose a box from the grid below. Box counts reflect implied probabilities.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <button onclick="changeSettings()" class="btn btn-secondary" style="min-width: auto; padding: 10px 20px;">Change Settings</button>
+                <button onclick="reshuffleBoxes()" class="btn btn-secondary" style="min-width: auto; padding: 10px 20px;">Reshuffle</button>
+            </div>
+            <div class="reveal-toggle">
+                <label>
+                    <input type="checkbox" id="revealBoxes">
+                    Reveal boxes
+                </label>
+            </div>
+            <div id="boxGrid" class="box-grid" aria-label="Box grid"></div>
+        </div>
+
+        <!-- Drawing Phase -->
+        <div id="drawingPhase" class="phase hidden">
+            <h2>Drawing Balls...</h2>
+            <div class="info">
+                <p>Box selected: <strong id="selectedBoxNum"></strong></p>
+                <p>Balls drawn: <strong id="ballsDrawn">0</strong> / <span id="totalBalls">10</span></p>
+                <p>Cost so far: <strong>$<span id="currentCost">0</span></strong></p>
+            </div>
+            <div class="balls-container" id="ballsContainer"></div>
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Red:</span>
+                    <span class="stat-value" id="redCount">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Green:</span>
+                    <span class="stat-value" id="greenCount">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Proportion (Red):</span>
+                    <span class="stat-value" id="proportion">0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Decision Phase -->
+        <div id="decisionPhase" class="phase hidden">
+            <h2>Make Your Decision</h2>
+            <div class="info">
+                <p>You've drawn <strong id="decisionBallsDrawn">10</strong> balls.</p>
+                <p>Current cost: <strong>$<span id="decisionCost">0</span></strong></p>
+            </div>
+            <div class="balls-container" id="decisionBallsContainer"></div>
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Red:</span>
+                    <span class="stat-value" id="decisionRedCount">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Green:</span>
+                    <span class="stat-value" id="decisionGreenCount">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Proportion (Red):</span>
+                    <span class="stat-value" id="decisionProportion">0.00</span>
+                </div>
+            </div>
+            <div class="buttons">
+                <button onclick="guessNow()" class="btn btn-primary">Make Your Guess</button>
+                <button onclick="buyAnotherBall()" class="btn btn-secondary" id="buyBallBtn">Buy Another Ball</button>
+            </div>
+        </div>
+
+        <!-- Final Guess Phase -->
+        <div id="guessPhase" class="phase hidden">
+            <h2>Guess the Proportion</h2>
+            <div class="info">
+                <p>You've drawn <strong id="guessBallsDrawn">11</strong> balls.</p>
+                <p>Total cost: <strong>$<span id="guessCost">0</span></strong></p>
+            </div>
+            <div class="balls-container" id="guessBallsContainer"></div>
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Red:</span>
+                    <span class="stat-value" id="guessRedCount">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Green:</span>
+                    <span class="stat-value" id="guessGreenCount">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Proportion (Red):</span>
+                    <span class="stat-value" id="guessProportion">0.00</span>
+                </div>
+            </div>
+            <div class="guess-options">
+                <button onclick="makeGuess(0.25)" class="btn btn-guess">0.25 (25% Red)</button>
+                <button onclick="makeGuess(0.50)" class="btn btn-guess">0.50 (50% Red)</button>
+                <button onclick="makeGuess(0.75)" class="btn btn-guess">0.75 (75% Red)</button>
+            </div>
+        </div>
+
+        <!-- Results Phase -->
+        <div id="resultsPhase" class="phase hidden">
+            <h2>Game Results</h2>
+            <div class="results">
+                <div class="result-item">
+                    <span class="result-label">Box Selected:</span>
+                    <span class="result-value" id="resultBox">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Actual Proportion:</span>
+                    <span class="result-value" id="resultActual">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Your Guess:</span>
+                    <span class="result-value" id="resultGuess">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Balls Drawn:</span>
+                    <span class="result-value" id="resultBalls">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Total Cost:</span>
+                    <span class="result-value">$<span id="resultCost">0</span></span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Prize:</span>
+                    <span class="result-value" id="resultPrize">$0</span>
+                </div>
+                <div class="result-item total">
+                    <span class="result-label">Net Result:</span>
+                    <span class="result-value" id="resultNet">$0</span>
+                </div>
+            </div>
+            <button onclick="resetGame()" class="btn btn-primary">Play Again</button>
+        </div>
+    </div>
+
+    <div id="passwordModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
+        <div class="modal-content">
+            <h3 id="passwordTitle">Enter reveal password</h3>
+            <input type="password" id="passwordInput" placeholder="Password" />
+            <div class="modal-actions">
+                <button id="passwordCancel" class="btn btn-secondary" type="button">Cancel</button>
+                <button id="passwordConfirm" class="btn btn-primary" type="button">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="mystery-box.js"></script>
+</body>
+</html>
