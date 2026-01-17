@@ -113,32 +113,44 @@
                     <canvas id="simAverageChart"></canvas>
                     <div class="chart-summary">
                         <div class="chart-summary-row">
-                            <span class="summary-label">Implied prior average:</span>
-                            <span id="simAverageImplied">$0.0000</span>
+                            <span class="summary-label">Optimal Strategy average:</span>
+                            <span id="simAverageOptimal">$0.0000</span>
                         </div>
                         <div class="chart-summary-row">
                             <span class="summary-label">Uniform prior average:</span>
                             <span id="simAverageUniform">$0.0000</span>
+                        </div>
+                        <div class="chart-summary-row">
+                            <span class="summary-label">MAP posterior average:</span>
+                            <span id="simAverageMap">$0.0000</span>
                         </div>
                     </div>
                 </div>
                 <div class="simulation-summary">
                     <h3>Simulation Summary</h3>
                     <div class="simulation-summary-row">
-                        <span class="summary-label">Implied prior cumulative:</span>
-                        <span id="simSummaryImpliedCumulative">$0.00</span>
-                    </div>
-                    <div class="simulation-summary-row">
-                        <span class="summary-label">Implied prior average:</span>
-                        <span id="simSummaryImpliedAverage">$0.00</span>
+                        <span class="summary-label">Optimal Strategy cumulative:</span>
+                        <span id="simSummaryOptimalCumulative">$0.00</span>
                     </div>
                     <div class="simulation-summary-row">
                         <span class="summary-label">Uniform prior cumulative:</span>
                         <span id="simSummaryUniformCumulative">$0.00</span>
                     </div>
                     <div class="simulation-summary-row">
-                        <span class="summary-label">Uniform prior average:</span>
-                        <span id="simSummaryUniformAverage">$0.00</span>
+                        <span class="summary-label">MAP posterior cumulative:</span>
+                        <span id="simSummaryMapCumulative">$0.00</span>
+                    </div>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">Optimal Strategy correct guess %:</span>
+                        <span id="simSummaryOptimalCorrect">0.0%</span>
+                    </div>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">Uniform prior correct guess %:</span>
+                        <span id="simSummaryUniformCorrect">0.0%</span>
+                    </div>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">MAP posterior correct guess %:</span>
+                        <span id="simSummaryMapCorrect">0.0%</span>
                     </div>
                 </div>
             </div>

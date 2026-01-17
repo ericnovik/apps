@@ -231,14 +231,16 @@ function runSimulation() {
 
     const impliedResults = simulateWithPrior(simGames, thetas, impliedPrior, impliedPrior, payoff, N, C, extraC, 'ev');
     const uniformResults = simulateWithPrior(simGames, thetas, impliedPrior, uniformPrior, payoff, N, C, extraC, 'always_extra_map');
+    const impliedMapExtraResults = simulateWithPrior(simGames, thetas, impliedPrior, impliedPrior, payoff, N, C, extraC, 'always_extra_map');
 
-    renderSimulationCharts(impliedResults, uniformResults);
+    renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraResults);
 }
 
 function simulateWithPrior(simGames, thetas, samplingPrior, bettingPrior, payoff, N, C, extraC, strategy) {
     const cumulative = [];
     const average = [];
     let totalNet = 0;
+    let correctGuesses = 0;
 
     for (let game = 1; game <= simGames; game++) {
         const actualTheta = sampleTheta(thetas, samplingPrior);
@@ -278,13 +280,16 @@ function simulateWithPrior(simGames, thetas, samplingPrior, bettingPrior, payoff
         }
 
         const netResult = guessedTheta === actualTheta ? payoff[thetas.indexOf(guessedTheta)] - totalCost : -totalCost;
+        if (guessedTheta === actualTheta) {
+            correctGuesses += 1;
+        }
 
         totalNet += netResult;
         cumulative.push(totalNet);
         average.push(totalNet / game);
     }
 
-    return { cumulative, average };
+    return { cumulative, average, correctGuesses };
 }
 
 function mostLikelyTheta(post, thetas) {
@@ -299,12 +304,12 @@ function mostLikelyTheta(post, thetas) {
     return thetas[bestIdx];
 }
 
-function renderSimulationCharts(impliedResults, uniformResults) {
+function renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraResults) {
     const section = document.getElementById('simulationSection');
     if (section) {
         section.classList.remove('hidden');
     }
-    updateSimulationSummary(impliedResults, uniformResults);
+    updateSimulationSummary(impliedResults, uniformResults, impliedMapExtraResults);
 
     const labels = impliedResults.cumulative.map((_, i) => i + 1);
     const cumCanvas = document.getElementById('simCumulativeChart');
@@ -320,7 +325,7 @@ function renderSimulationCharts(impliedResults, uniformResults) {
             labels,
             datasets: [
                 {
-                    label: 'Implied prior',
+                    label: 'Optimal Strategy',
                     data: impliedResults.cumulative,
                     borderColor: '#667eea',
                     borderWidth: 1,
@@ -331,6 +336,14 @@ function renderSimulationCharts(impliedResults, uniformResults) {
                     label: 'Uniform prior (always extra ball + MLE)',
                     data: uniformResults.cumulative,
                     borderColor: '#2ecc71',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0.1
+                },
+                {
+                    label: 'MAP posterior (always extra)',
+                    data: impliedMapExtraResults.cumulative,
+                    borderColor: '#e67e22',
                     borderWidth: 1,
                     pointRadius: 0,
                     tension: 0.1
@@ -354,7 +367,7 @@ function renderSimulationCharts(impliedResults, uniformResults) {
             labels,
             datasets: [
                 {
-                    label: 'Implied prior',
+                    label: 'Optimal Strategy',
                     data: impliedResults.average,
                     borderColor: '#667eea',
                     borderWidth: 1,
@@ -365,6 +378,14 @@ function renderSimulationCharts(impliedResults, uniformResults) {
                     label: 'Uniform prior (always extra ball + MLE)',
                     data: uniformResults.average,
                     borderColor: '#2ecc71',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0.1
+                },
+                {
+                    label: 'MAP posterior (always extra)',
+                    data: impliedMapExtraResults.average,
+                    borderColor: '#e67e22',
                     borderWidth: 1,
                     pointRadius: 0,
                     tension: 0.1
@@ -387,25 +408,43 @@ function renderSimulationCharts(impliedResults, uniformResults) {
     });
 }
 
-function updateSimulationSummary(impliedResults, uniformResults) {
+function updateSimulationSummary(impliedResults, uniformResults, impliedMapExtraResults) {
     const impliedCum = impliedResults.cumulative[impliedResults.cumulative.length - 1] || 0;
     const impliedAvg = impliedResults.average[impliedResults.average.length - 1] || 0;
     const uniformCum = uniformResults.cumulative[uniformResults.cumulative.length - 1] || 0;
     const uniformAvg = uniformResults.average[uniformResults.average.length - 1] || 0;
+    const mapAvg = impliedMapExtraResults.average[impliedMapExtraResults.average.length - 1] || 0;
+    const mapCum = impliedMapExtraResults.cumulative[impliedMapExtraResults.cumulative.length - 1] || 0;
+    const impliedCorrect = impliedResults.correctGuesses || 0;
+    const uniformCorrect = uniformResults.correctGuesses || 0;
+    const mapCorrect = impliedMapExtraResults.correctGuesses || 0;
+    const totalGames = impliedResults.average.length || 0;
 
-    const impliedCumEl = document.getElementById('simSummaryImpliedCumulative');
-    const impliedAvgEl = document.getElementById('simSummaryImpliedAverage');
+    const impliedCumEl = document.getElementById('simSummaryOptimalCumulative');
     const uniformCumEl = document.getElementById('simSummaryUniformCumulative');
-    const uniformAvgEl = document.getElementById('simSummaryUniformAverage');
-    const avgImpliedEl = document.getElementById('simAverageImplied');
-    const avgUniformEl = document.getElementById('simAverageUniform');
+    const mapAvgEl = document.getElementById('simAverageMap');
+    const optimalAvgEl = document.getElementById('simAverageOptimal');
+    const uniformAvgEl = document.getElementById('simAverageUniform');
+    const impliedCorrectEl = document.getElementById('simSummaryOptimalCorrect');
+    const uniformCorrectEl = document.getElementById('simSummaryUniformCorrect');
+    const mapCumEl = document.getElementById('simSummaryMapCumulative');
+    const mapCorrectEl = document.getElementById('simSummaryMapCorrect');
 
     if (impliedCumEl) impliedCumEl.textContent = `$${impliedCum.toFixed(2)}`;
-    if (impliedAvgEl) impliedAvgEl.textContent = `$${impliedAvg.toFixed(4)}`;
     if (uniformCumEl) uniformCumEl.textContent = `$${uniformCum.toFixed(2)}`;
+    if (mapAvgEl) mapAvgEl.textContent = `$${mapAvg.toFixed(4)}`;
+    if (optimalAvgEl) optimalAvgEl.textContent = `$${impliedAvg.toFixed(4)}`;
     if (uniformAvgEl) uniformAvgEl.textContent = `$${uniformAvg.toFixed(4)}`;
-    if (avgImpliedEl) avgImpliedEl.textContent = `$${impliedAvg.toFixed(4)}`;
-    if (avgUniformEl) avgUniformEl.textContent = `$${uniformAvg.toFixed(4)}`;
+    if (mapCumEl) mapCumEl.textContent = `$${mapCum.toFixed(2)}`;
+    if (impliedCorrectEl && totalGames) {
+        impliedCorrectEl.textContent = `${((impliedCorrect / totalGames) * 100).toFixed(1)}%`;
+    }
+    if (uniformCorrectEl && totalGames) {
+        uniformCorrectEl.textContent = `${((uniformCorrect / totalGames) * 100).toFixed(1)}%`;
+    }
+    if (mapCorrectEl && totalGames) {
+        mapCorrectEl.textContent = `${((mapCorrect / totalGames) * 100).toFixed(1)}%`;
+    }
 }
 
 function sampleTheta(thetas, probs) {
