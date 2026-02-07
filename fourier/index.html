@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fourier Series Explorer</title>
+  <link rel="stylesheet" href="fourier.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="top-bar">
+      <div class="preset-group">
+        <label for="presetSelect">Preset:</label>
+        <select id="presetSelect">
+          <option value="none">Custom</option>
+          <option value="pure">Pure tone</option>
+          <option value="square">Square wave</option>
+          <option value="sawtooth">Sawtooth</option>
+          <option value="triangle">Triangle</option>
+          <option value="spike">Spike (Dirichlet-ish)</option>
+          <option value="randomDecay">Random phase with decay</option>
+        </select>
+      </div>
+      <div class="top-actions">
+        <button id="resetBtn">Reset</button>
+        <button id="randomizeBtn">Randomize</button>
+        <label class="checkbox">
+          <input type="checkbox" id="normalizeRms" />
+          Normalize RMS
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="autoScalePlot" checked />
+          Auto-scale plot
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="derivativeToggle" />
+          Derivative view
+        </label>
+      </div>
+    </header>
+
+    <div class="main">
+      <aside class="controls">
+        <section class="control-section">
+          <h3>Global</h3>
+          <div class="control-row">
+            <label for="harmonicsSlider">Max harmonics (N): <span id="harmonicsValue">32</span></label>
+            <input type="range" id="harmonicsSlider" min="1" max="64" value="32" />
+          </div>
+          <div class="control-row">
+            <label for="a0Slider">a0: <span id="a0Value">0.000</span></label>
+            <input type="range" id="a0Slider" min="-2" max="2" step="0.001" value="0" />
+          </div>
+          <div class="control-row">
+            <label for="t0Slider">Time shift t0: <span id="t0Value">0.000</span></label>
+            <input type="range" id="t0Slider" min="0" max="1" step="0.001" value="0" />
+          </div>
+          <div class="control-row inline">
+            <label class="checkbox">
+              <input type="checkbox" id="evenOnly" />
+              Even harmonics
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" id="oddOnly" />
+              Odd harmonics
+            </label>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h3>Partial Sums</h3>
+          <label class="checkbox">
+            <input type="checkbox" id="showPartial" />
+            Show partial sum
+          </label>
+          <div class="control-row">
+            <label for="partialSlider">N<sub>partial</sub>: <span id="partialValue">8</span></label>
+            <input type="range" id="partialSlider" min="1" max="32" value="8" />
+          </div>
+          <label class="checkbox">
+            <input type="checkbox" id="showLadder" />
+            Show convergence ladder (5/10/20/N)
+          </label>
+        </section>
+
+        <section class="control-section">
+          <h3>Edit Mode</h3>
+          <div class="tab-row">
+            <button id="modeAb" class="tab active">aₙ / bₙ</button>
+            <button id="modeAphi" class="tab">Aₙ / φₙ</button>
+          </div>
+          <div class="control-row">
+            <label for="harmonicSelect">Harmonic n:</label>
+            <select id="harmonicSelect"></select>
+          </div>
+          <div id="abControls">
+            <div class="control-row">
+              <label for="aSlider">aₙ: <span id="aValue">0.000</span></label>
+              <input type="range" id="aSlider" min="-2" max="2" step="0.001" value="0" />
+            </div>
+            <div class="control-row">
+              <label for="bSlider">bₙ: <span id="bValue">0.000</span></label>
+              <input type="range" id="bSlider" min="-2" max="2" step="0.001" value="0" />
+            </div>
+          </div>
+          <div id="aphiControls" class="hidden">
+            <div class="control-row">
+              <label for="ampSlider">Aₙ: <span id="ampValue">0.000</span></label>
+              <input type="range" id="ampSlider" min="0" max="2" step="0.001" value="0" />
+            </div>
+            <div class="control-row">
+              <label for="phiSlider">φₙ: <span id="phiValue">0.000</span></label>
+              <input type="range" id="phiSlider" min="-3.1416" max="3.1416" step="0.001" value="0" />
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h3>Apply to All</h3>
+          <div class="control-row">
+            <label for="decaySlider">Power-law decay p: <span id="decayValue">1.0</span></label>
+            <input type="range" id="decaySlider" min="0" max="3" step="0.1" value="1" />
+            <button id="applyDecayBtn">Apply 1/nᵖ</button>
+          </div>
+          <div class="control-row">
+            <button id="randomPhaseBtn">Randomize phases</button>
+          </div>
+          <div class="control-row">
+            <button id="lowPassBtn">Low-pass</button>
+            <button id="bandPassBtn">Band-pass</button>
+            <button id="highPassBtn">High-pass</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="plots">
+        <div class="plot-card waveform-card">
+          <h3>Waveform</h3>
+          <canvas id="waveformCanvas" width="800" height="300"></canvas>
+          <div id="waveformReadout" class="waveform-readout hidden"></div>
+        </div>
+        <div class="plot-card">
+          <h3>Spectrum</h3>
+          <canvas id="spectrumCanvas" width="800" height="300"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <footer class="audio-bar">
+      <button id="audioToggle">Play</button>
+      <div class="audio-controls">
+        <label for="freqSlider">f0 (Hz): <span id="freqValue">220</span></label>
+        <input type="range" id="freqSlider" min="50" max="880" step="1" value="220" />
+      </div>
+      <div class="audio-controls">
+        <label for="volumeSlider">Volume: <span id="volumeValue">0.30</span></label>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.3" />
+      </div>
+      <label class="checkbox">
+        <input type="checkbox" id="removeDc" checked />
+        Remove DC
+      </label>
+    </footer>
+  </div>
+
+  <script src="fourier.js"></script>
+</body>
+</html>
