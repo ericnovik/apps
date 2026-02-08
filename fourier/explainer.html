@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fourier Series Explorer - Explainer</title>
+  <link rel="stylesheet" href="fourier.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" />
+</head>
+<body class="explainer-page">
+  <div class="app">
+    <header class="top-bar">
+      <div class="preset-group">
+        <a class="explainer-btn" href="index.html">Back to App</a>
+      </div>
+      <div class="top-title">Fourier Series Explorer</div>
+      <div class="top-actions"></div>
+    </header>
+
+    <section class="explainer-content">
+      <p>
+        There are three common parameterizations of a Fourier series. First is amplitude–phase form
+        with <span class="tex" data-tex="A_n">A_n</span> and <span class="tex" data-tex="\phi_n">\phi_n</span>:
+      </p>
+      <div class="tex tex-block" data-tex="f(t)=\frac{a_0}{2}+\sum_{n=1}^{N} A_n\sin(2\pi n t+\phi_n)">
+        f(t)=\frac{a_0}{2}+\sum_{n=1}^{N} A_n\sin(2\pi n t+\phi_n)
+      </div>
+      <p>
+        Using <span class="tex" data-tex="\sin(\alpha+\beta)=\sin\alpha\cos\beta+\cos\alpha\sin\beta">
+          \sin(\alpha+\beta)=\sin\alpha\cos\beta+\cos\alpha\sin\beta
+        </span>, each term expands as
+      </p>
+      <div class="tex tex-block" data-tex="A_n\sin(2\pi n t+\phi_n)=A_n\sin(2\pi n t)\cos\phi_n + A_n\cos(2\pi n t)\sin\phi_n">
+        A_n\sin(2\pi n t+\phi_n)=A_n\sin(2\pi n t)\cos\phi_n + A_n\cos(2\pi n t)\sin\phi_n
+      </div>
+      <p>
+        so the cosine–sine coefficients are
+        <span class="tex" data-tex="a_n=A_n\sin\phi_n">a_n=A_n\sin\phi_n</span> and
+        <span class="tex" data-tex="b_n=A_n\cos\phi_n">b_n=A_n\cos\phi_n</span>, yielding
+      </p>
+      <div class="tex tex-block" data-tex="f(t)=\frac{a_0}{2}+\sum_{n=1}^{N}\left(a_n\cos(2\pi n t)+b_n\sin(2\pi n t)\right)">
+        f(t)=\frac{a_0}{2}+\sum_{n=1}^{N}\left(a_n\cos(2\pi n t)+b_n\sin(2\pi n t)\right)
+      </div>
+      <p>
+        Finally, the same series can be written using complex exponentials
+        <span class="tex" data-tex="e^{i2\pi n t}">e^{i2\pi n t}</span> with coefficients
+        <span class="tex" data-tex="c_n">c_n</span>:
+      </p>
+      <div class="tex tex-block" data-tex="f(t)=\sum_{n=-N}^{N} c_n e^{i2\pi n t}">
+        f(t)=\sum_{n=-N}^{N} c_n e^{i2\pi n t}
+      </div>
+      <p>
+        where the conversions are
+        <span class="tex" data-tex="c_n=\frac{1}{2}(a_n-i b_n)">c_n=\frac{1}{2}(a_n-i b_n)</span> and
+        <span class="tex" data-tex="c_{-n}=\frac{1}{2}(a_n+i b_n)">c_{-n}=\frac{1}{2}(a_n+i b_n)</span>
+        for <span class="tex" data-tex="n>0">n>0</span>.
+      </p>
+      <h3>Top-Bar Checkboxes</h3>
+      <p>
+        These checkboxes affect how the waveform is visualized and analyzed.
+      </p>
+      <ul>
+        <li>
+          <p>
+            <strong>Normalize RMS.</strong> Rescales the waveform to a target root-mean-square level so that
+            changes in coefficient magnitude do not immediately cause large swings in perceived amplitude.
+            This uses
+            <span class="tex" data-tex="\mathrm{RMS}=\sqrt{\frac{1}{M}\sum_{i=1}^{M} f(t_i)^2}">
+              \mathrm{RMS}=\sqrt{\frac{1}{M}\sum_{i=1}^{M} f(t_i)^2}
+            </span>.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Auto-scale plot.</strong> Automatically scales the main waveform so it fits vertically
+            in the plot area, which makes small-amplitude changes easier to see.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Derivative view.</strong> Displays the derivative series by transforming coefficients:
+          </p>
+          <div class="tex tex-block" data-tex="a_n' = 2\pi n\,b_n">a_n' = 2\pi n\,b_n</div>
+          <div class="tex tex-block" data-tex="b_n' = -2\pi n\,a_n">b_n' = -2\pi n\,a_n</div>
+        </li>
+      </ul>
+
+      <h3>Presets: Intuition and Math</h3>
+      <p>
+        Each preset is a standard Fourier series with a specific pattern of harmonic coefficients.
+        These patterns control the smoothness, symmetry, and sharpness of the waveform.
+      </p>
+      <ul>
+        <li>
+          <p>
+            <strong>Pure tone.</strong> A single harmonic produces a sinusoid at one frequency, for example:
+          </p>
+          <div class="tex tex-block" data-tex="f(t)=\sin(2\pi k t)">f(t)=\sin(2\pi k t)</div>
+        </li>
+        <li>
+          <p>
+            <strong>Square wave.</strong> Odd harmonics only, with amplitudes that decay as
+            <span class="tex" data-tex="A_n=\frac{4}{\pi n}">A_n=\frac{4}{\pi n}</span> for odd
+            <span class="tex" data-tex="n">n</span>, and zero for even harmonics.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Sawtooth.</strong> All harmonics appear with alternating sign:
+          </p>
+          <div class="tex tex-block" data-tex="A_n=\frac{2}{\pi n}(-1)^{n+1}">A_n=\frac{2}{\pi n}(-1)^{n+1}</div>
+        </li>
+        <li>
+          <p>
+            <strong>Triangle.</strong> Odd harmonics only with faster decay, producing a smoother signal:
+          </p>
+          <div class="tex tex-block" data-tex="A_n=\frac{8}{\pi^2 n^2}(-1)^{\frac{n-1}{2}}">A_n=\frac{8}{\pi^2 n^2}(-1)^{\frac{n-1}{2}}</div>
+        </li>
+        <li>
+          <p>
+            <strong>Spike (Dirichlet-ish).</strong> Equal-strength harmonics approximate a narrow impulse
+            train, concentrating energy at many frequencies. This uses roughly constant amplitudes,
+            which makes the partial sum resemble a Dirichlet kernel:
+          </p>
+          <div class="tex tex-block" data-tex="f(t)=\sum_{n=1}^{N}\cos(2\pi n t)">
+            f(t)=\sum_{n=1}^{N}\cos(2\pi n t)
+          </div>
+          <p>
+            As <span class="tex" data-tex="N">N</span> grows, the main lobe narrows while side lobes persist,
+            so the signal looks like a spike repeated once per period.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Random phase with decay.</strong> Amplitudes decay as
+            <span class="tex" data-tex="A_n\propto 1/n^p">A_n\propto 1/n^p</span> while phases are randomized,
+            producing a noisy but structured waveform.
+          </p>
+        </li>
+      </ul>
+
+      <h3>Global Controls (left column)</h3>
+      <p>
+        These settings shape the entire series before you edit any individual harmonic.
+      </p>
+      <ul>
+        <li>
+          <p>
+            <strong>Max harmonics (N).</strong> Sets how many terms are used in the series. Larger
+            <span class="tex" data-tex="N">N</span> resolves sharper features but increases complexity.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>a0.</strong> Sets the DC offset
+            <span class="tex" data-tex="a_0/2">a_0/2</span>, shifting the waveform up or down.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Time shift t0.</strong> Rotates coefficients in phase. The transformed coefficients are:
+          </p>
+          <div class="tex tex-block" data-tex="a_n' = a_n\cos(2\pi n t_0)-b_n\sin(2\pi n t_0)">
+            a_n' = a_n\cos(2\pi n t_0)-b_n\sin(2\pi n t_0)
+          </div>
+          <div class="tex tex-block" data-tex="b_n' = a_n\sin(2\pi n t_0)+b_n\cos(2\pi n t_0)">
+            b_n' = a_n\sin(2\pi n t_0)+b_n\cos(2\pi n t_0)
+          </div>
+        </li>
+        <li>
+          <p>
+            <strong>Even / Odd harmonics.</strong> Keeping only even or only odd
+            <span class="tex" data-tex="n">n</span> isolates symmetry and changes the waveform’s structure.
+          </p>
+        </li>
+      </ul>
+
+      <h3>Partial Sums</h3>
+      <p>
+        Partial sums help visualize convergence and show how the waveform builds as harmonics are added.
+      </p>
+      <ul>
+        <li>
+          <p>
+            <strong>Show partial sum.</strong> Compares the truncated series
+            <span class="tex" data-tex="S_{N_{\text{partial}}}(t)">S_{N_{\text{partial}}}(t)</span> with the full
+            reconstruction.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Show convergence ladder.</strong> Overlays
+            <span class="tex" data-tex="S_5, S_{10}, S_{20}, S_N">S_5, S_{10}, S_{20}, S_N</span> to show how the
+            series builds.
+          </p>
+        </li>
+      </ul>
+
+      <h3>Edit Mode</h3>
+      <p>
+        You can edit coefficients directly or via amplitude and phase.
+      </p>
+      <ul>
+        <li>
+          <p>
+            <strong>a/b mode.</strong> Directly edit
+            <span class="tex" data-tex="a_n">a_n</span> and <span class="tex" data-tex="b_n">b_n</span>.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>A/φ mode.</strong> Edit amplitude and phase where:
+          </p>
+          <div class="tex tex-block" data-tex="A_n=\sqrt{a_n^2+b_n^2}">A_n=\sqrt{a_n^2+b_n^2}</div>
+          <div class="tex tex-block" data-tex="\phi_n=\operatorname{atan2}(a_n,b_n)">\phi_n=\operatorname{atan2}(a_n,b_n)</div>
+        </li>
+        <li>
+          <p>
+            <strong>Harmonic selector.</strong> Chooses which
+            <span class="tex" data-tex="n">n</span> you are editing at a time.
+          </p>
+        </li>
+      </ul>
+
+      <h3>Apply to All</h3>
+      <p>
+        These tools modify all harmonics at once to shape the spectrum quickly.
+      </p>
+      <ul>
+        <li>
+          <p>
+            <strong>Power-law decay.</strong> Sets
+            <span class="tex" data-tex="A_n\propto 1/n^p">A_n\propto 1/n^p</span> across all harmonics.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Randomize phases.</strong> Keeps
+            <span class="tex" data-tex="A_n">A_n</span> fixed and randomizes
+            <span class="tex" data-tex="\phi_n">\phi_n</span>.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Low-pass, band-pass, high-pass.</strong> Zero coefficients outside the selected band to
+            sculpt the spectrum. The app uses fixed bands based on the current
+            <span class="tex" data-tex="N">N</span>:
+          </p>
+          <div class="tex tex-block" data-tex="\text{Low: } 1\le n\le \lfloor N/3 \rfloor">
+            \text{Low: } 1\le n\le \lfloor N/3 \rfloor
+          </div>
+          <div class="tex tex-block" data-tex="\text{Band: } \lfloor N/3 \rfloor < n \le \lfloor 2N/3 \rfloor">
+            \text{Band: } \lfloor N/3 \rfloor < n \le \lfloor 2N/3 \rfloor
+          </div>
+          <div class="tex tex-block" data-tex="\text{High: } n > \lfloor 2N/3 \rfloor">
+            \text{High: } n > \lfloor 2N/3 \rfloor
+          </div>
+        </li>
+      </ul>
+
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script src="explainer.js"></script>
+</body>
+</html>

@@ -48,7 +48,6 @@ function cacheElements() {
   els.resetBtn = document.getElementById("resetBtn");
   els.randomizeBtn = document.getElementById("randomizeBtn");
   els.normalizeRms = document.getElementById("normalizeRms");
-
   els.harmonicsSlider = document.getElementById("harmonicsSlider");
   els.harmonicsValue = document.getElementById("harmonicsValue");
   els.a0Slider = document.getElementById("a0Slider");
@@ -67,6 +66,7 @@ function cacheElements() {
 
   els.modeAb = document.getElementById("modeAb");
   els.modeAphi = document.getElementById("modeAphi");
+  els.modeFormula = document.getElementById("modeFormula");
   els.harmonicSelect = document.getElementById("harmonicSelect");
   els.abControls = document.getElementById("abControls");
   els.aphiControls = document.getElementById("aphiControls");
@@ -273,7 +273,20 @@ function switchMode(mode) {
   els.modeAphi.classList.toggle("active", mode === "Aphi");
   els.abControls.classList.toggle("hidden", mode !== "ab");
   els.aphiControls.classList.toggle("hidden", mode !== "Aphi");
+  renderModeFormula();
   updateHarmonicSliders();
+}
+
+function renderModeFormula() {
+  if (!els.modeFormula) return;
+  const formula = state.editMode === "ab"
+    ? "f(t)=\\frac{a_0}{2}+\\sum_{n=1}^{N} \\left(a_n\\cos(2\\pi n t)+b_n\\sin(2\\pi n t)\\right)"
+    : "f(t)=\\frac{a_0}{2}+\\sum_{n=1}^{N} A_n\\sin(2\\pi n t+\\phi_n)";
+  if (window.katex && typeof window.katex.render === "function") {
+    window.katex.render(formula, els.modeFormula, { throwOnError: false });
+  } else {
+    els.modeFormula.textContent = formula;
+  }
 }
 
 function buildHarmonicOptions() {
@@ -315,6 +328,7 @@ function updateUIFromState() {
   els.volumeSlider.value = state.audio.volume;
   els.volumeValue.textContent = state.audio.volume.toFixed(2);
   els.removeDc.checked = state.audio.removeDC;
+  renderModeFormula();
   updateHarmonicSliders();
 }
 
