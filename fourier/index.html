@@ -157,13 +157,14 @@
           <div id="waveformReadout" class="waveform-readout hidden"></div>
         </div>
         <div class="plot-card">
-          <h3>Spectrum (amplitude)</h3>
+          <h3>Spectrum &amp; phase</h3>
           <div class="spectrum-card">
             <canvas id="spectrumCanvas" width="800" height="300"></canvas>
             <div id="spectrumReadout" class="spectrum-readout hidden"></div>
           </div>
           <div class="spectrum-legend">
             <span class="legend-item"><span class="legend-swatch legend-mag"></span><span class="legend-tex" data-tex="A_n = \sqrt{a_n^2 + b_n^2}"></span></span>
+            <span class="legend-item"><span class="legend-swatch legend-phi"></span><span class="legend-tex" data-tex="\phi_n = \operatorname{atan2}(a_n, b_n)"></span></span>
           </div>
         </div>
         <div class="plot-card">
@@ -174,13 +175,10 @@
           </div>
         </div>
         <div class="plot-card">
-          <h3>Phase</h3>
+          <h3>Build the wave</h3>
+          <p class="phasor-caption">Partial sums S<sub>1</sub>, S<sub>2</sub>, …: harmonics are added one by one so you see the series converge.</p>
           <div class="spectrum-card">
-            <canvas id="phaseCanvas" width="800" height="300"></canvas>
-            <div id="phaseReadout" class="spectrum-readout hidden"></div>
-          </div>
-          <div class="spectrum-legend">
-            <span class="legend-item"><span class="legend-swatch legend-phi"></span><span class="legend-tex" data-tex="\phi_n = \operatorname{atan2}(a_n, b_n)"></span></span>
+            <canvas id="buildWaveCanvas" width="800" height="300"></canvas>
           </div>
         </div>
       </section>

@@ -32,8 +32,11 @@ let lastSamples = null;
 let currentPreset = "none";
 let harmonicFilterSnapshot = null;
 let phasorTrail = [];
+let buildWaveK = 1;
+let buildWaveLastAdvance = 0;
 const PHASOR_TRAIL_LEN = 120;
 const PHASOR_PERIOD_SEC = 2;
+const BUILD_WAVE_INTERVAL_MS = 380;
 const SESSION_STORAGE_KEY = "fourier-app-state";
 const HASH_PREFIX = "f=";
 let hashUpdateTimer = null;
@@ -57,6 +60,7 @@ function init() {
   updateUIFromState();
   scheduleRender();
   if (els.phasorCanvas) startPhasorAnimation();
+  if (els.buildWaveCanvas) startBuildWaveAnimation();
 }
 
 function getStatePayload() {
@@ -226,11 +230,10 @@ function cacheElements() {
 
   els.waveformCanvas = document.getElementById("waveformCanvas");
   els.spectrumCanvas = document.getElementById("spectrumCanvas");
-  els.phaseCanvas = document.getElementById("phaseCanvas");
   els.phasorCanvas = document.getElementById("phasorCanvas");
+  els.buildWaveCanvas = document.getElementById("buildWaveCanvas");
   els.waveformReadout = document.getElementById("waveformReadout");
   els.spectrumReadout = document.getElementById("spectrumReadout");
-  els.phaseReadout = document.getElementById("phaseReadout");
 
   els.audioToggle = document.getElementById("audioToggle");
   els.freqSlider = document.getElementById("freqSlider");
@@ -427,11 +430,6 @@ function bindEvents() {
     els.spectrumReadout.classList.add("hidden");
   });
   els.spectrumCanvas.addEventListener("click", handleSpectrumClick);
-  els.phaseCanvas.addEventListener("mousemove", handlePhaseHover);
-  els.phaseCanvas.addEventListener("mouseleave", () => {
-    els.phaseReadout.classList.add("hidden");
-  });
-  els.phaseCanvas.addEventListener("click", handlePhaseClick);
 }
 
 function switchMode(mode) {
@@ -587,7 +585,6 @@ function render() {
 
   drawWaveform(scaledSamples);
   drawSpectrum();
-  drawPhaseSpectrum();
   if (osc) updateAudioWave();
 }
 
@@ -677,59 +674,79 @@ function drawSpectrum() {
   const { aUse, bUse } = getEffectiveCoeffs();
   const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
   const magnitudes = [];
+  const phases = [];
   for (let n = 1; n <= state.N; n++) {
     const A = Math.sqrt(aShift[n] * aShift[n] + bShift[n] * bShift[n]);
     magnitudes.push(A);
+    phases.push(Math.atan2(aShift[n], bShift[n]));
   }
 
-  /* Fixed scale so changing any A_n (including A_1) is visible. 1.0 = full bar height. */
+  /* Amplitude bars in top portion; phase band at bottom (overlaid in same plot). */
+  const phaseBandRatio = 0.22;
+  const phaseBandTop = h * (1 - phaseBandRatio);
+  const barAreaHeight = phaseBandTop - 10;
   const refMagnitude = 1.0;
   const barWidth = w / state.N;
-  const MAG_COLOR = "#4ade80";   /* light green: magnitude A_n */
-  const barAreaHeight = h * 0.85;
+  const MAG_COLOR = "#4ade80";
   for (let i = 0; i < state.N; i++) {
     const A = Math.min(magnitudes[i] / refMagnitude, 1);
     const barHeight = A * barAreaHeight;
     const x = i * barWidth;
-    const y = h - barHeight - 10;
+    const y = phaseBandTop - barHeight;
     ctx.fillStyle = MAG_COLOR;
     ctx.fillRect(x + 2, y, barWidth - 4, barHeight);
   }
-}
 
-function drawPhaseSpectrum() {
-  const ctx = els.phaseCanvas.getContext("2d");
-  const w = els.phaseCanvas.width;
-  const h = els.phaseCanvas.height;
-  ctx.clearRect(0, 0, w, h);
-  drawGrid(ctx, w, h);
-  drawZeroLine(ctx, w, h);
-
-  const { aUse, bUse } = getEffectiveCoeffs();
-  const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
-  const PHI_COLOR = "#a855f7";
-  const barWidth = w / state.N;
-  const halfH = h / 2;
-  const barRange = halfH * 0.85;  /* max bar length from center; φ in [-π, π] */
+  /* Phase bars in bottom band, scaled to fit; alpha 1/2. */
+  const PHI_COLOR = "rgba(168, 85, 247, 0.5)";
+  const phaseBandH = h - phaseBandTop;
+  const phaseCenterY = phaseBandTop + phaseBandH / 2;
+  const phaseBarRange = (phaseBandH / 2) * 0.85;
   for (let i = 0; i < state.N; i++) {
-    const n = i + 1;
-    const phi = Math.atan2(aShift[n], bShift[n]);
+    const phi = phases[i];
+    const len = (phi / Math.PI) * phaseBarRange;
     const x = i * barWidth;
-    const xc = x + barWidth / 2;
-    const len = (phi / Math.PI) * barRange;
-    const yTop = halfH - len;
     const barHeight = Math.abs(len);
     if (barHeight < 1) {
       ctx.fillStyle = PHI_COLOR;
-      ctx.fillRect(x + 2, halfH - 2, barWidth - 4, 4);
+      ctx.fillRect(x + 2, phaseCenterY - 2, barWidth - 4, 4);
     } else if (len >= 0) {
       ctx.fillStyle = PHI_COLOR;
-      ctx.fillRect(x + 2, yTop, barWidth - 4, barHeight);
+      ctx.fillRect(x + 2, phaseCenterY - len, barWidth - 4, barHeight);
     } else {
       ctx.fillStyle = PHI_COLOR;
-      ctx.fillRect(x + 2, halfH, barWidth - 4, barHeight);
+      ctx.fillRect(x + 2, phaseCenterY, barWidth - 4, barHeight);
     }
   }
+}
+
+function drawBuildWave(k) {
+  if (!els.buildWaveCanvas) return;
+  const ctx = els.buildWaveCanvas.getContext("2d");
+  const w = els.buildWaveCanvas.width;
+  const h = els.buildWaveCanvas.height;
+  ctx.clearRect(0, 0, w, h);
+  drawGrid(ctx, w, h);
+  drawZeroLine(ctx, w, h);
+  const Nk = Math.min(Math.max(1, k), state.N);
+  const { aUse, bUse, a0Use } = getEffectiveCoeffs();
+  const partialSamples = evaluateWaveform(a0Use, aUse, bUse, Nk, M, state.t0);
+  drawSeries(ctx, partialSamples, w, h, "#2c3e50", [], true);
+}
+
+function startBuildWaveAnimation() {
+  function loop() {
+    if (els.buildWaveCanvas) {
+      drawBuildWave(buildWaveK);
+      const now = performance.now();
+      if (now - buildWaveLastAdvance >= BUILD_WAVE_INTERVAL_MS) {
+        buildWaveLastAdvance = now;
+        buildWaveK = buildWaveK >= state.N ? 1 : buildWaveK + 1;
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
 }
 
 function drawPhasor(t) {
@@ -1117,25 +1134,6 @@ function handleSpectrumHover(event) {
   els.spectrumReadout.classList.remove("hidden");
 }
 
-function handlePhaseHover(event) {
-  const rect = els.phaseCanvas.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const n = Math.min(
-    state.N,
-    Math.max(1, Math.floor((x / rect.width) * state.N) + 1)
-  );
-  const { aUse, bUse } = getEffectiveCoeffs();
-  const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
-  const an = aShift[n];
-  const bn = bShift[n];
-  const An = Math.sqrt(an * an + bn * bn);
-  const phi = Math.atan2(an, bn);
-  const phiDeg = (phi * 180 / Math.PI).toFixed(1);
-  els.phaseReadout.innerHTML =
-    `n=${n}: A<sub>n</sub>=${An.toFixed(2)}, φ<sub>n</sub>=${phi.toFixed(2)} (${phiDeg}°), a<sub>n</sub>=${an.toFixed(2)}, b<sub>n</sub>=${bn.toFixed(2)}`;
-  els.phaseReadout.classList.remove("hidden");
-}
-
 function harmonicFromSpectrumClick(event, canvas) {
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
@@ -1147,11 +1145,6 @@ function harmonicFromSpectrumClick(event, canvas) {
 
 function handleSpectrumClick(event) {
   state.selectedHarmonic = harmonicFromSpectrumClick(event, els.spectrumCanvas);
-  updateHarmonicSliders();
-}
-
-function handlePhaseClick(event) {
-  state.selectedHarmonic = harmonicFromSpectrumClick(event, els.phaseCanvas);
   updateHarmonicSliders();
 }
 
