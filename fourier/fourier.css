@@ -183,6 +183,64 @@ body {
   pointer-events: none;
 }
 
+.spectrum-card {
+  position: relative;
+  display: inline-block;
+}
+
+.spectrum-readout {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.spectrum-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.spectrum-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spectrum-legend .legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.spectrum-legend .legend-mag {
+  background: #4ade80;
+}
+
+.spectrum-legend .legend-phi {
+  background: #a855f7;
+}
+
+.spectrum-legend .legend-tex {
+  display: inline-flex;
+  align-items: center;
+}
+
+.spectrum-legend .legend-tex .katex {
+  font-size: 1.25em;
+}
+
 .plot-card canvas {
   width: 100%;
   height: auto;

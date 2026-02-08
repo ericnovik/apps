@@ -25,7 +25,6 @@
       <div class="top-actions">
         <a class="explainer-btn" href="explainer.html">Explainer</a>
         <button id="resetBtn">Reset</button>
-        <button id="randomizeBtn">Randomize</button>
         <label class="checkbox">
           <input type="checkbox" id="normalizeRms" />
           Normalize RMS
@@ -88,8 +87,8 @@
         <section class="control-section">
           <h3>Edit Mode</h3>
           <div class="tab-row">
-            <button id="modeAb" class="tab active">aₙ / bₙ</button>
-            <button id="modeAphi" class="tab">Aₙ / φₙ</button>
+            <button id="modeAb" class="tab active">aₙ, bₙ</button>
+            <button id="modeAphi" class="tab">Aₙ, φₙ</button>
           </div>
           <div id="modeFormula" class="mode-formula"></div>
           <div class="control-row">
@@ -143,8 +142,24 @@
           <div id="waveformReadout" class="waveform-readout hidden"></div>
         </div>
         <div class="plot-card">
-          <h3>Spectrum</h3>
-          <canvas id="spectrumCanvas" width="800" height="300"></canvas>
+          <h3>Spectrum (amplitude)</h3>
+          <div class="spectrum-card">
+            <canvas id="spectrumCanvas" width="800" height="300"></canvas>
+            <div id="spectrumReadout" class="spectrum-readout hidden"></div>
+          </div>
+          <div class="spectrum-legend">
+            <span class="legend-item"><span class="legend-swatch legend-mag"></span><span class="legend-tex" data-tex="A_n = \sqrt{a_n^2 + b_n^2}"></span></span>
+          </div>
+        </div>
+        <div class="plot-card">
+          <h3>Phase</h3>
+          <div class="spectrum-card">
+            <canvas id="phaseCanvas" width="800" height="300"></canvas>
+            <div id="phaseReadout" class="spectrum-readout hidden"></div>
+          </div>
+          <div class="spectrum-legend">
+            <span class="legend-item"><span class="legend-swatch legend-phi"></span><span class="legend-tex" data-tex="\phi_n = \operatorname{atan2}(a_n, b_n)"></span></span>
+          </div>
         </div>
       </section>
     </div>

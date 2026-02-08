@@ -132,9 +132,9 @@
         </li>
         <li>
           <p>
-            <strong>Random phase with decay.</strong> Amplitudes decay as
-            <span class="tex" data-tex="A_n\propto 1/n^p">A_n\propto 1/n^p</span> while phases are randomized,
-            producing a noisy but structured waveform.
+            <strong>Random phase with decay.</strong> Same as clicking <strong>Randomize phases</strong> in Apply to All: uses the current power-law decay
+            <span class="tex" data-tex="p">p</span> so that
+            <span class="tex" data-tex="A_n\propto 1/n^p">A_n\propto 1/n^p</span>, then randomizes phases to produce a noisy but structured waveform.
           </p>
         </li>
       </ul>
@@ -235,9 +235,11 @@
         </li>
         <li>
           <p>
-            <strong>Randomize phases.</strong> Keeps
-            <span class="tex" data-tex="A_n">A_n</span> fixed and randomizes
-            <span class="tex" data-tex="\phi_n">\phi_n</span>.
+            <strong>Randomize phases.</strong> Uses the current <strong>Power-law decay</strong>
+            <span class="tex" data-tex="p">p</span> to set each amplitude to
+            <span class="tex" data-tex="A_n = 1/n^p">A_n = 1/n^p</span>, then assigns a random phase
+            <span class="tex" data-tex="\phi_n">\phi_n</span> in
+            <span class="tex" data-tex="[-\pi,\pi]">[-\pi,\pi]</span> to each harmonic. So the spectrum bars follow the decay you chose, and only the phases (purple dots) are randomized. Use the decay slider above to control how amplitudes fall off before clicking.
           </p>
         </li>
         <li>
@@ -255,6 +257,44 @@
           <div class="tex tex-block" data-tex="\text{High: } n > \lfloor 2N/3 \rfloor">
             \text{High: } n > \lfloor 2N/3 \rfloor
           </div>
+        </li>
+      </ul>
+
+      <h3>Audio bar (Play, f0, Volume, Remove DC)</h3>
+      <p>
+        The footer bar lets you hear the current Fourier series as a periodic sound. The <em>shape</em> of the waveform (and thus the timbre) is completely determined by your set of amplitudes
+        <span class="tex" data-tex="A_n">A_n</span> and phases
+        <span class="tex" data-tex="\phi_n">\phi_n</span>; nothing in the audio bar changes that shape.
+      </p>
+      <ul>
+        <li>
+          <p>
+            <strong>Play / Stop.</strong> Click <strong>Play</strong> to start playback of the waveform defined by your current coefficients. The same series you see in the Waveform plot is sent to the Web Audio API as a periodic wave: the harmonic coefficients
+            <span class="tex" data-tex="a_n">a_n</span> and
+            <span class="tex" data-tex="b_n">b_n</span> (after any time shift) are used to build the sound. The button toggles to <strong>Stop</strong>; click again to stop playback. Changing coefficients, presets, or sliders updates the sound in real time while it is playing.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>f0 (Hz).</strong> The fundamental frequency in Hertz: how many times per second that one-period shape is repeated. It does not change
+            <span class="tex" data-tex="A_n">A_n</span> or
+            <span class="tex" data-tex="\phi_n">\phi_n</span>; it only sets the <em>pitch</em>. The period is
+            <span class="tex" data-tex="1/f_0">1/f_0</span> seconds, so higher
+            <span class="tex" data-tex="f_0">f_0</span> means a higher note. Harmonic
+            <span class="tex" data-tex="n">n</span> is played at
+            <span class="tex" data-tex="n f_0">n f_0</span> Hz.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Volume.</strong> Master gain for playback (0–1). Does not change the waveform shape, only its loudness.
+          </p>
+        </li>
+        <li>
+          <p>
+            <strong>Remove DC.</strong> When checked, the DC term
+            <span class="tex" data-tex="a_0/2">a_0/2</span> is set to zero in the audio output. This avoids a constant offset in the signal, which can cause clicks when starting/stopping or unwanted low-frequency rumble. The Waveform plot still shows the full series including DC.
+          </p>
         </li>
       </ul>
 

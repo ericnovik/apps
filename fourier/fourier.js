@@ -38,15 +38,24 @@ function init() {
   cacheElements();
   bindEvents();
   buildHarmonicOptions();
+  renderSpectrumLegend();
   applyPreset("none");
   updateUIFromState();
   scheduleRender();
 }
 
+function renderSpectrumLegend() {
+  const nodes = document.querySelectorAll(".legend-tex[data-tex]");
+  if (!window.katex || typeof window.katex.render !== "function") return;
+  nodes.forEach((node) => {
+    const tex = node.getAttribute("data-tex");
+    if (tex) window.katex.render(tex, node, { throwOnError: false, displayMode: false });
+  });
+}
+
 function cacheElements() {
   els.presetSelect = document.getElementById("presetSelect");
   els.resetBtn = document.getElementById("resetBtn");
-  els.randomizeBtn = document.getElementById("randomizeBtn");
   els.normalizeRms = document.getElementById("normalizeRms");
   els.harmonicsSlider = document.getElementById("harmonicsSlider");
   els.harmonicsValue = document.getElementById("harmonicsValue");
@@ -89,7 +98,10 @@ function cacheElements() {
 
   els.waveformCanvas = document.getElementById("waveformCanvas");
   els.spectrumCanvas = document.getElementById("spectrumCanvas");
+  els.phaseCanvas = document.getElementById("phaseCanvas");
   els.waveformReadout = document.getElementById("waveformReadout");
+  els.spectrumReadout = document.getElementById("spectrumReadout");
+  els.phaseReadout = document.getElementById("phaseReadout");
 
   els.audioToggle = document.getElementById("audioToggle");
   els.freqSlider = document.getElementById("freqSlider");
@@ -105,9 +117,6 @@ function bindEvents() {
   });
   els.resetBtn.addEventListener("click", () => {
     resetState();
-  });
-  els.randomizeBtn.addEventListener("click", () => {
-    randomizeCoefficients();
   });
   els.normalizeRms.addEventListener("change", () => {
     state.normalizeRMS = els.normalizeRms.checked;
@@ -264,7 +273,16 @@ function bindEvents() {
   els.waveformCanvas.addEventListener("mouseleave", () => {
     els.waveformReadout.classList.add("hidden");
   });
+  els.spectrumCanvas.addEventListener("mousemove", handleSpectrumHover);
+  els.spectrumCanvas.addEventListener("mouseleave", () => {
+    els.spectrumReadout.classList.add("hidden");
+  });
   els.spectrumCanvas.addEventListener("click", handleSpectrumClick);
+  els.phaseCanvas.addEventListener("mousemove", handlePhaseHover);
+  els.phaseCanvas.addEventListener("mouseleave", () => {
+    els.phaseReadout.classList.add("hidden");
+  });
+  els.phaseCanvas.addEventListener("click", handlePhaseClick);
 }
 
 function switchMode(mode) {
@@ -433,6 +451,7 @@ function render() {
 
   drawWaveform(scaledSamples);
   drawSpectrum();
+  drawPhaseSpectrum();
   if (osc) updateAudioWave();
 }
 
@@ -486,33 +505,58 @@ function drawSpectrum() {
   const { aUse, bUse } = getEffectiveCoeffs();
   const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
   const magnitudes = [];
-  const phases = [];
-  let maxMag = 0.0001;
   for (let n = 1; n <= state.N; n++) {
     const A = Math.sqrt(aShift[n] * aShift[n] + bShift[n] * bShift[n]);
-    const phi = Math.atan2(aShift[n], bShift[n]);
     magnitudes.push(A);
-    phases.push(phi);
-    if (A > maxMag) maxMag = A;
   }
 
+  /* Fixed scale so changing any A_n (including A_1) is visible. 1.0 = full bar height. */
+  const refMagnitude = 1.0;
   const barWidth = w / state.N;
+  const MAG_COLOR = "#4ade80";   /* light green: magnitude A_n */
+  const barAreaHeight = h * 0.85;
   for (let i = 0; i < state.N; i++) {
-    const A = magnitudes[i] / maxMag;
-    const barHeight = A * (h * 0.6);
+    const A = Math.min(magnitudes[i] / refMagnitude, 1);
+    const barHeight = A * barAreaHeight;
     const x = i * barWidth;
-    const y = h - barHeight - 20;
-    ctx.fillStyle = "#667eea";
+    const y = h - barHeight - 10;
+    ctx.fillStyle = MAG_COLOR;
     ctx.fillRect(x + 2, y, barWidth - 4, barHeight);
+  }
+}
 
-    const phase = phases[i];
-    const phaseBand = h * 0.25;
-    const phaseCenter = h - 10;
-    const phaseY = phaseCenter - (phase / Math.PI) * (phaseBand / 2);
-    ctx.fillStyle = "#e67e22";
-    ctx.beginPath();
-    ctx.arc(x + barWidth / 2, phaseY, 2, 0, TWO_PI);
-    ctx.fill();
+function drawPhaseSpectrum() {
+  const ctx = els.phaseCanvas.getContext("2d");
+  const w = els.phaseCanvas.width;
+  const h = els.phaseCanvas.height;
+  ctx.clearRect(0, 0, w, h);
+  drawGrid(ctx, w, h);
+  drawZeroLine(ctx, w, h);
+
+  const { aUse, bUse } = getEffectiveCoeffs();
+  const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
+  const PHI_COLOR = "#a855f7";
+  const barWidth = w / state.N;
+  const halfH = h / 2;
+  const barRange = halfH * 0.85;  /* max bar length from center; φ in [-π, π] */
+  for (let i = 0; i < state.N; i++) {
+    const n = i + 1;
+    const phi = Math.atan2(aShift[n], bShift[n]);
+    const x = i * barWidth;
+    const xc = x + barWidth / 2;
+    const len = (phi / Math.PI) * barRange;
+    const yTop = halfH - len;
+    const barHeight = Math.abs(len);
+    if (barHeight < 1) {
+      ctx.fillStyle = PHI_COLOR;
+      ctx.fillRect(x + 2, halfH - 2, barWidth - 4, 4);
+    } else if (len >= 0) {
+      ctx.fillStyle = PHI_COLOR;
+      ctx.fillRect(x + 2, yTop, barWidth - 4, barHeight);
+    } else {
+      ctx.fillStyle = PHI_COLOR;
+      ctx.fillRect(x + 2, halfH, barWidth - 4, barHeight);
+    }
   }
 }
 
@@ -608,16 +652,9 @@ function applyPreset(name) {
       }
       break;
     }
-    case "randomDecay": {
-      const p = parseFloat(els.decaySlider.value);
-      for (let n = 1; n <= N; n++) {
-        const A = 1 / Math.pow(n, p);
-        const phi = (Math.random() * 2 - 1) * Math.PI;
-        state.a[n] = A * Math.sin(phi);
-        state.b[n] = A * Math.cos(phi);
-      }
+    case "randomDecay":
+      randomizePhases();
       break;
-    }
     default:
       break;
   }
@@ -657,18 +694,6 @@ function resetState() {
   scheduleRender();
 }
 
-function randomizeCoefficients() {
-  const p = parseFloat(els.decaySlider.value);
-  for (let n = 1; n <= state.N; n++) {
-    const A = 1 / Math.pow(n, p);
-    const phi = (Math.random() * 2 - 1) * Math.PI;
-    state.a[n] = A * Math.sin(phi);
-    state.b[n] = A * Math.cos(phi);
-  }
-  updateHarmonicSliders();
-  scheduleRender();
-}
-
 function applyDecay(p) {
   for (let n = 1; n <= state.N; n++) {
     const { phi } = computeAphi(n);
@@ -680,8 +705,9 @@ function applyDecay(p) {
 }
 
 function randomizePhases() {
+  const p = parseFloat(els.decaySlider.value);
   for (let n = 1; n <= state.N; n++) {
-    const { A } = computeAphi(n);
+    const A = 1 / Math.pow(n, p);
     const phi = (Math.random() * 2 - 1) * Math.PI;
     setFromAphi(n, A, phi);
   }
@@ -756,14 +782,60 @@ function handleWaveformHover(event) {
   els.waveformReadout.classList.remove("hidden");
 }
 
-function handleSpectrumClick(event) {
+function handleSpectrumHover(event) {
   const rect = els.spectrumCanvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const n = Math.min(
     state.N,
     Math.max(1, Math.floor((x / rect.width) * state.N) + 1)
   );
-  state.selectedHarmonic = n;
+  const { aUse, bUse } = getEffectiveCoeffs();
+  const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
+  const an = aShift[n];
+  const bn = bShift[n];
+  const An = Math.sqrt(an * an + bn * bn);
+  const phi = Math.atan2(an, bn);
+  const phiDeg = (phi * 180 / Math.PI).toFixed(1);
+  els.spectrumReadout.innerHTML =
+    `n=${n}: A<sub>n</sub>=${An.toFixed(4)}, φ<sub>n</sub>=${phi.toFixed(4)} (${phiDeg}°), a<sub>n</sub>=${an.toFixed(4)}, b<sub>n</sub>=${bn.toFixed(4)}`;
+  els.spectrumReadout.classList.remove("hidden");
+}
+
+function handlePhaseHover(event) {
+  const rect = els.phaseCanvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const n = Math.min(
+    state.N,
+    Math.max(1, Math.floor((x / rect.width) * state.N) + 1)
+  );
+  const { aUse, bUse } = getEffectiveCoeffs();
+  const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
+  const an = aShift[n];
+  const bn = bShift[n];
+  const An = Math.sqrt(an * an + bn * bn);
+  const phi = Math.atan2(an, bn);
+  const phiDeg = (phi * 180 / Math.PI).toFixed(1);
+  els.phaseReadout.innerHTML =
+    `n=${n}: A<sub>n</sub>=${An.toFixed(4)}, φ<sub>n</sub>=${phi.toFixed(4)} (${phiDeg}°), a<sub>n</sub>=${an.toFixed(4)}, b<sub>n</sub>=${bn.toFixed(4)}`;
+  els.phaseReadout.classList.remove("hidden");
+}
+
+function harmonicFromSpectrumClick(event, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  return Math.min(
+    state.N,
+    Math.max(1, Math.floor((x / rect.width) * state.N) + 1)
+  );
+}
+
+function handleSpectrumClick(event) {
+  state.selectedHarmonic = harmonicFromSpectrumClick(event, els.spectrumCanvas);
+  updateHarmonicSliders();
+}
+
+function handlePhaseClick(event) {
+  state.selectedHarmonic = harmonicFromSpectrumClick(event, els.phaseCanvas);
   updateHarmonicSliders();
 }
 
