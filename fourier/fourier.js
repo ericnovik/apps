@@ -31,6 +31,12 @@ let pendingRender = false;
 let lastSamples = null;
 let currentPreset = "none";
 let harmonicFilterSnapshot = null;
+let phasorTrail = [];
+const PHASOR_TRAIL_LEN = 120;
+const PHASOR_PERIOD_SEC = 2;
+const SESSION_STORAGE_KEY = "fourier-app-state";
+const HASH_PREFIX = "f=";
+let hashUpdateTimer = null;
 
 const els = {};
 
@@ -39,9 +45,130 @@ function init() {
   bindEvents();
   buildHarmonicOptions();
   renderSpectrumLegend();
-  applyPreset("none");
+  let restored = restoreStateFromHash();
+  if (!restored) restored = restoreStateFromSession();
+  if (restored) {
+    updatePartialMax();
+    buildHarmonicOptions();
+    if (els.presetSelect) els.presetSelect.value = currentPreset;
+  } else {
+    applyPreset("none");
+  }
   updateUIFromState();
   scheduleRender();
+  if (els.phasorCanvas) startPhasorAnimation();
+}
+
+function getStatePayload() {
+  return {
+    N: state.N,
+    a0: state.a0,
+    a: Array.from(state.a),
+    b: Array.from(state.b),
+    t0: state.t0,
+    showPartial: state.showPartial,
+    Npartial: state.Npartial,
+    showLadder: state.showLadder,
+    editMode: state.editMode,
+    selectedHarmonic: state.selectedHarmonic,
+    normalizeRMS: state.normalizeRMS,
+    autoScalePlot: state.autoScalePlot,
+    derivativeView: state.derivativeView,
+    audio: { ...state.audio },
+    currentPreset
+  };
+}
+
+function applyStatePayload(payload) {
+  state.N = Math.min(MAX_N, Math.max(1, payload.N | 0));
+  state.a0 = Number(payload.a0) || 0;
+  state.t0 = Number(payload.t0) || 0;
+  state.showPartial = !!payload.showPartial;
+  state.Npartial = Math.min(state.N, Math.max(1, payload.Npartial | 0));
+  state.showLadder = !!payload.showLadder;
+  state.editMode = payload.editMode === "Aphi" ? "Aphi" : "ab";
+  state.selectedHarmonic = Math.min(state.N, Math.max(1, payload.selectedHarmonic | 0));
+  state.normalizeRMS = !!payload.normalizeRMS;
+  state.autoScalePlot = payload.autoScalePlot !== false;
+  state.derivativeView = !!payload.derivativeView;
+  if (payload.audio && typeof payload.audio === "object") {
+    state.audio.f0 = Number(payload.audio.f0) || 220;
+    const vol = Number(payload.audio.volume);
+    state.audio.volume = Number.isFinite(vol) ? Math.max(0, Math.min(1, vol)) : 0.3;
+    state.audio.removeDC = payload.audio.removeDC !== false;
+  }
+  if (Array.isArray(payload.a) && payload.a.length) {
+    for (let i = 0; i <= MAX_N; i++) state.a[i] = i < payload.a.length ? Number(payload.a[i]) || 0 : 0;
+  }
+  if (Array.isArray(payload.b) && payload.b.length) {
+    for (let i = 0; i <= MAX_N; i++) state.b[i] = i < payload.b.length ? Number(payload.b[i]) || 0 : 0;
+  }
+  currentPreset = typeof payload.currentPreset === "string" ? payload.currentPreset : "none";
+}
+
+function saveStateToSession() {
+  try {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(getStatePayload()));
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function restoreStateFromSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return false;
+    applyStatePayload(JSON.parse(raw));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function compressStateToHash() {
+  if (typeof window.LZString === "undefined") return "";
+  try {
+    const json = JSON.stringify(getStatePayload());
+    return window.LZString.compressToEncodedURIComponent(json);
+  } catch (e) {
+    return "";
+  }
+}
+
+function saveStateToHash() {
+  const encoded = compressStateToHash();
+  if (!encoded) return;
+  const hash = "#" + HASH_PREFIX + encoded;
+  const url = location.pathname + location.search + hash;
+  try {
+    history.replaceState(null, "", url);
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function restoreStateFromHash() {
+  try {
+    const hash = location.hash;
+    if (!hash || hash.indexOf("#" + HASH_PREFIX) !== 0) return false;
+    const encoded = hash.slice(1 + HASH_PREFIX.length);
+    if (!encoded) return false;
+    if (typeof window.LZString === "undefined") return false;
+    const json = window.LZString.decompressFromEncodedURIComponent(encoded);
+    if (!json) return false;
+    applyStatePayload(JSON.parse(json));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function scheduleHashUpdate() {
+  if (hashUpdateTimer) clearTimeout(hashUpdateTimer);
+  hashUpdateTimer = setTimeout(() => {
+    hashUpdateTimer = null;
+    saveStateToHash();
+  }, 500);
 }
 
 function renderSpectrumLegend() {
@@ -55,7 +182,9 @@ function renderSpectrumLegend() {
 
 function cacheElements() {
   els.presetSelect = document.getElementById("presetSelect");
+  els.copyUrlBtn = document.getElementById("copyUrlBtn");
   els.resetBtn = document.getElementById("resetBtn");
+  els.explainerLink = document.getElementById("explainerLink");
   els.normalizeRms = document.getElementById("normalizeRms");
   els.harmonicsSlider = document.getElementById("harmonicsSlider");
   els.harmonicsValue = document.getElementById("harmonicsValue");
@@ -75,7 +204,6 @@ function cacheElements() {
 
   els.modeAb = document.getElementById("modeAb");
   els.modeAphi = document.getElementById("modeAphi");
-  els.modeFormula = document.getElementById("modeFormula");
   els.harmonicSelect = document.getElementById("harmonicSelect");
   els.abControls = document.getElementById("abControls");
   els.aphiControls = document.getElementById("aphiControls");
@@ -99,6 +227,7 @@ function cacheElements() {
   els.waveformCanvas = document.getElementById("waveformCanvas");
   els.spectrumCanvas = document.getElementById("spectrumCanvas");
   els.phaseCanvas = document.getElementById("phaseCanvas");
+  els.phasorCanvas = document.getElementById("phasorCanvas");
   els.waveformReadout = document.getElementById("waveformReadout");
   els.spectrumReadout = document.getElementById("spectrumReadout");
   els.phaseReadout = document.getElementById("phaseReadout");
@@ -112,6 +241,26 @@ function cacheElements() {
 }
 
 function bindEvents() {
+  if (els.copyUrlBtn) {
+    els.copyUrlBtn.addEventListener("click", () => {
+      saveStateToHash();
+      const url = location.href;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          const label = els.copyUrlBtn.textContent;
+          els.copyUrlBtn.textContent = "Copied!";
+          setTimeout(() => { els.copyUrlBtn.textContent = label; }, 1500);
+        });
+      }
+    });
+  }
+  if (els.explainerLink) {
+    els.explainerLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      saveStateToSession();
+      window.location.href = "explainer.html";
+    });
+  }
   els.presetSelect.addEventListener("change", () => {
     applyPreset(els.presetSelect.value);
   });
@@ -291,20 +440,7 @@ function switchMode(mode) {
   els.modeAphi.classList.toggle("active", mode === "Aphi");
   els.abControls.classList.toggle("hidden", mode !== "ab");
   els.aphiControls.classList.toggle("hidden", mode !== "Aphi");
-  renderModeFormula();
   updateHarmonicSliders();
-}
-
-function renderModeFormula() {
-  if (!els.modeFormula) return;
-  const formula = state.editMode === "ab"
-    ? "f(t)=\\frac{a_0}{2}+\\sum_{n=1}^{N} \\left(a_n\\cos(2\\pi n t)+b_n\\sin(2\\pi n t)\\right)"
-    : "f(t)=\\frac{a_0}{2}+\\sum_{n=1}^{N} A_n\\sin(2\\pi n t+\\phi_n)";
-  if (window.katex && typeof window.katex.render === "function") {
-    window.katex.render(formula, els.modeFormula, { throwOnError: false });
-  } else {
-    els.modeFormula.textContent = formula;
-  }
 }
 
 function buildHarmonicOptions() {
@@ -346,7 +482,6 @@ function updateUIFromState() {
   els.volumeSlider.value = state.audio.volume;
   els.volumeValue.textContent = state.audio.volume.toFixed(2);
   els.removeDc.checked = state.audio.removeDC;
-  renderModeFormula();
   updateHarmonicSliders();
 }
 
@@ -435,6 +570,7 @@ function computeRMS(samples) {
 }
 
 function scheduleRender() {
+  scheduleHashUpdate();
   if (pendingRender) return;
   pendingRender = true;
   requestAnimationFrame(() => {
@@ -463,17 +599,53 @@ function drawWaveform(samples) {
   drawGrid(ctx, w, h);
   drawZeroLine(ctx, w, h);
 
+  const padding = h * 0.12;
+  const usableHeight = h - padding * 2;
+  let sharedScale = null;
+  if ((state.showPartial || state.showLadder) && state.autoScalePlot) {
+    let maxAbs = 0.0001;
+    for (let i = 0; i < samples.length; i++) {
+      const v = Math.abs(samples[i]);
+      if (v > maxAbs) maxAbs = v;
+    }
+    if (state.showPartial) {
+      const Np = state.Npartial;
+      const { aUse, bUse, a0Use } = getEffectiveCoeffs();
+      const partialSamples = evaluateWaveform(a0Use, aUse, bUse, Np, M, state.t0);
+      const rms = computeRMS(partialSamples);
+      const rmsScale = state.normalizeRMS && rms > 0 ? 0.7 / rms : 1;
+      for (let i = 0; i < partialSamples.length; i++) {
+        const v = Math.abs(partialSamples[i] * rmsScale);
+        if (v > maxAbs) maxAbs = v;
+      }
+    }
+    if (state.showLadder) {
+      const targets = [5, 10, 20, state.N].filter(n => n <= state.N);
+      targets.forEach((n) => {
+        const { aUse, bUse, a0Use } = getEffectiveCoeffs();
+        const partial = evaluateWaveform(a0Use, aUse, bUse, n, M, state.t0);
+        const rms = computeRMS(partial);
+        const rmsScale = state.normalizeRMS && rms > 0 ? 0.7 / rms : 1;
+        for (let i = 0; i < partial.length; i++) {
+          const v = Math.abs(partial[i] * rmsScale);
+          if (v > maxAbs) maxAbs = v;
+        }
+      });
+    }
+    sharedScale = (usableHeight * 0.5) / (maxAbs * 1.05);
+  }
+
   const mainColor = "#2c3e50";
-  drawSeries(ctx, samples, w, h, mainColor, [], state.autoScalePlot);
+  drawSeries(ctx, samples, w, h, mainColor, [], state.autoScalePlot, sharedScale);
 
   if (state.showPartial) {
     const Np = state.Npartial;
     const { aUse, bUse, a0Use } = getEffectiveCoeffs();
     const partialSamples = evaluateWaveform(a0Use, aUse, bUse, Np, M, state.t0);
     const rms = computeRMS(partialSamples);
-    const scale = state.normalizeRMS && rms > 0 ? 0.7 / rms : 1;
-    const scaled = partialSamples.map(v => v * scale);
-    drawSeries(ctx, scaled, w, h, "#e67e22", [6, 4], false);
+    const rmsScale = state.normalizeRMS && rms > 0 ? 0.7 / rms : 1;
+    const scaled = partialSamples.map(v => v * rmsScale);
+    drawSeries(ctx, scaled, w, h, "#e67e22", [6, 4], false, sharedScale);
   }
 
   if (state.showLadder) {
@@ -482,10 +654,10 @@ function drawWaveform(samples) {
       const { aUse, bUse, a0Use } = getEffectiveCoeffs();
       const partial = evaluateWaveform(a0Use, aUse, bUse, n, M, state.t0);
       const rms = computeRMS(partial);
-      const scale = state.normalizeRMS && rms > 0 ? 0.7 / rms : 1;
-      const scaled = partial.map(v => v * scale);
+      const rmsScale = state.normalizeRMS && rms > 0 ? 0.7 / rms : 1;
+      const scaled = partial.map(v => v * rmsScale);
       const alpha = 0.2 + idx * 0.15;
-      drawSeries(ctx, scaled, w, h, `rgba(52, 152, 219, ${alpha})`, [4, 4], false);
+      drawSeries(ctx, scaled, w, h, `rgba(52, 152, 219, ${alpha})`, [4, 4], false, sharedScale);
     });
   }
 
@@ -560,6 +732,145 @@ function drawPhaseSpectrum() {
   }
 }
 
+function drawPhasor(t) {
+  if (!els.phasorCanvas) return;
+  const ctx = els.phasorCanvas.getContext("2d");
+  const w = els.phasorCanvas.width;
+  const h = els.phasorCanvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const { aUse, bUse, a0Use } = getEffectiveCoeffs();
+  const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
+  const dc = a0Use / 2;
+  const amps = [];
+  const phases = [];
+  let totalRadius = Math.abs(dc);
+  for (let n = 1; n <= state.N; n++) {
+    const A = Math.sqrt(aShift[n] * aShift[n] + bShift[n] * bShift[n]);
+    const phi = Math.atan2(aShift[n], bShift[n]);
+    amps.push(A);
+    phases.push(phi);
+    totalRadius += A;
+  }
+  const diagramW = w * 0.45;
+  const diagramH = h * 0.9;
+  const cx = diagramW * 0.5;
+  const cy = h / 2;
+  const scale = Math.min((diagramW * 0.4) / Math.max(totalRadius, 0.01), (diagramH * 0.4) / Math.max(totalRadius, 0.01));
+
+  function toScreen(x, y) {
+    return { x: cx + x * scale, y: cy - y * scale };
+  }
+
+  let px = 0;
+  let py = dc;
+  const points = [toScreen(px, py)];
+
+  for (let n = 0; n < amps.length; n++) {
+    const A = amps[n];
+    const phi = phases[n];
+    const angle = TWO_PI * (n + 1) * t + phi;
+    const dx = A * Math.cos(angle);
+    const dy = A * Math.sin(angle);
+    px += dx;
+    py += dy;
+    points.push(toScreen(px, py));
+  }
+
+  const tipScreen = points[points.length - 1];
+  phasorTrail.push({ x: tipScreen.x, y: tipScreen.y });
+  if (phasorTrail.length > PHASOR_TRAIL_LEN) phasorTrail.shift();
+
+  ctx.strokeStyle = "rgba(42, 157, 143, 0.35)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  phasorTrail.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+
+  const hueStep = 280 / Math.max(state.N, 1);
+  for (let n = 0; n < points.length - 1; n++) {
+    const from = points[n];
+    const to = points[n + 1];
+    const hue = (200 + n * hueStep) % 360;
+    ctx.strokeStyle = `hsl(${hue}, 65%, 45%)`;
+    ctx.lineWidth = n === points.length - 2 ? 3 : 2;
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+    const ax = to.x - from.x;
+    const ay = to.y - from.y;
+    const len = Math.sqrt(ax * ax + ay * ay) || 1;
+    const arrLen = Math.min(12, len * 0.35);
+    const ux = ax / len;
+    const uy = ay / len;
+    const perpX = -uy;
+    const perpY = ux;
+    ctx.fillStyle = `hsl(${hue}, 65%, 45%)`;
+    ctx.beginPath();
+    ctx.moveTo(to.x, to.y);
+    ctx.lineTo(to.x - ux * arrLen + perpX * arrLen * 0.4, to.y - uy * arrLen + perpY * arrLen * 0.4);
+    ctx.lineTo(to.x - ux * arrLen - perpX * arrLen * 0.4, to.y - uy * arrLen - perpY * arrLen * 0.4);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "#1a1a2e";
+  points.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, i === points.length - 1 ? 5 : 3, 0, TWO_PI);
+    ctx.fill();
+  });
+
+  const waveLeft = diagramW + 20;
+  const waveW = w - waveLeft - 20;
+  const waveTop = 20;
+  const waveH = h - 40;
+  const M = 200;
+  const samples = evaluateWaveform(a0Use, aUse, bUse, state.N, M, state.t0);
+  let maxAbs = 0.0001;
+  for (let i = 0; i < samples.length; i++) {
+    if (Math.abs(samples[i]) > maxAbs) maxAbs = Math.abs(samples[i]);
+  }
+  const waveScale = (waveH * 0.45) / maxAbs;
+  const waveMidY = waveTop + waveH / 2;
+  ctx.strokeStyle = "#2c3e50";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < samples.length; i++) {
+    const x = waveLeft + (i / (M - 1)) * waveW;
+    const y = waveMidY - samples[i] * waveScale;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  const cursorX = waveLeft + t * waveW;
+  ctx.strokeStyle = "#e74c3c";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(cursorX, waveTop);
+  ctx.lineTo(cursorX, waveTop + waveH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#e74c3c";
+  ctx.beginPath();
+  ctx.arc(cursorX, waveMidY - samples[Math.round(t * (M - 1))] * waveScale, 4, 0, TWO_PI);
+  ctx.fill();
+}
+
+function startPhasorAnimation() {
+  function loop() {
+    const t = ((performance.now() / 1000) / PHASOR_PERIOD_SEC) % 1;
+    drawPhasor(t);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
 function drawGrid(ctx, w, h) {
   ctx.strokeStyle = "#e0e0e0";
   ctx.lineWidth = 1;
@@ -590,7 +901,7 @@ function drawZeroLine(ctx, w, h) {
   ctx.stroke();
 }
 
-function drawSeries(ctx, samples, w, h, color, dash, autoScale) {
+function drawSeries(ctx, samples, w, h, color, dash, autoScale, explicitScale) {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
@@ -598,14 +909,19 @@ function drawSeries(ctx, samples, w, h, color, dash, autoScale) {
   ctx.beginPath();
   const padding = h * 0.12;
   const usableHeight = h - padding * 2;
-  let scale = usableHeight * 0.4;
-  if (autoScale) {
-    let maxAbs = 0.0001;
-    for (let i = 0; i < samples.length; i++) {
-      const v = Math.abs(samples[i]);
-      if (v > maxAbs) maxAbs = v;
+  let scale;
+  if (explicitScale != null && typeof explicitScale === "number") {
+    scale = explicitScale;
+  } else {
+    scale = usableHeight * 0.4;
+    if (autoScale) {
+      let maxAbs = 0.0001;
+      for (let i = 0; i < samples.length; i++) {
+        const v = Math.abs(samples[i]);
+        if (v > maxAbs) maxAbs = v;
+      }
+      scale = (usableHeight * 0.5) / (maxAbs * 1.05);
     }
-    scale = (usableHeight * 0.5) / (maxAbs * 1.05);
   }
   for (let i = 0; i < samples.length; i++) {
     const x = (i / (samples.length - 1)) * w;
@@ -797,7 +1113,7 @@ function handleSpectrumHover(event) {
   const phi = Math.atan2(an, bn);
   const phiDeg = (phi * 180 / Math.PI).toFixed(1);
   els.spectrumReadout.innerHTML =
-    `n=${n}: A<sub>n</sub>=${An.toFixed(4)}, φ<sub>n</sub>=${phi.toFixed(4)} (${phiDeg}°), a<sub>n</sub>=${an.toFixed(4)}, b<sub>n</sub>=${bn.toFixed(4)}`;
+    `n=${n}: A<sub>n</sub>=${An.toFixed(2)}, φ<sub>n</sub>=${phi.toFixed(2)} (${phiDeg}°), a<sub>n</sub>=${an.toFixed(2)}, b<sub>n</sub>=${bn.toFixed(2)}`;
   els.spectrumReadout.classList.remove("hidden");
 }
 
@@ -816,7 +1132,7 @@ function handlePhaseHover(event) {
   const phi = Math.atan2(an, bn);
   const phiDeg = (phi * 180 / Math.PI).toFixed(1);
   els.phaseReadout.innerHTML =
-    `n=${n}: A<sub>n</sub>=${An.toFixed(4)}, φ<sub>n</sub>=${phi.toFixed(4)} (${phiDeg}°), a<sub>n</sub>=${an.toFixed(4)}, b<sub>n</sub>=${bn.toFixed(4)}`;
+    `n=${n}: A<sub>n</sub>=${An.toFixed(2)}, φ<sub>n</sub>=${phi.toFixed(2)} (${phiDeg}°), a<sub>n</sub>=${an.toFixed(2)}, b<sub>n</sub>=${bn.toFixed(2)}`;
   els.phaseReadout.classList.remove("hidden");
 }
 

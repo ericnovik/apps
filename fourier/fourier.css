@@ -11,7 +11,7 @@ body {
 }
 
 .app {
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
   padding: 16px;
   display: grid;
@@ -30,11 +30,26 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.audio-group,
 .preset-group,
 .top-actions {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.audio-group .audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audio-group .audio-controls input[type="range"] {
+  width: 80px;
+}
+
+.audio-group .checkbox {
+  margin: 0;
 }
 
 .top-title {
@@ -47,7 +62,7 @@ body {
 
 .top-actions button,
 .control-row button,
-.audio-bar button {
+.audio-group button {
   padding: 8px 14px;
   border: none;
   border-radius: 8px;
@@ -71,7 +86,7 @@ body {
 
 .top-actions button:active,
 .control-row button:active,
-.audio-bar button:active {
+.audio-group button:active {
   transform: translateY(1px);
 }
 
@@ -79,6 +94,12 @@ body {
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 16px;
+  min-width: 0;
+}
+
+.main > .controls {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .controls {
@@ -86,13 +107,17 @@ body {
   gap: 12px;
 }
 
+.main > .plots {
+  min-width: 0;
+}
+
 .control-section {
   background: #fff;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .control-section h3 {
@@ -143,13 +168,6 @@ body {
   border-color: #667eea;
 }
 
-.mode-formula {
-  text-align: center;
-  margin: 6px 0 10px;
-  font-size: 0.95rem;
-  color: #333;
-}
-
 .hidden {
   display: none;
 }
@@ -157,6 +175,7 @@ body {
 
 .plots {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
@@ -241,21 +260,17 @@ body {
   font-size: 1.25em;
 }
 
+.phasor-caption {
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
 .plot-card canvas {
   width: 100%;
   height: auto;
   display: block;
-}
-
-.audio-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  background: #fff;
-  padding: 12px 16px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .audio-controls {
@@ -305,6 +320,9 @@ body {
 
 @media (max-width: 980px) {
   .main {
+    grid-template-columns: 1fr;
+  }
+  .plots {
     grid-template-columns: 1fr;
   }
 }
