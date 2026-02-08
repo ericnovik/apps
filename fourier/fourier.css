@@ -267,6 +267,39 @@ body {
   line-height: 1.4;
 }
 
+.build-wave-terms {
+  margin-top: 10px;
+  overflow-x: auto;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.build-wave-terms .katex-display {
+  margin: 0;
+}
+
+.build-wave-term-mode {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.build-wave-term-mode .radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.build-wave-term-mode .radio-label input {
+  cursor: pointer;
+}
+
 .plot-card canvas {
   width: 100%;
   height: auto;

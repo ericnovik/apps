@@ -16,6 +16,7 @@ const state = {
   normalizeRMS: false,
   autoScalePlot: true,
   derivativeView: false,
+  buildWaveTermMode: "ab",
   audio: {
     enabled: false,
     f0: 220,
@@ -78,6 +79,7 @@ function getStatePayload() {
     normalizeRMS: state.normalizeRMS,
     autoScalePlot: state.autoScalePlot,
     derivativeView: state.derivativeView,
+    buildWaveTermMode: state.buildWaveTermMode,
     audio: { ...state.audio },
     currentPreset
   };
@@ -95,6 +97,7 @@ function applyStatePayload(payload) {
   state.normalizeRMS = !!payload.normalizeRMS;
   state.autoScalePlot = payload.autoScalePlot !== false;
   state.derivativeView = !!payload.derivativeView;
+  state.buildWaveTermMode = (payload.buildWaveTermMode === "aphi" || payload.buildWaveTermMode === "complex") ? payload.buildWaveTermMode : "ab";
   if (payload.audio && typeof payload.audio === "object") {
     state.audio.f0 = Number(payload.audio.f0) || 220;
     const vol = Number(payload.audio.volume);
@@ -184,6 +187,49 @@ function renderSpectrumLegend() {
   });
 }
 
+function updateBuildWaveTerms() {
+  if (!window.katex || typeof window.katex.render !== "function") return;
+  if (!els.buildWaveTerms) return;
+  const { aUse, bUse } = getEffectiveCoeffs();
+  const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
+  const absFmt = (x) => Math.abs(Number(x)).toFixed(2);
+  const lines = [];
+  const mode = state.buildWaveTermMode || "ab";
+  const ns = [1, 2, 3];
+  if (state.N > 3) ns.push(state.N);
+
+  ns.forEach((n) => {
+    const a = Number(aShift[n]);
+    const b = Number(bShift[n]);
+    if (mode === "ab") {
+      const aStr = a >= 0 ? a.toFixed(2) : "- " + absFmt(a);
+      const signB = b >= 0 ? "+" : "-";
+      const bStr = absFmt(b);
+      lines.push("n=" + n + ":&\\quad&" + aStr + "&\\cos(2\\pi " + n + " t)&" + signB + "&" + bStr + "&\\sin(2\\pi " + n + " t)");
+    } else if (mode === "aphi") {
+      const A = Math.sqrt(a * a + b * b);
+      const phi = Math.atan2(a, b);
+      const AStr = A.toFixed(2);
+      const phiStr = phi >= 0 ? phi.toFixed(2) : "- " + absFmt(phi);
+      lines.push("n=" + n + ":&\\quad&" + AStr + "&\\sin(2\\pi " + n + " t + " + phiStr + ")");
+    } else {
+      const re = (a / 2).toFixed(2);
+      const im = Math.abs(b / 2).toFixed(2);
+      const c_n_imSign = b >= 0 ? "-" : "+";
+      const c_neg_imSign = b >= 0 ? "+" : "-";
+      const c_n = "(" + re + " " + c_n_imSign + " " + im + "\\,\\mathrm{i})";
+      const c_neg = "(" + re + " " + c_neg_imSign + " " + im + "\\,\\mathrm{i})";
+      lines.push("n=" + n + ":&\\quad&" + c_n + "&\\mathrm{e}^{\\mathrm{i}2\\pi " + n + " t}&+&" + c_neg + "\\,\\mathrm{e}^{-\\mathrm{i}2\\pi " + n + " t}");
+    }
+  });
+  const tex = "\\begin{aligned}" + lines.join("\\\\") + "\\end{aligned}";
+  try {
+    window.katex.render(tex, els.buildWaveTerms, { throwOnError: false, displayMode: true });
+  } catch (e) {
+    els.buildWaveTerms.textContent = "n=1: … n=2: … n=3: …";
+  }
+}
+
 function cacheElements() {
   els.presetSelect = document.getElementById("presetSelect");
   els.copyUrlBtn = document.getElementById("copyUrlBtn");
@@ -232,6 +278,10 @@ function cacheElements() {
   els.spectrumCanvas = document.getElementById("spectrumCanvas");
   els.phasorCanvas = document.getElementById("phasorCanvas");
   els.buildWaveCanvas = document.getElementById("buildWaveCanvas");
+  els.buildWaveTerms = document.getElementById("buildWaveTerms");
+  els.buildWaveTermModeAphi = document.querySelector('input[name="buildWaveTermMode"][value="aphi"]');
+  els.buildWaveTermModeAb = document.querySelector('input[name="buildWaveTermMode"][value="ab"]');
+  els.buildWaveTermModeComplex = document.querySelector('input[name="buildWaveTermMode"][value="complex"]');
   els.waveformReadout = document.getElementById("waveformReadout");
   els.spectrumReadout = document.getElementById("spectrumReadout");
 
@@ -345,6 +395,15 @@ function bindEvents() {
     state.showLadder = els.showLadder.checked;
     scheduleRender();
   });
+  if (els.buildWaveTermModeAb) {
+    els.buildWaveTermModeAb.addEventListener("change", () => { state.buildWaveTermMode = "ab"; scheduleRender(); });
+  }
+  if (els.buildWaveTermModeAphi) {
+    els.buildWaveTermModeAphi.addEventListener("change", () => { state.buildWaveTermMode = "aphi"; scheduleRender(); });
+  }
+  if (els.buildWaveTermModeComplex) {
+    els.buildWaveTermModeComplex.addEventListener("change", () => { state.buildWaveTermMode = "complex"; scheduleRender(); });
+  }
 
   els.modeAb.addEventListener("click", () => switchMode("ab"));
   els.modeAphi.addEventListener("click", () => switchMode("Aphi"));
@@ -480,6 +539,9 @@ function updateUIFromState() {
   els.volumeSlider.value = state.audio.volume;
   els.volumeValue.textContent = state.audio.volume.toFixed(2);
   els.removeDc.checked = state.audio.removeDC;
+  if (els.buildWaveTermModeAb) els.buildWaveTermModeAb.checked = state.buildWaveTermMode === "ab";
+  if (els.buildWaveTermModeAphi) els.buildWaveTermModeAphi.checked = state.buildWaveTermMode === "aphi";
+  if (els.buildWaveTermModeComplex) els.buildWaveTermModeComplex.checked = state.buildWaveTermMode === "complex";
   updateHarmonicSliders();
 }
 
@@ -585,6 +647,7 @@ function render() {
 
   drawWaveform(scaledSamples);
   drawSpectrum();
+  updateBuildWaveTerms();
   if (osc) updateAudioWave();
 }
 
