@@ -276,8 +276,9 @@ h2 {
     flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
+    align-items: center;
     margin: 20px 0;
-    min-height: 60px;
+    min-height: 120px;
     padding: 20px;
     background: #f8f9fa;
     border-radius: 10px;
@@ -285,28 +286,26 @@ h2 {
     overflow: hidden;
 }
 
-.rolling-ball {
+.balls-container.bouncing-active {
+    min-height: 140px;
+}
+
+.bouncing-ball {
     position: absolute;
-    width: 40px;
-    height: 40px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: #95a5a6;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    animation: rollAcross 1s ease-in-out;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
     z-index: 10;
 }
 
-@keyframes rollAcross {
-    0% {
-        left: -50px;
-        top: 50%;
-        transform: translateY(-50%) rotate(0deg);
-    }
-    100% {
-        left: calc(100% + 50px);
-        top: 50%;
-        transform: translateY(-50%) rotate(360deg);
-    }
+.bouncing-ball.bounce-red {
+    background: #e74c3c;
+}
+
+.bouncing-ball.bounce-green {
+    background: #2ecc71;
 }
 
 .ball {

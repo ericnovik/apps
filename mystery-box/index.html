@@ -113,44 +113,48 @@
                     <canvas id="simAverageChart"></canvas>
                     <div class="chart-summary">
                         <div class="chart-summary-row">
-                            <span class="summary-label">Optimal Strategy average:</span>
+                            <span class="summary-label">Bayes Optimal average:</span>
                             <span id="simAverageOptimal">$0.0000</span>
                         </div>
                         <div class="chart-summary-row">
-                            <span class="summary-label">Uniform prior average:</span>
-                            <span id="simAverageUniform">$0.0000</span>
+                            <span class="summary-label">MAP with one extra ball average:</span>
+                            <span id="simAverageMap">$0.0000</span>
                         </div>
                         <div class="chart-summary-row">
-                            <span class="summary-label">MAP posterior average:</span>
-                            <span id="simAverageMap">$0.0000</span>
+                            <span class="summary-label">Null hypothesis test average:</span>
+                            <span id="simAverageNull">$0.0000</span>
                         </div>
                     </div>
                 </div>
                 <div class="simulation-summary">
                     <h3>Simulation Summary</h3>
                     <div class="simulation-summary-row">
-                        <span class="summary-label">Optimal Strategy cumulative:</span>
+                        <span class="summary-label">Bayes Optimal cumulative:</span>
                         <span id="simSummaryOptimalCumulative">$0.00</span>
                     </div>
                     <div class="simulation-summary-row">
-                        <span class="summary-label">Uniform prior cumulative:</span>
-                        <span id="simSummaryUniformCumulative">$0.00</span>
-                    </div>
-                    <div class="simulation-summary-row">
-                        <span class="summary-label">MAP posterior cumulative:</span>
+                        <span class="summary-label">MAP with one extra ball cumulative:</span>
                         <span id="simSummaryMapCumulative">$0.00</span>
                     </div>
                     <div class="simulation-summary-row">
-                        <span class="summary-label">Optimal Strategy correct guess %:</span>
+                        <span class="summary-label">Null hypothesis test cumulative:</span>
+                        <span id="simSummaryNullCumulative">$0.00</span>
+                    </div>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">Bayes Optimal correct guess %:</span>
                         <span id="simSummaryOptimalCorrect">0.0%</span>
                     </div>
                     <div class="simulation-summary-row">
-                        <span class="summary-label">Uniform prior correct guess %:</span>
-                        <span id="simSummaryUniformCorrect">0.0%</span>
+                        <span class="summary-label">MAP with one extra ball correct guess %:</span>
+                        <span id="simSummaryMapCorrect">0.0%</span>
                     </div>
                     <div class="simulation-summary-row">
-                        <span class="summary-label">MAP posterior correct guess %:</span>
-                        <span id="simSummaryMapCorrect">0.0%</span>
+                        <span class="summary-label">Null hypothesis test correct guess %:</span>
+                        <span id="simSummaryNullCorrect">0.0%</span>
+                    </div>
+                    <div class="simulation-summary-row">
+                        <span class="summary-label">Null hypothesis test avg extra balls bought:</span>
+                        <span id="simSummaryNullAvgExtra">0.00</span>
                     </div>
                 </div>
             </div>
@@ -252,9 +256,9 @@
                 </div>
             </div>
             <div class="guess-options">
-                <button onclick="makeGuess(0.25)" class="btn btn-guess">0.25 (25% Red)</button>
-                <button onclick="makeGuess(0.50)" class="btn btn-guess">0.50 (50% Red)</button>
-                <button onclick="makeGuess(0.75)" class="btn btn-guess">0.75 (75% Red)</button>
+                <button id="guessBtn025" onclick="makeGuess(0.25)" class="btn btn-guess">25% Red (P = 1/2)</button>
+                <button id="guessBtn050" onclick="makeGuess(0.50)" class="btn btn-guess">50% Red (P = 1/3)</button>
+                <button id="guessBtn075" onclick="makeGuess(0.75)" class="btn btn-guess">75% Red (P = 1/6)</button>
             </div>
         </div>
 

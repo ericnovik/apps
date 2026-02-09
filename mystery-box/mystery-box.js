@@ -227,13 +227,12 @@ function runSimulation() {
     const extraC = additionalBallPrice;
 
     const impliedPrior = [impliedProbabilities[0.25], impliedProbabilities[0.50], impliedProbabilities[0.75]];
-    const uniformPrior = [1 / 3, 1 / 3, 1 / 3];
 
     const impliedResults = simulateWithPrior(simGames, thetas, impliedPrior, impliedPrior, payoff, N, C, extraC, 'ev');
-    const uniformResults = simulateWithPrior(simGames, thetas, impliedPrior, uniformPrior, payoff, N, C, extraC, 'always_extra_map');
     const impliedMapExtraResults = simulateWithPrior(simGames, thetas, impliedPrior, impliedPrior, payoff, N, C, extraC, 'always_extra_map');
+    const nullTestResults = simulateNullTest(simGames, thetas, impliedPrior, payoff, N, C, extraC);
 
-    renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraResults);
+    renderSimulationCharts(impliedResults, impliedMapExtraResults, nullTestResults);
 }
 
 function simulateWithPrior(simGames, thetas, samplingPrior, bettingPrior, payoff, N, C, extraC, strategy) {
@@ -304,12 +303,12 @@ function mostLikelyTheta(post, thetas) {
     return thetas[bestIdx];
 }
 
-function renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraResults) {
+function renderSimulationCharts(impliedResults, impliedMapExtraResults, nullTestResults) {
     const section = document.getElementById('simulationSection');
     if (section) {
         section.classList.remove('hidden');
     }
-    updateSimulationSummary(impliedResults, uniformResults, impliedMapExtraResults);
+    updateSimulationSummary(impliedResults, impliedMapExtraResults, nullTestResults);
 
     const labels = impliedResults.cumulative.map((_, i) => i + 1);
     const cumCanvas = document.getElementById('simCumulativeChart');
@@ -325,7 +324,7 @@ function renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraR
             labels,
             datasets: [
                 {
-                    label: 'Optimal Strategy',
+                    label: 'Bayes Optimal',
                     data: impliedResults.cumulative,
                     borderColor: '#667eea',
                     borderWidth: 1,
@@ -333,17 +332,17 @@ function renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraR
                     tension: 0.1
                 },
                 {
-                    label: 'Uniform prior (always extra ball + MLE)',
-                    data: uniformResults.cumulative,
-                    borderColor: '#2ecc71',
+                    label: 'MAP with one extra ball',
+                    data: impliedMapExtraResults.cumulative,
+                    borderColor: '#e67e22',
                     borderWidth: 1,
                     pointRadius: 0,
                     tension: 0.1
                 },
                 {
-                    label: 'MAP posterior (always extra)',
-                    data: impliedMapExtraResults.cumulative,
-                    borderColor: '#e67e22',
+                    label: 'Null hypothesis test (α=0.05)',
+                    data: nullTestResults.cumulative,
+                    borderColor: '#9b59b6',
                     borderWidth: 1,
                     pointRadius: 0,
                     tension: 0.1
@@ -367,7 +366,7 @@ function renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraR
             labels,
             datasets: [
                 {
-                    label: 'Optimal Strategy',
+                    label: 'Bayes Optimal',
                     data: impliedResults.average,
                     borderColor: '#667eea',
                     borderWidth: 1,
@@ -375,17 +374,17 @@ function renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraR
                     tension: 0.1
                 },
                 {
-                    label: 'Uniform prior (always extra ball + MLE)',
-                    data: uniformResults.average,
-                    borderColor: '#2ecc71',
+                    label: 'MAP with one extra ball',
+                    data: impliedMapExtraResults.average,
+                    borderColor: '#e67e22',
                     borderWidth: 1,
                     pointRadius: 0,
                     tension: 0.1
                 },
                 {
-                    label: 'MAP posterior (always extra)',
-                    data: impliedMapExtraResults.average,
-                    borderColor: '#e67e22',
+                    label: 'Null hypothesis test (α=0.05)',
+                    data: nullTestResults.average,
+                    borderColor: '#9b59b6',
                     borderWidth: 1,
                     pointRadius: 0,
                     tension: 0.1
@@ -408,39 +407,40 @@ function renderSimulationCharts(impliedResults, uniformResults, impliedMapExtraR
     });
 }
 
-function updateSimulationSummary(impliedResults, uniformResults, impliedMapExtraResults) {
+function updateSimulationSummary(impliedResults, impliedMapExtraResults, nullTestResults) {
     const impliedCum = impliedResults.cumulative[impliedResults.cumulative.length - 1] || 0;
     const impliedAvg = impliedResults.average[impliedResults.average.length - 1] || 0;
-    const uniformCum = uniformResults.cumulative[uniformResults.cumulative.length - 1] || 0;
-    const uniformAvg = uniformResults.average[uniformResults.average.length - 1] || 0;
     const mapAvg = impliedMapExtraResults.average[impliedMapExtraResults.average.length - 1] || 0;
     const mapCum = impliedMapExtraResults.cumulative[impliedMapExtraResults.cumulative.length - 1] || 0;
+    const nullCum = nullTestResults.cumulative[nullTestResults.cumulative.length - 1] || 0;
+    const nullAvg = nullTestResults.average[nullTestResults.average.length - 1] || 0;
+    const nullCorrect = nullTestResults.correctGuesses || 0;
+    const nullAvgExtra = nullTestResults.averageExtraBalls ?? 0;
     const impliedCorrect = impliedResults.correctGuesses || 0;
-    const uniformCorrect = uniformResults.correctGuesses || 0;
     const mapCorrect = impliedMapExtraResults.correctGuesses || 0;
     const totalGames = impliedResults.average.length || 0;
 
     const impliedCumEl = document.getElementById('simSummaryOptimalCumulative');
-    const uniformCumEl = document.getElementById('simSummaryUniformCumulative');
     const mapAvgEl = document.getElementById('simAverageMap');
     const optimalAvgEl = document.getElementById('simAverageOptimal');
-    const uniformAvgEl = document.getElementById('simAverageUniform');
     const impliedCorrectEl = document.getElementById('simSummaryOptimalCorrect');
-    const uniformCorrectEl = document.getElementById('simSummaryUniformCorrect');
     const mapCumEl = document.getElementById('simSummaryMapCumulative');
     const mapCorrectEl = document.getElementById('simSummaryMapCorrect');
+    const nullCumEl = document.getElementById('simSummaryNullCumulative');
+    const nullAvgEl = document.getElementById('simAverageNull');
+    const nullCorrectEl = document.getElementById('simSummaryNullCorrect');
+    const nullAvgExtraEl = document.getElementById('simSummaryNullAvgExtra');
 
     if (impliedCumEl) impliedCumEl.textContent = `$${impliedCum.toFixed(2)}`;
-    if (uniformCumEl) uniformCumEl.textContent = `$${uniformCum.toFixed(2)}`;
     if (mapAvgEl) mapAvgEl.textContent = `$${mapAvg.toFixed(4)}`;
     if (optimalAvgEl) optimalAvgEl.textContent = `$${impliedAvg.toFixed(4)}`;
-    if (uniformAvgEl) uniformAvgEl.textContent = `$${uniformAvg.toFixed(4)}`;
     if (mapCumEl) mapCumEl.textContent = `$${mapCum.toFixed(2)}`;
+    if (nullCumEl) nullCumEl.textContent = `$${nullCum.toFixed(2)}`;
+    if (nullAvgEl) nullAvgEl.textContent = `$${nullAvg.toFixed(4)}`;
+    if (nullCorrectEl && totalGames) nullCorrectEl.textContent = `${((nullCorrect / totalGames) * 100).toFixed(1)}%`;
+    if (nullAvgExtraEl) nullAvgExtraEl.textContent = nullAvgExtra.toFixed(2);
     if (impliedCorrectEl && totalGames) {
         impliedCorrectEl.textContent = `${((impliedCorrect / totalGames) * 100).toFixed(1)}%`;
-    }
-    if (uniformCorrectEl && totalGames) {
-        uniformCorrectEl.textContent = `${((uniformCorrect / totalGames) * 100).toFixed(1)}%`;
     }
     if (mapCorrectEl && totalGames) {
         mapCorrectEl.textContent = `${((mapCorrect / totalGames) * 100).toFixed(1)}%`;
@@ -504,6 +504,84 @@ function extraBallDecision(thetas, post, payoff, C, extraC) {
 function normalize(values) {
     const total = values.reduce((a, b) => a + b, 0) || 1;
     return values.map(v => v / total);
+}
+
+// Sequential likelihood-ratio null test: keep buying balls until best/nextBest likelihood ratio > 1/alpha
+const NULL_TEST_ALPHA = 0.05;
+const NULL_TEST_THRESHOLD = 1 / NULL_TEST_ALPHA;  // 20
+const NULL_TEST_LOG_THRESHOLD = Math.log(NULL_TEST_THRESHOLD);
+const NULL_TEST_MAX_DRAWS = 10000;
+
+function getLogLikelihood(theta, redCount, greenCount) {
+    if (redCount === 0 && greenCount === 0) return 0;
+    const t = Math.max(theta, 1e-10);
+    const u = Math.max(1 - theta, 1e-10);
+    return redCount * Math.log(t) + greenCount * Math.log(u);
+}
+
+function simulateNullTest(simGames, thetas, samplingPrior, payoff, N, C, extraC) {
+    const cumulative = [];
+    const average = [];
+    let totalNet = 0;
+    let correctGuesses = 0;
+    let totalExtraBalls = 0;
+
+    for (let game = 1; game <= simGames; game++) {
+        const actualTheta = sampleTheta(thetas, samplingPrior);
+        let redCount = drawReds(N, actualTheta);
+        let greenCount = N - redCount;
+        let totalCost = C;
+        let extraBalls = 0;
+        let guessedTheta = thetas[0];
+
+        while (extraBalls < NULL_TEST_MAX_DRAWS) {
+            const results = thetas.map(theta => ({
+                theta,
+                logLikelihood: getLogLikelihood(theta, redCount, greenCount)
+            }));
+            results.sort((a, b) => b.logLikelihood - a.logLikelihood);
+            const best = results[0];
+            const nextBest = results[1];
+            const logRatio = best.logLikelihood - nextBest.logLikelihood;
+
+            if (logRatio > NULL_TEST_LOG_THRESHOLD) {
+                guessedTheta = best.theta;
+                break;
+            }
+
+            totalCost += extraC;
+            extraBalls++;
+            if (Math.random() < actualTheta) {
+                redCount++;
+            } else {
+                greenCount++;
+            }
+        }
+
+        if (extraBalls >= NULL_TEST_MAX_DRAWS) {
+            const finalResults = thetas.map(theta => ({
+                theta,
+                logLikelihood: getLogLikelihood(theta, redCount, greenCount)
+            }));
+            finalResults.sort((a, b) => b.logLikelihood - a.logLikelihood);
+            guessedTheta = finalResults[0].theta;
+        }
+
+        totalExtraBalls += extraBalls;
+        const netResult = guessedTheta === actualTheta ? payoff[thetas.indexOf(guessedTheta)] - totalCost : -totalCost;
+        if (guessedTheta === actualTheta) correctGuesses += 1;
+        totalNet += netResult;
+        cumulative.push(totalNet);
+        average.push(totalNet / game);
+    }
+
+    return {
+        cumulative,
+        average,
+        correctGuesses,
+        totalExtraBalls,
+        averageExtraBalls: totalExtraBalls / simGames
+    };
 }
 
 function binomialCoeff(n, k) {
@@ -702,49 +780,88 @@ function selectBox(index, proportion) {
     drawBalls(numBallsToDraw);
 }
 
+// Run 10 small bouncing red/green balls in a container, then call onComplete
+const BOUNCING_BALL_COUNT = 30;
+const BALL_SIZE = 22;
+
+function runBouncingBalls(container, durationMs, onComplete) {
+    if (!container) {
+        if (onComplete) onComplete();
+        return;
+    }
+    container.classList.add('bouncing-active');
+    container.innerHTML = '';
+    const rect = container.getBoundingClientRect();
+    const padding = 4;
+    const left = padding;
+    const top = padding;
+    const right = rect.width - BALL_SIZE - padding;
+    const bottom = rect.height - BALL_SIZE - padding;
+
+    const balls = [];
+    for (let i = 0; i < BOUNCING_BALL_COUNT; i++) {
+        const isRed = Math.random() < 0.5;
+        const el = document.createElement('div');
+        el.className = `bouncing-ball ${isRed ? 'bounce-red' : 'bounce-green'}`;
+        container.appendChild(el);
+        balls.push({
+            el,
+            x: left + Math.random() * Math.max(0, right - left),
+            y: top + Math.random() * Math.max(0, bottom - top),
+            vx: (Math.random() - 0.5) * 12,
+            vy: (Math.random() - 0.5) * 12
+        });
+    }
+
+    let startedAt = null;
+    let rafId = null;
+
+    function tick(timestamp) {
+        if (startedAt == null) startedAt = timestamp;
+        const elapsed = timestamp - startedAt;
+
+        balls.forEach((b) => {
+            b.x += b.vx * 0.28;
+            b.y += b.vy * 0.28;
+            if (b.x <= left) { b.x = left; b.vx = Math.abs(b.vx); }
+            if (b.x >= right) { b.x = right; b.vx = -Math.abs(b.vx); }
+            if (b.y <= top) { b.y = top; b.vy = Math.abs(b.vy); }
+            if (b.y >= bottom) { b.y = bottom; b.vy = -Math.abs(b.vy); }
+            b.el.style.left = `${b.x}px`;
+            b.el.style.top = `${b.y}px`;
+        });
+
+        if (elapsed < durationMs) {
+            rafId = requestAnimationFrame(tick);
+        } else {
+            container.classList.remove('bouncing-active');
+            container.innerHTML = '';
+            if (onComplete) onComplete();
+        }
+    }
+    rafId = requestAnimationFrame(tick);
+}
+
 // Draw balls with replacement
 function drawBalls(count) {
     const container = document.getElementById('ballsContainer');
     container.innerHTML = '';
     drawnBalls = []; // Reset drawn balls
-    
-    // Hide stats initially
+
     document.getElementById('redCount').textContent = '?';
     document.getElementById('greenCount').textContent = '?';
     document.getElementById('proportion').textContent = '?';
-    
-    // Draw all balls first (store results but don't show)
+
     for (let i = 0; i < count; i++) {
         const isRed = Math.random() < actualProportion;
         drawnBalls.push(isRed);
     }
-    
-    // Show rolling animation for each ball, then reveal all at once
-    let animationComplete = 0;
-    const animationDuration = 300; // 1 second per ball
-    
-    for (let i = 0; i < count; i++) {
-        setTimeout(() => {
-            // Update ball counter
-            document.getElementById('ballsDrawn').textContent = i + 1;
-            
-            // Create rolling ball animation
-            const rollingBall = document.createElement('div');
-            rollingBall.className = 'rolling-ball';
-            container.appendChild(rollingBall);
-            
-            // Remove rolling ball after animation
-            setTimeout(() => {
-                rollingBall.remove();
-                animationComplete++;
-                
-                // After all animations complete, show all results
-                if (animationComplete === count) {
-                    revealResults();
-                }
-            }, animationDuration);
-        }, i * animationDuration);
-    }
+
+    // 10 bouncing balls for ~2.5s, then reveal results
+    runBouncingBalls(container, 2500, () => {
+        document.getElementById('ballsDrawn').textContent = count;
+        revealResults();
+    });
 }
 
 // Reveal all drawn balls at once
@@ -835,39 +952,10 @@ function guessNow() {
 function buyAnotherBall() {
     totalCost += additionalBallPrice;
     hasBoughtExtraBall = true;
-    
-    const container = document.getElementById('decisionBallsContainer');
-    
-    // Draw one more ball
+
     const isRed = Math.random() < actualProportion;
     drawnBalls.push(isRed);
-    
-    // Show rolling animation
-    const rollingBall = document.createElement('div');
-    rollingBall.className = 'rolling-ball';
-    container.appendChild(rollingBall);
-    
-    // After rolling animation, reveal the ball
-    setTimeout(() => {
-        rollingBall.remove();
-        
-        const ball = document.createElement('div');
-        ball.className = `ball ${isRed ? 'red' : 'green'}`;
-        ball.textContent = isRed ? 'R' : 'G';
-        ball.style.opacity = '0';
-        ball.style.transform = 'scale(0)';
-        container.appendChild(ball);
-        
-        // Animate appearance
-        setTimeout(() => {
-            ball.style.transition = 'all 0.3s';
-            ball.style.opacity = '1';
-            ball.style.transform = 'scale(1)';
-        }, 10);
-        
-        // Update stats
-        updateDecisionPhase();
-    }, 1000);
+    updateDecisionPhase();
 }
 
 // Show guess phase
@@ -894,6 +982,17 @@ function showGuessPhase() {
         ball.textContent = isRed ? 'R' : 'G';
         container.appendChild(ball);
     });
+
+    // Set choice labels with implied prior P for each option
+    const p25 = impliedProbabilities[0.25];
+    const p50 = impliedProbabilities[0.50];
+    const p75 = impliedProbabilities[0.75];
+    const btn025 = document.getElementById('guessBtn025');
+    const btn050 = document.getElementById('guessBtn050');
+    const btn075 = document.getElementById('guessBtn075');
+    if (btn025) btn025.textContent = `25% Red (P = ${toFraction(p25)})`;
+    if (btn050) btn050.textContent = `50% Red (P = ${toFraction(p50)})`;
+    if (btn075) btn075.textContent = `75% Red (P = ${toFraction(p75)})`;
 }
 
 // Make a guess
