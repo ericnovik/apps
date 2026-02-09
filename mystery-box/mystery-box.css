@@ -23,6 +23,10 @@ body {
     width: 100%;
 }
 
+.container.simulation-wide {
+    max-width: 1200px;
+}
+
 h1 {
     text-align: center;
     color: #333;
@@ -512,13 +516,38 @@ h2 {
     flex-wrap: wrap;
 }
 
+.simulation-settings-section {
+    margin: 15px 0;
+    padding: 12px 20px;
+}
+
 .simulation-settings-row {
     justify-content: center;
-    align-items: flex-end;
+    align-items: center;
 }
 
 .simulation-settings-row .config-input {
     margin-bottom: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.simulation-settings-row .config-input label {
+    margin-bottom: 0;
+}
+
+.simulation-settings-row .config-input input {
+    height: 38px;
+    box-sizing: border-box;
+}
+
+.simulation-settings-row .btn {
+    height: 38px;
+    padding: 0 20px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
 }
 
 .simulation-section {
@@ -531,10 +560,23 @@ h2 {
     display: none;
 }
 
+.simulation-charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 900px) {
+    .simulation-charts-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 .simulation-chart {
     background: #f8f9fa;
     border-radius: 12px;
     padding: 16px;
+    min-width: 0;
 }
 
 .simulation-chart h3 {

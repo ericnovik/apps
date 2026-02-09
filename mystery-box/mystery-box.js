@@ -340,7 +340,7 @@ function renderSimulationCharts(impliedResults, impliedMapExtraResults, nullTest
                     tension: 0.1
                 },
                 {
-                    label: 'Null hypothesis test (α=0.05)',
+                    label: 'NHST (α=0.05)',
                     data: nullTestResults.cumulative,
                     borderColor: '#9b59b6',
                     borderWidth: 1,
@@ -382,7 +382,7 @@ function renderSimulationCharts(impliedResults, impliedMapExtraResults, nullTest
                     tension: 0.1
                 },
                 {
-                    label: 'Null hypothesis test (α=0.05)',
+                    label: 'NHST (α=0.05)',
                     data: nullTestResults.average,
                     borderColor: '#9b59b6',
                     borderWidth: 1,
@@ -665,6 +665,8 @@ function showSimulation() {
     if (tallyDisplay) {
         tallyDisplay.classList.add('hidden');
     }
+    const container = document.querySelector('.container');
+    if (container) container.classList.add('simulation-wide');
 }
 
 function backToConfigFromSimulation() {
@@ -676,6 +678,8 @@ function backToConfigFromSimulation() {
     if (tallyDisplay) {
         tallyDisplay.classList.remove('hidden');
     }
+    const container = document.querySelector('.container');
+    if (container) container.classList.remove('simulation-wide');
 }
 
 // Change settings (go back to config)

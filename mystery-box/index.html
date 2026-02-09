@@ -92,9 +92,7 @@
         <!-- Simulation Phase -->
         <div id="simulationPhase" class="phase hidden">
             <h2>Simulation</h2>
-            <div class="config-section">
-                <h3>Simulation Settings</h3>
-                <p>Run simulated games using the optimal strategy.</p>
+            <div class="config-section simulation-settings-section">
                 <div class="config-input-row simulation-settings-row">
                     <div class="config-input">
                         <label for="simGames">Number of Games:</label>
@@ -104,42 +102,46 @@
                 </div>
             </div>
             <div id="simulationSection" class="simulation-section hidden">
-                <div class="simulation-chart">
-                    <h3>Cumulative Net Earnings</h3>
-                    <canvas id="simCumulativeChart"></canvas>
-                </div>
-                <div class="simulation-chart">
-                    <h3>Average Net Earnings</h3>
-                    <canvas id="simAverageChart"></canvas>
-                    <div class="chart-summary">
-                        <div class="chart-summary-row">
-                            <span class="summary-label">Bayes Optimal average:</span>
-                            <span id="simAverageOptimal">$0.0000</span>
+                <div class="simulation-charts-row">
+                    <div class="simulation-chart">
+                        <h3>Cumulative Net Earnings</h3>
+                        <canvas id="simCumulativeChart"></canvas>
+                        <div class="chart-summary chart-summary-cumulative">
+                            <div class="chart-summary-row">
+                                <span class="summary-label">Bayes Optimal cumulative:</span>
+                                <span id="simSummaryOptimalCumulative">$0.00</span>
+                            </div>
+                            <div class="chart-summary-row">
+                                <span class="summary-label">MAP with one extra ball cumulative:</span>
+                                <span id="simSummaryMapCumulative">$0.00</span>
+                            </div>
+                            <div class="chart-summary-row">
+                                <span class="summary-label">Null hypothesis test cumulative:</span>
+                                <span id="simSummaryNullCumulative">$0.00</span>
+                            </div>
                         </div>
-                        <div class="chart-summary-row">
-                            <span class="summary-label">MAP with one extra ball average:</span>
-                            <span id="simAverageMap">$0.0000</span>
-                        </div>
-                        <div class="chart-summary-row">
-                            <span class="summary-label">Null hypothesis test average:</span>
-                            <span id="simAverageNull">$0.0000</span>
+                    </div>
+                    <div class="simulation-chart">
+                        <h3>Average Net Earnings</h3>
+                        <canvas id="simAverageChart"></canvas>
+                        <div class="chart-summary">
+                            <div class="chart-summary-row">
+                                <span class="summary-label">Bayes Optimal average:</span>
+                                <span id="simAverageOptimal">$0.0000</span>
+                            </div>
+                            <div class="chart-summary-row">
+                                <span class="summary-label">MAP with one extra ball average:</span>
+                                <span id="simAverageMap">$0.0000</span>
+                            </div>
+                            <div class="chart-summary-row">
+                                <span class="summary-label">Null hypothesis test average:</span>
+                                <span id="simAverageNull">$0.0000</span>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="simulation-summary">
-                    <h3>Simulation Summary</h3>
-                    <div class="simulation-summary-row">
-                        <span class="summary-label">Bayes Optimal cumulative:</span>
-                        <span id="simSummaryOptimalCumulative">$0.00</span>
-                    </div>
-                    <div class="simulation-summary-row">
-                        <span class="summary-label">MAP with one extra ball cumulative:</span>
-                        <span id="simSummaryMapCumulative">$0.00</span>
-                    </div>
-                    <div class="simulation-summary-row">
-                        <span class="summary-label">Null hypothesis test cumulative:</span>
-                        <span id="simSummaryNullCumulative">$0.00</span>
-                    </div>
+                    <h3>Percent Correct Guesses</h3>
                     <div class="simulation-summary-row">
                         <span class="summary-label">Bayes Optimal correct guess %:</span>
                         <span id="simSummaryOptimalCorrect">0.0%</span>
