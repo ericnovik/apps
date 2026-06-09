@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moon Drop Experiment</title>
+    <link rel="stylesheet" href="moon-experiment.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌙 Moon Drop Experiment</h1>
+            <p class="subtitle">
+                Drop a ball from a 100&nbsp;m tower on the Moon, click at every red flash,
+                and recover the lunar gravity <em>g</em> from your own reaction time.
+            </p>
+        </header>
+
+        <div class="layout">
+            <!-- Scene -->
+            <div class="scene-panel">
+                <canvas id="scene" width="340" height="640"></canvas>
+            </div>
+
+            <!-- Side panel -->
+            <div class="side-panel">
+                <div class="clock-box">
+                    <span class="clock-label">Stopwatch</span>
+                    <span id="clock" class="clock">0.00<span class="unit">s</span></span>
+                </div>
+
+                <div id="instruction" class="instruction">
+                    Click anywhere on the scene to <strong>drop the ball</strong>
+                    and start the clock.
+                </div>
+
+                <div class="status-row">
+                    <div class="status">
+                        <span class="status-label">Marks recorded</span>
+                        <span id="markCount" class="status-value">0 / 20</span>
+                    </div>
+                    <div class="status">
+                        <span class="status-label">Next mark</span>
+                        <span id="nextMark" class="status-value">5 m</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <label class="speed-control">
+                        Speed: <span id="speedLabel">1.0×</span>
+                        <input type="range" id="speed" min="0.25" max="2" step="0.25" value="1">
+                    </label>
+                    <p class="speed-hint">Tip: 1.0× keeps your reaction-time noise honest.</p>
+                    <label class="toggle">
+                        <input type="checkbox" id="showFlash" checked>
+                        <span>Show red flash at each mark</span>
+                    </label>
+                    <div class="buttons">
+                        <button id="resetBtn" class="btn btn-secondary">Reset</button>
+                        <button id="csvBtn" class="btn btn-secondary" disabled>Download CSV</button>
+                    </div>
+                </div>
+
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>#</th><th>x (m)</th><th>your t (s)</th><th>true t (s)</th><th>Δt</th></tr>
+                        </thead>
+                        <tbody id="dataBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="results hidden">
+            <h2>Results: time vs. distance</h2>
+            <div class="estimate-row">
+                <div class="estimate">
+                    <span class="estimate-label">Estimated g (from your clicks)</span>
+                    <span id="gEstimate" class="estimate-value">–</span>
+                </div>
+                <div class="estimate">
+                    <span class="estimate-label">True lunar g</span>
+                    <span class="estimate-value">1.625 m/s²</span>
+                </div>
+                <div class="estimate">
+                    <span class="estimate-label">Mean reaction delay</span>
+                    <span id="meanDelay" class="estimate-value">–</span>
+                </div>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="chart"></canvas>
+            </div>
+            <p class="results-note">
+                Each point is one click (a red-mark flash). The curve is the physics:
+                <em>x</em> = ½&nbsp;<em>g</em>&nbsp;<em>t</em>². The gap between your
+                points and the curve is your reaction time — the measurement error you
+                will model back in R.
+            </p>
+        </div>
+    </div>
+
+    <script src="moon-experiment.js"></script>
+</body>
+</html>

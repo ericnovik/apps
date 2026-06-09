@@ -105,6 +105,15 @@
             font-size: 3rem;
         }
 
+        .img-moon {
+            background: linear-gradient(135deg, #0b0d1a, #2c3354);
+            position: relative;
+        }
+        .img-moon::after {
+            content: "🌙";
+            font-size: 3rem;
+        }
+
         .card-content {
             padding: 25px;
         }
@@ -166,6 +175,14 @@
             <div class="card-content">
                 <h2>Fourier Series Explorer</h2>
                 <p>Explore the Fourier series of different waveforms.</p>
+            </div>
+        </a>
+
+        <a href="moon-experiment/" class="card">
+            <div class="card-image img-moon"></div>
+            <div class="card-content">
+                <h2>Moon Drop Experiment</h2>
+                <p>Drop a ball from a 100&nbsp;m lunar tower, click at every red flash, and recover the Moon's gravity from your own reaction time.</p>
             </div>
         </a>
 
