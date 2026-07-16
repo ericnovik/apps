@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>DESIGN</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<h1 id="geometry-of-least-squares-design-proposal">Geometry of Least
+Squares — Design Proposal</h1>
+<h2 id="product-idea">1. Product idea</h2>
+<p>An interactive visual explanation of ordinary least squares for
+exactly three observations.</p>
+<p>The central idea is to show the <strong>same problem in two
+synchronized spaces</strong>:</p>
+<ol type="1">
+<li><strong>Data space:</strong> three points and their least-squares
+line.</li>
+<li><strong>Observation space:</strong> the response vector <span
+class="math inline">\(y\in\mathbb R^3\)</span> projected onto the model
+space <span class="math inline">\(\mathcal C(X)\)</span>.</li>
+</ol>
+<p>Every object should keep the same color, name, and role in both
+spaces. Moving one data point changes one coordinate of <span
+class="math inline">\(y\)</span>, then immediately updates the fitted
+vector, residual, coefficients, equations, and distances.</p>
+<p>The app should feel like a visual proof—not a dashboard or a
+general-purpose regression tool.</p>
+<hr />
+<h2 id="learning-goals">2. Learning goals</h2>
+<p>By the end of the experience, a learner should understand that:</p>
+<ul>
+<li>The coefficient vector <span
+class="math inline">\(\hat\beta\in\mathbb R^2\)</span> and fitted vector
+<span class="math inline">\(\hat y=X\hat\beta\in\mathbb R^3\)</span> are
+different objects.</li>
+<li>The set of all possible fitted vectors is the column space <span
+class="math inline">\(\mathcal C(X)\)</span>, a plane in <span
+class="math inline">\(\mathbb R^3\)</span> when <span
+class="math inline">\(X\)</span> has rank two.</li>
+<li>Least squares chooses the point <span class="math inline">\(\hat
+y\in\mathcal C(X)\)</span> closest to <span
+class="math inline">\(y\)</span>.</li>
+<li>The residual <span class="math inline">\(r=y-\hat y\)</span> is
+perpendicular to the entire model space.</li>
+<li>Orthogonality gives the normal equations <span
+class="math inline">\(X^\top(y-X\hat\beta)=0\)</span>.</li>
+<li>Any other model vector <span class="math inline">\(X\beta\)</span>
+is farther from <span class="math inline">\(y\)</span>, as shown by the
+Pythagorean identity.</li>
+<li>If <span class="math inline">\(X\)</span> is rank deficient, the
+fitted vector remains unique even though its coefficient representation
+need not be.</li>
+</ul>
+<hr />
+<h2 id="core-mathematical-model">3. Core mathematical model</h2>
+<p>Use three observations and a line with an intercept:</p>
+<p><span class="math display">\[
+X=
+\begin{bmatrix}
+1 &amp; x_1\\
+1 &amp; x_2\\
+1 &amp; x_3
+\end{bmatrix},
+\qquad
+y=
+\begin{bmatrix}
+y_1\\y_2\\y_3
+\end{bmatrix},
+\qquad
+\beta=
+\begin{bmatrix}
+\beta_0\\\beta_1
+\end{bmatrix}.
+\]</span></p>
+<p>The two columns of <span class="math inline">\(X\)</span> are vectors
+in <span class="math inline">\(\mathbb R^3\)</span>:</p>
+<p><span class="math display">\[
+\mathbf 1=(1,1,1)^\top,
+\qquad
+x=(x_1,x_2,x_3)^\top.
+\]</span></p>
+<p>Their span is the model space:</p>
+<p><span class="math display">\[
+\mathcal C(X)=\operatorname{span}\{\mathbf 1,x\}.
+\]</span></p>
+<p>The fitted vector and residual are:</p>
+<p><span class="math display">\[
+\hat y=X\hat\beta,
+\qquad
+r=y-\hat y.
+\]</span></p>
+<p>For full-rank <span class="math inline">\(X\)</span>:</p>
+<p><span class="math display">\[
+\hat\beta=(X^\top X)^{-1}X^\top y.
+\]</span></p>
+<p>The implementation should ultimately use a pseudoinverse or
+numerically stable equivalent so the same conceptual model also supports
+the rank-deficient case:</p>
+<p><span class="math display">\[
+\hat\beta=X^+y,
+\qquad
+\hat y=XX^+y.
+\]</span></p>
+<h3 id="mathematical-invariants-the-design-must-preserve">Mathematical
+invariants the design must preserve</h3>
+<ul>
+<li><span class="math inline">\(\hat y\in\mathcal C(X)\)</span>.</li>
+<li><span class="math inline">\(r\perp\mathcal C(X)\)</span>.</li>
+<li><span class="math inline">\(X^\top r=0\)</span>.</li>
+<li>The 3D scene must use equal geometric scaling on all axes so a right
+angle is visually honest.</li>
+<li>Rounded labels must not imply that approximate numerical values are
+exact.</li>
+</ul>
+<hr />
+<h2 id="experience-structure">4. Experience structure</h2>
+<p>Use a five-step guided sequence. The entire workspace remains
+visible, but each step emphasizes only the objects needed for the
+current idea.</p>
+<h3 id="step-1-three-observations-become-one-vector">Step 1 — Three
+observations become one vector</h3>
+<p><strong>Message:</strong> The vertical values of three plotted points
+form one point <span class="math inline">\(y=(y_1,y_2,y_3)\)</span> in
+<span class="math inline">\(\mathbb R^3\)</span>.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>Three draggable observations in the data-space plot.</li>
+<li>The blue vector <span class="math inline">\(y\)</span> in
+observation space.</li>
+<li>A subtle coordinate correspondence: point 1 ↔︎ <span
+class="math inline">\(y_1\)</span>, point 2 ↔︎ <span
+class="math inline">\(y_2\)</span>, point 3 ↔︎ <span
+class="math inline">\(y_3\)</span>.</li>
+</ul>
+<p><strong>Interaction:</strong> Drag a point vertically. Its matching
+coordinate in the 3D vector should pulse.</p>
+<h3 id="step-2-all-possible-lines-form-a-plane">Step 2 — All possible
+lines form a plane</h3>
+<p><strong>Message:</strong> Every coefficient pair <span
+class="math inline">\((\beta_0,\beta_1)\)</span> produces a fitted
+vector <span class="math inline">\(X\beta\)</span>. Those vectors fill
+<span class="math inline">\(\mathcal C(X)\)</span>.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>The plane <span class="math inline">\(\mathcal C(X)\)</span>.</li>
+<li>The two generating directions <span class="math inline">\(\mathbf
+1\)</span> and <span class="math inline">\(x\)</span>.</li>
+<li>A coefficient-space inset showing <span
+class="math inline">\((\beta_0,\beta_1)\)</span> mapping to a point on
+the plane.</li>
+</ul>
+<p><strong>Interaction:</strong> Move <span
+class="math inline">\(\beta_0\)</span> and <span
+class="math inline">\(\beta_1\)</span>. The candidate line in data space
+and candidate vector on the plane move together.</p>
+<h3 id="step-3-least-squares-is-the-closest-point">Step 3 — Least
+squares is the closest point</h3>
+<p><strong>Message:</strong> The fitted vector <span
+class="math inline">\(\hat y\)</span> is the point on the model plane
+closest to <span class="math inline">\(y\)</span>.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>The green projection <span class="math inline">\(\hat
+y\)</span>.</li>
+<li>The coral residual <span class="math inline">\(r=y-\hat
+y\)</span>.</li>
+<li>The least-squares line in the data-space plot.</li>
+<li>Three residual segments in the data-space plot.</li>
+</ul>
+<p><strong>Interaction:</strong> A short “drop projection” animation can
+move from <span class="math inline">\(y\)</span> to <span
+class="math inline">\(\hat y\)</span>, then remain static for study.</p>
+<h3 id="step-4-orthogonality-and-the-normal-equations">Step 4 —
+Orthogonality and the normal equations</h3>
+<p><strong>Message:</strong> At the closest point, the residual is
+perpendicular to every direction available inside the model space.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>A right-angle marker where <span class="math inline">\(r\)</span>
+meets the plane.</li>
+<li>The inner products with both columns of <span
+class="math inline">\(X\)</span>:</li>
+</ul>
+<p><span class="math display">\[
+\mathbf 1^\top r=0,
+\qquad
+x^\top r=0.
+\]</span></p>
+<ul>
+<li>Their compact matrix form:</li>
+</ul>
+<p><span class="math display">\[
+X^\top(y-X\hat\beta)=0.
+\]</span></p>
+<ul>
+<li>The equivalent normal equations:</li>
+</ul>
+<p><span class="math display">\[
+X^\top X\hat\beta=X^\top y.
+\]</span></p>
+<p><strong>Interaction:</strong> Hovering over either normal equation
+highlights the matching basis vector in the plane.</p>
+<h3 id="step-5-why-every-other-fit-is-worse">Step 5 — Why every other
+fit is worse</h3>
+<p><strong>Message:</strong> Perturbing the optimum by any <span
+class="math inline">\(h\)</span> moves the fitted vector within the
+model space by <span class="math inline">\(Xh\)</span>. That movement is
+perpendicular to the residual.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>An amber candidate point <span
+class="math inline">\(X\beta\)</span>, where <span
+class="math inline">\(\beta=\hat\beta+h\)</span>.</li>
+<li>The right triangle with sides:
+<ul>
+<li><span class="math inline">\(r=y-\hat y\)</span>,</li>
+<li><span class="math inline">\(X\beta-\hat y=Xh\)</span>,</li>
+<li><span class="math inline">\(y-X\beta\)</span>.</li>
+</ul></li>
+<li>The live identity:</li>
+</ul>
+<p><span class="math display">\[
+\|y-X\beta\|^2
+=
+\|y-X\hat\beta\|^2
++
+\|X\beta-X\hat\beta\|^2.
+\]</span></p>
+<p><strong>Interaction:</strong> Drag the candidate point inside the
+plane or adjust <span class="math inline">\(h_0,h_1\)</span>. The three
+squared lengths update as labeled areas or bars.</p>
+<hr />
+<h2 id="proposed-screen-layout">5. Proposed screen layout</h2>
+<h3 id="desktop">Desktop</h3>
+<pre class="text"><code>┌──────────────────────────────────────────────────────────────────────────────┐
+│ GEOMETRY OF LEAST SQUARES         ŷ = proj C(X)(y)       Reset   Examples  │
+├───────────────┬───────────────────────────────────────┬──────────────────────┤
+│ Guided story  │ Observation space R³                  │ Live mathematics     │
+│               │                                       │                      │
+│ 1  Data       │        y •                            │ X = […]              │
+│ 2  Model      │          │ r                           │ y = […]              │
+│ 3  Projection │      ┌── ŷ ───┐  C(X)                │ β̂ = […]             │
+│ 4  Normal eq. │     /           /                      │ Xᵀr = […]            │
+│ 5  Pythagoras │    └───────────┘                       │ SSE = …              │
+│               │                                       │                      │
+│ Step text     │ Drag to orbit                          │ Current derivation   │
+├───────────────┴───────────────────────────────────────┴──────────────────────┤
+│ Data space: three draggable points, fitted line, candidate line, residuals  │
+└──────────────────────────────────────────────────────────────────────────────┘</code></pre>
+<h3 id="mobile">Mobile</h3>
+<p>Stack in conceptual order rather than desktop-column order:</p>
+<ol type="1">
+<li>Step title and explanation.</li>
+<li>Data-space plot.</li>
+<li>Observation-space scene.</li>
+<li>Live equation card.</li>
+<li>Step navigation.</li>
+</ol>
+<p>This order starts with the familiar line-fitting problem before
+introducing the abstract geometry.</p>
+<hr />
+<h2 id="main-views">6. Main views</h2>
+<h3 id="a.-data-space-plot">A. Data-space plot</h3>
+<p>A clean 2D plot of <span class="math inline">\((x_i,y_i)\)</span> for
+<span class="math inline">\(i=1,2,3\)</span>.</p>
+<p>It should show:</p>
+<ul>
+<li>Three large draggable points labeled 1, 2, and 3.</li>
+<li>The least-squares line in green.</li>
+<li>Vertical residual segments in coral.</li>
+<li>An optional candidate line in amber during the Pythagorean
+step.</li>
+<li>Small fitted points <span class="math inline">\((x_i,\hat
+y_i)\)</span> to distinguish the continuous line from the fitted vector
+at the observed design points.</li>
+</ul>
+<p>Dragging should initially be restricted to the vertical direction.
+This keeps <span class="math inline">\(X\)</span> and therefore <span
+class="math inline">\(\mathcal C(X)\)</span> fixed while <span
+class="math inline">\(y\)</span> moves. Editing <span
+class="math inline">\(x\)</span> can be introduced later as an advanced
+mode because changing <span class="math inline">\(x\)</span> changes the
+model space itself.</p>
+<h3 id="b.-observation-space-scene">B. Observation-space scene</h3>
+<p>A rotatable 3D scene with equal axis scaling.</p>
+<p>It should contain:</p>
+<ul>
+<li>Coordinate axes <span
+class="math inline">\(y_1,y_2,y_3\)</span>.</li>
+<li>The model plane <span class="math inline">\(\mathcal C(X)\)</span>,
+drawn as a translucent surface with a sparse grid.</li>
+<li>Basis arrows <span class="math inline">\(\mathbf 1\)</span> and
+<span class="math inline">\(x\)</span>.</li>
+<li>The data vector <span class="math inline">\(y\)</span>.</li>
+<li>The fitted vector <span class="math inline">\(\hat y\)</span>.</li>
+<li>The residual from <span class="math inline">\(\hat y\)</span> to
+<span class="math inline">\(y\)</span>.</li>
+<li>A right-angle marker.</li>
+<li>The candidate vector <span class="math inline">\(X\beta\)</span> in
+Step 5.</li>
+</ul>
+<p>The camera should orbit but not allow unequal zooming or axis
+deformation. A “canonical view” button should restore the clearest
+angle.</p>
+<h3 id="c.-live-mathematics-panel">C. Live mathematics panel</h3>
+<p>The panel should reveal rather than merely report calculations.
+Organize it into a vertical chain:</p>
+<ol type="1">
+<li><strong>Inputs:</strong> <span class="math inline">\(X\)</span> and
+<span class="math inline">\(y\)</span>.</li>
+<li><strong>Coefficients:</strong> <span
+class="math inline">\(\hat\beta\)</span>.</li>
+<li><strong>Fitted vector:</strong> <span class="math inline">\(\hat
+y=X\hat\beta\)</span>.</li>
+<li><strong>Residual:</strong> <span class="math inline">\(r=y-\hat
+y\)</span>.</li>
+<li><strong>Orthogonality check:</strong> <span
+class="math inline">\(X^\top r\approx 0\)</span>.</li>
+<li><strong>Squared distances:</strong> optimum, perturbation, and
+candidate total.</li>
+</ol>
+<p>Only the row relevant to the current lesson step should be strongly
+emphasized. Other rows remain available but visually quiet.</p>
+<hr />
+<h2 id="visual-language">7. Visual language</h2>
+<p>Use a warm, editorial visual style: precise enough for mathematics,
+but less clinical than a numerical analysis package.</p>
+<h3 id="palette">Palette</h3>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Color</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(y\)</span> / observed points</td>
+<td>Deep blue</td>
+<td>Given data</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\hat y\)</span> / fitted line</td>
+<td>Emerald green</td>
+<td>Optimal projection</td>
+</tr>
+<tr>
+<td><span class="math inline">\(r\)</span> / residuals</td>
+<td>Coral red</td>
+<td>Unexplained component</td>
+</tr>
+<tr>
+<td><span class="math inline">\(X\beta\)</span> / candidate</td>
+<td>Amber</td>
+<td>Alternative model</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\mathcal C(X)\)</span></td>
+<td>Pale teal</td>
+<td>Model space</td>
+</tr>
+<tr>
+<td>Axes and construction lines</td>
+<td>Slate</td>
+<td>Reference geometry</td>
+</tr>
+<tr>
+<td>Background</td>
+<td>Warm off-white</td>
+<td>Reading surface</td>
+</tr>
+</tbody>
+</table>
+<p>Suggested starting values:</p>
+<ul>
+<li>Ink: <code>#172033</code></li>
+<li>Blue: <code>#315EFB</code></li>
+<li>Green: <code>#159A7D</code></li>
+<li>Coral: <code>#E76551</code></li>
+<li>Amber: <code>#D89524</code></li>
+<li>Plane: <code>#BFE3DC</code></li>
+<li>Paper: <code>#F7F4ED</code></li>
+</ul>
+<h3 id="typography">Typography</h3>
+<ul>
+<li>A restrained sans serif for controls and explanations.</li>
+<li>A math-oriented serif or KaTeX for equations.</li>
+<li>Use upright labels for named objects and italic mathematical symbols
+where appropriate.</li>
+<li>Numerical values should use tabular figures to prevent layout shifts
+while dragging.</li>
+</ul>
+<h3 id="motion">Motion</h3>
+<p>Motion should explain causality:</p>
+<ul>
+<li>Dragging a data point moves the matching coordinate of <span
+class="math inline">\(y\)</span>.</li>
+<li>Releasing it lets the projection and line settle in a short, direct
+transition.</li>
+<li>Switching steps fades irrelevant construction lines rather than
+rebuilding the scene.</li>
+<li>Avoid continuous ambient animation; the geometry should remain
+inspectable.</li>
+</ul>
+<hr />
+<h2 id="interaction-details">8. Interaction details</h2>
+<h3 id="direct-manipulation">Direct manipulation</h3>
+<ul>
+<li>Drag any observed point vertically.</li>
+<li>Drag the 3D background to orbit the scene.</li>
+<li>In Step 5, drag the candidate point while constraining it to <span
+class="math inline">\(\mathcal C(X)\)</span>.</li>
+<li>Provide sliders or numeric controls as accessible alternatives to
+every drag interaction.</li>
+</ul>
+<h3 id="coordinated-highlighting">Coordinated highlighting</h3>
+<p>Hovering or focusing an object should highlight all its
+representations:</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Focused object</th>
+<th>Coordinated highlights</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Observation <span class="math inline">\(i\)</span></td>
+<td>Data point, coordinate axis <span
+class="math inline">\(y_i\)</span>, matrix row <span
+class="math inline">\(i\)</span></td>
+</tr>
+<tr>
+<td><span class="math inline">\(y\)</span></td>
+<td>Three observations and blue vector</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\hat y\)</span></td>
+<td>Fitted points, fitted line, green vector</td>
+</tr>
+<tr>
+<td><span class="math inline">\(r\)</span></td>
+<td>Residual segments, coral vector, <span class="math inline">\(X^\top
+r\)</span></td>
+</tr>
+<tr>
+<td><span class="math inline">\(\mathbf 1\)</span></td>
+<td>First column of <span class="math inline">\(X\)</span>, plane
+direction, intercept coefficient</td>
+</tr>
+<tr>
+<td><span class="math inline">\(x\)</span></td>
+<td>Second column of <span class="math inline">\(X\)</span>, plane
+direction, slope coefficient</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-presets">Example presets</h3>
+<ol type="1">
+<li><strong>Clear projection:</strong> visibly nonzero residuals.</li>
+<li><strong>Perfect fit:</strong> <span
+class="math inline">\(r=0\)</span>, with text explaining that the
+residual direction is undefined because its length is zero.</li>
+<li><strong>One outlier:</strong> emphasizes squared-error
+sensitivity.</li>
+<li><strong>Centered design:</strong> <span
+class="math inline">\(x=(-1,0,1)\)</span>, making <span
+class="math inline">\(\mathbf 1\perp x\)</span>.</li>
+<li><strong>Rank deficient:</strong> <span
+class="math inline">\(x=(1,1,1)\)</span>, collapsing the model plane to
+a line.</li>
+</ol>
+<hr />
+<h2 id="rank-deficient-mode">9. Rank-deficient mode</h2>
+<p>This should be a deliberate final concept, not an error state.</p>
+<p>For <span class="math inline">\(x=(1,1,1)\)</span>:</p>
+<p><span class="math display">\[
+\mathcal C(X)=\operatorname{span}\{(1,1,1)^\top\}.
+\]</span></p>
+<p>The visual plane collapses to a line. The fitted vector is still
+unique:</p>
+<p><span class="math display">\[
+\hat y=\bar y\,\mathbf 1.
+\]</span></p>
+<p>But the coefficients are not unique. All pairs satisfying</p>
+<p><span class="math display">\[
+\beta_0+\beta_1=\bar y
+\]</span></p>
+<p>produce the same fitted values at the observed design points.</p>
+<p>The design should show this in three coordinated ways:</p>
+<ul>
+<li>In observation space, multiple coefficient choices land on the same
+<span class="math inline">\(\hat y\)</span>.</li>
+<li>In coefficient space, the valid coefficients form a line.</li>
+<li>In data space, several different regression lines pass through the
+same fitted value at <span class="math inline">\(x=1\)</span>,
+clarifying that predictions away from the observed design point are not
+unique.</li>
+</ul>
+<p>If one representative coefficient vector is displayed, label it
+explicitly as the <strong>minimum-norm representative</strong>, not “the
+unique solution.”</p>
+<hr />
+<h2 id="pythagorean-identity-presentation">10. Pythagorean identity
+presentation</h2>
+<p>The identity should appear as geometry first and algebra second.</p>
+<h3 id="geometric-construction">Geometric construction</h3>
+<p>For <span class="math inline">\(\beta=\hat\beta+h\)</span>:</p>
+<ul>
+<li>Residual side: <span class="math inline">\(r=y-\hat y\)</span>.</li>
+<li>In-plane side: <span class="math inline">\(Xh=X\beta-\hat
+y\)</span>.</li>
+<li>Hypotenuse: <span class="math inline">\(y-X\beta\)</span>.</li>
+</ul>
+<p>Because <span class="math inline">\(r\perp Xh\)</span>:</p>
+<p><span class="math display">\[
+\|y-X\beta\|^2
+=
+\|r\|^2+
+\|Xh\|^2.
+\]</span></p>
+<h3 id="numerical-presentation">Numerical presentation</h3>
+<p>Below the equation, use three proportional bars or square tiles:</p>
+<pre class="text"><code>candidate error²     =     minimum error²     +     extra in-plane distance²
+      8.42                         3.17                         5.25
+██████████████              ███████                   █████████</code></pre>
+<p>The display should identify the candidate as worse by exactly the
+nonnegative extra term—not merely state that its error is larger.</p>
+<hr />
+<h2 id="content-tone">11. Content tone</h2>
+<p>Use short, declarative explanations beside the visual rather than
+long paragraphs.</p>
+<p>Preferred:</p>
+<blockquote>
+<p>A line produces three fitted values. In <span
+class="math inline">\(\mathbb R^3\)</span>, those values are one point
+on the model plane.</p>
+</blockquote>
+<p>Avoid:</p>
+<blockquote>
+<p>The coefficient vector is transformed by the design matrix in order
+to produce a corresponding element in the column space.</p>
+</blockquote>
+<p>Terms such as “column space,” “normal equations,” and “rank
+deficient” should still appear, but only after the visual object has
+been introduced in plain language.</p>
+<hr />
+<h2 id="accessibility-requirements">12. Accessibility requirements</h2>
+<ul>
+<li>Every drag interaction must have keyboard and numeric-input
+alternatives.</li>
+<li>Do not distinguish vectors by color alone; also use line style,
+labels, and endpoint shapes.</li>
+<li>Keep equations readable at 200% zoom.</li>
+<li>Provide a reduced-motion mode.</li>
+<li>The 3D scene needs a text summary of current vectors and
+orthogonality values.</li>
+<li>Use an accessible data table for <span
+class="math inline">\((x_i,y_i,\hat y_i,r_i)\)</span>.</li>
+<li>Announce meaningful updates after keyboard interactions without
+announcing every animation frame.</li>
+</ul>
+<hr />
+<h2 id="scope-boundaries">13. Scope boundaries</h2>
+<h3 id="first-version">First version</h3>
+<ul>
+<li>Exactly three observations.</li>
+<li>Intercept and one predictor.</li>
+<li>Vertical dragging of <span class="math inline">\(y_i\)</span>.</li>
+<li>Linked data-space and observation-space views.</li>
+<li>Normal equations and Pythagorean identity.</li>
+<li>Full-rank and rank-deficient presets.</li>
+</ul>
+<h3 id="explicitly-deferred">Explicitly deferred</h3>
+<ul>
+<li>More than three observations.</li>
+<li>Multiple predictors.</li>
+<li>Weighted least squares.</li>
+<li>Statistical inference, standard errors, and confidence
+intervals.</li>
+<li>Optimization algorithms such as gradient descent.</li>
+<li>Arbitrary user-imported datasets.</li>
+</ul>
+<p>These topics are valuable, but they dilute the geometric argument of
+the first experience.</p>
+<hr />
+<h2 id="success-criteria">14. Success criteria</h2>
+<p>The design is successful if a learner can answer these questions
+after using it:</p>
+<ol type="1">
+<li>Where does <span class="math inline">\(\hat y\)</span> live, and
+where does <span class="math inline">\(\hat\beta\)</span> live?</li>
+<li>Why is least squares a projection?</li>
+<li>Why does <span class="math inline">\(X^\top r=0\)</span>?</li>
+<li>Why must every other fitted vector have at least as much squared
+error?</li>
+<li>What remains unique when the columns of <span
+class="math inline">\(X\)</span> are dependent?</li>
+</ol>
+<p>The app should make each answer visible before presenting it
+symbolically.</p>
+</body>
+</html>

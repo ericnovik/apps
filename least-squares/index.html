@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="See least squares as a projection of three observations onto a model plane in R3.">
+  <title>Geometry of Least Squares</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="least-squares.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="library-link" href="../" aria-label="Back to the interactive library">
+        <span aria-hidden="true">←</span>
+        <span>Interactive library</span>
+      </a>
+      <h1 class="sr-only">Geometry of Least Squares</h1>
+    </header>
+
+    <nav class="lesson-nav" aria-label="Least-squares lesson">
+      <button class="lesson-tab is-active" type="button" data-step="0">
+        <span class="lesson-number">1</span>
+        <span>Data vector</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="1">
+        <span class="lesson-number">2</span>
+        <span>Model plane</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="2">
+        <span class="lesson-number">3</span>
+        <span>Projection</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="3">
+        <span class="lesson-number">4</span>
+        <span>Orthogonality</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="4">
+        <span class="lesson-number">5</span>
+        <span>Pythagoras</span>
+      </button>
+    </nav>
+
+    <main class="workspace">
+      <aside class="left-column">
+        <div class="left-top-stack">
+          <section class="card example-card" aria-labelledby="exampleTitle">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Workspace</p>
+                <h2 id="exampleTitle">Example and controls</h2>
+              </div>
+            </div>
+            <label class="preset-field" for="presetSelect">
+              <span>Example</span>
+              <select id="presetSelect">
+                <option value="projection">Clear projection</option>
+                <option value="perfect">Perfect fit</option>
+                <option value="outlier">One outlier</option>
+                <option value="uncentered">Uncentered x</option>
+                <option value="rankDeficient">Rank deficient</option>
+              </select>
+            </label>
+            <div class="example-actions">
+              <button class="quiet-button" id="randomizeButton" type="button">Randomize y</button>
+              <button class="quiet-button" id="resetButton" type="button">Reset</button>
+            </div>
+          </section>
+
+          <section class="card lesson-card" aria-labelledby="stepTitle">
+            <div class="step-meta">
+              <span id="stepCounter">Step 1 of 5</span>
+              <span class="step-rule" aria-hidden="true"></span>
+            </div>
+            <h2 id="stepTitle">Three observations become one vector</h2>
+            <p id="stepCopy">The three vertical measurements are the coordinates of one point in observation space.</p>
+            <div class="step-insight" id="stepInsight"></div>
+            <div class="step-actions">
+              <button class="text-button" id="previousStep" type="button" disabled>Previous</button>
+              <button class="primary-button" id="nextStep" type="button">Next idea <span aria-hidden="true">→</span></button>
+            </div>
+          </section>
+        </div>
+
+        <section class="card data-controls" aria-labelledby="observationsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Input</p>
+              <h2 id="observationsTitle">Three observations</h2>
+            </div>
+            <span class="mini-badge">Drag or type</span>
+          </div>
+          <p class="section-copy">Changing a response moves <span class="blue-text">y</span>. The design matrix stays fixed.</p>
+          <div class="observation-controls">
+            <div class="observation-control observation-1">
+              <span class="point-token" aria-hidden="true">1</span>
+              <span class="control-symbol" aria-hidden="true">y<sub>1</sub></span>
+              <input id="y1Range" type="range" min="-4" max="4" step="0.05" aria-label="Observation 1 response">
+              <input id="y1Input" class="number-input" type="number" min="-4" max="4" step="0.05" inputmode="decimal" aria-label="Observation 1 response value">
+            </div>
+            <div class="observation-control observation-2">
+              <span class="point-token" aria-hidden="true">2</span>
+              <span class="control-symbol" aria-hidden="true">y<sub>2</sub></span>
+              <input id="y2Range" type="range" min="-4" max="4" step="0.05" aria-label="Observation 2 response">
+              <input id="y2Input" class="number-input" type="number" min="-4" max="4" step="0.05" inputmode="decimal" aria-label="Observation 2 response value">
+            </div>
+            <div class="observation-control observation-3">
+              <span class="point-token" aria-hidden="true">3</span>
+              <span class="control-symbol" aria-hidden="true">y<sub>3</sub></span>
+              <input id="y3Range" type="range" min="-4" max="4" step="0.05" aria-label="Observation 3 response">
+              <input id="y3Input" class="number-input" type="number" min="-4" max="4" step="0.05" inputmode="decimal" aria-label="Observation 3 response value">
+            </div>
+          </div>
+          <div class="design-row">
+            <span>Design values</span>
+            <div id="xValues" class="x-values" aria-label="Current x values"></div>
+          </div>
+        </section>
+      </aside>
+
+      <div class="visual-column">
+        <section class="card plot-card" aria-labelledby="plotTitle">
+          <div class="visual-heading">
+            <div>
+              <p class="eyebrow">Data space</p>
+              <h2 id="plotTitle">The same fit as a line</h2>
+            </div>
+            <p class="drag-note">Drag points vertically</p>
+          </div>
+          <div id="dataPlot" class="data-plot"></div>
+          <div class="plot-caption">
+            <span><i class="line-key fit-line-key"></i>least-squares line</span>
+            <span><i class="line-key residual-line-key"></i>vertical residuals</span>
+            <span id="candidateLegend"><i class="line-key candidate-line-key"></i>candidate line</span>
+          </div>
+        </section>
+
+        <section class="card geometry-card" aria-labelledby="geometryTitle">
+          <div class="visual-heading">
+            <div>
+              <p class="eyebrow">Observation space</p>
+              <h2 id="geometryTitle">Projection in <span class="math-serif">ℝ<sup>3</sup></span></h2>
+            </div>
+            <div class="geometry-tools">
+              <span id="rankBadge" class="rank-badge">rank(X) = 2 · plane</span>
+              <button id="resetCameraButton" class="icon-button" type="button" title="Restore canonical camera" aria-label="Restore canonical camera">↻</button>
+            </div>
+          </div>
+          <div id="sceneContainer" class="scene-container" role="img" aria-describedby="sceneSummary">
+            <div class="scene-hint"><span aria-hidden="true">↔</span> Drag freely · edge drag rolls · wheel zooms</div>
+          </div>
+          <p id="sceneSummary" class="sr-only"></p>
+          <div class="legend" aria-label="Geometry legend">
+            <span><i class="legend-mark mark-data"></i>data <b>y</b></span>
+            <span><i class="legend-mark mark-fit"></i>projection <b>ŷ</b></span>
+            <span><i class="legend-mark mark-residual"></i>residual <b>r</b></span>
+            <span><i class="legend-mark mark-candidate"></i>other fit <b>Xβ</b></span>
+          </div>
+        </section>
+      </div>
+
+      <aside class="right-column">
+        <section class="card math-card" aria-labelledby="mathTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Live mathematics</p>
+              <h2 id="mathTitle">One calculation, three views</h2>
+            </div>
+            <span id="fitStatus" class="status-dot">projected</span>
+          </div>
+          <div class="math-chain">
+            <article class="math-row" data-math-step="0">
+              <span class="math-row-label">Inputs</span>
+              <div id="inputsMath" class="math-display"></div>
+            </article>
+            <article class="math-row" data-math-step="1">
+              <span class="math-row-label">Model space</span>
+              <div id="spaceMath" class="math-display"></div>
+            </article>
+            <article class="math-row" data-math-step="2">
+              <span class="math-row-label">Closest point</span>
+              <div id="fitMath" class="math-display"></div>
+            </article>
+            <article class="math-row" data-math-step="3">
+              <span class="math-row-label">Normal equations</span>
+              <div id="normalMath" class="math-display"></div>
+              <div class="zero-checks">
+                <span id="sumResidualCheck"></span>
+                <span id="weightedResidualCheck"></span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <div class="right-bottom-stack">
+          <section class="card perturbation-card" id="perturbationCard" aria-labelledby="perturbationTitle">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Compare another fit</p>
+                <h2 id="perturbationTitle">Perturb the coefficients</h2>
+              </div>
+              <button id="zeroPerturbationButton" class="text-button compact" type="button">Set h = 0</button>
+            </div>
+            <div id="perturbationMath" class="math-display compact-math"></div>
+            <label class="h-control" for="h0Range">
+              <span>h<sub>0</sub></span>
+              <input id="h0Range" type="range" min="-2" max="2" step="0.05">
+              <output id="h0Value" for="h0Range"></output>
+            </label>
+            <label class="h-control" for="h1Range">
+              <span>h<sub>1</sub></span>
+              <input id="h1Range" type="range" min="-2" max="2" step="0.05">
+              <output id="h1Value" for="h1Range"></output>
+            </label>
+          </section>
+
+          <section class="card identity-card" aria-labelledby="identityTitle">
+            <p class="eyebrow">Distance decomposition</p>
+            <h2 id="identityTitle">Every other fit is farther</h2>
+            <div id="identityMath" class="identity-equation"></div>
+            <div class="distance-bars" aria-label="Pythagorean squared-distance comparison">
+              <div class="distance-item candidate-distance">
+                <div class="distance-label"><span>candidate error²</span><strong id="candidateErrorValue"></strong></div>
+                <div class="bar-track"><span id="candidateErrorBar"></span></div>
+              </div>
+              <div class="distance-operation" aria-hidden="true">=</div>
+              <div class="distance-item minimum-distance">
+                <div class="distance-label"><span>minimum error²</span><strong id="minimumErrorValue"></strong></div>
+                <div class="bar-track"><span id="minimumErrorBar"></span></div>
+              </div>
+              <div class="distance-operation" aria-hidden="true">+</div>
+              <div class="distance-item extra-distance">
+                <div class="distance-label"><span>extra distance²</span><strong id="extraDistanceValue"></strong></div>
+                <div class="bar-track"><span id="extraDistanceBar"></span></div>
+              </div>
+            </div>
+            <p id="rankNote" class="rank-note"></p>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <details class="data-table-section">
+      <summary>
+        <span>
+          <span class="eyebrow">Accessible numerical view</span>
+          <strong id="tableTitle">Observation table</strong>
+        </span>
+        <span class="table-summary-hint">Expand values</span>
+      </summary>
+      <div class="table-wrap">
+        <table aria-labelledby="tableTitle">
+          <thead>
+            <tr>
+              <th>Observation</th>
+              <th>x<sub>i</sub></th>
+              <th>y<sub>i</sub></th>
+              <th>ŷ<sub>i</sub></th>
+              <th>r<sub>i</sub></th>
+            </tr>
+          </thead>
+          <tbody id="observationTableBody"></tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <div id="liveRegion" class="sr-only" aria-live="polite"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
