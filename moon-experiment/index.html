@@ -10,7 +10,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🌙 Moon Drop Experiment</h1>
+
             <p class="subtitle">
                 Drop a ball from a 100&nbsp;m tower on the Moon, click at every red flash,
                 and recover the lunar gravity <em>g</em> from your own reaction time.
@@ -20,7 +20,7 @@
         <div class="layout">
             <!-- Scene -->
             <div class="scene-panel">
-                <canvas id="scene" width="340" height="640"></canvas>
+                <canvas id="scene" width="340" height="820"></canvas>
             </div>
 
             <!-- Side panel -->
@@ -74,8 +74,14 @@
         </div>
 
         <!-- Results -->
-        <div id="results" class="results hidden">
-            <h2>Results: time vs. distance</h2>
+        <div id="results" class="results">
+            <div class="results-heading">
+                <div>
+                    <span class="eyebrow">Live analysis</span>
+                    <h2>Time vs. distance</h2>
+                </div>
+                <span class="chart-status">updates every click</span>
+            </div>
             <div class="estimate-row">
                 <div class="estimate">
                     <span class="estimate-label">Estimated g (from your clicks)</span>
@@ -94,10 +100,8 @@
                 <canvas id="chart"></canvas>
             </div>
             <p class="results-note">
-                Each point is one click (a red-mark flash). The curve is the physics:
-                <em>x</em> = ½&nbsp;<em>g</em>&nbsp;<em>t</em>². The gap between your
-                points and the curve is your reaction time — the measurement error you
-                will model back in R.
+                Red points are your clicks. Blue is the true lunar curve and green is the live fit
+                <em>x</em> = ½&nbsp;<em>ĝ</em>&nbsp;<em>t</em>². Their horizontal gap captures your reaction delay.
             </p>
         </div>
     </div>

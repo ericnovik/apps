@@ -42,7 +42,6 @@ const speedLabel = document.getElementById('speedLabel');
 const showFlashInput = document.getElementById('showFlash');
 const resetBtn = document.getElementById('resetBtn');
 const csvBtn = document.getElementById('csvBtn');
-const resultsEl = document.getElementById('results');
 const gEstimateEl = document.getElementById('gEstimate');
 const meanDelayEl = document.getElementById('meanDelay');
 
@@ -272,101 +271,158 @@ function updateReadouts() {
                 `<td${cls}>${d >= 0 ? '+' : ''}${d.toFixed(2)}</td></tr>`;
         })
         .join('');
-    // keep newest row in view
+    // Keep the newest row in view and refresh the live analysis.
     const wrap = dataBody.parentElement.parentElement;
     wrap.scrollTop = wrap.scrollHeight;
+    updateAnalysis();
 }
 
 // ===========================================================================
-// Finish + plot
+// Live statistics + plot
 // ===========================================================================
 function finish() {
     state = 'done';
-    instructionEl.innerHTML =
-        records.length >= 2
-            ? 'Drop complete — your data is plotted below.'
-            : 'Drop complete. Reset and try to click more marks for a real fit.';
-
-    // Estimate g from x = 1/2 g t^2  =>  least squares through the origin on t^2:
-    //   g_hat = 2 * sum(x * t^2) / sum(t^4)
-    let num = 0, den = 0, delaySum = 0;
-    for (const r of records) {
-        const t2 = r.tObs * r.tObs;
-        num += r.x * t2;
-        den += t2 * t2;
-        delaySum += r.tObs - r.tTrue;
-    }
-    if (records.length >= 2 && den > 0) {
-        const gHat = (2 * num) / den;
-        gEstimateEl.textContent = gHat.toFixed(3) + ' m/s²';
-    } else {
-        gEstimateEl.textContent = '— (need ≥2 clicks)';
-    }
-    meanDelayEl.textContent = records.length
-        ? '+' + (delaySum / records.length).toFixed(3) + ' s'
-        : '—';
-
-    // Reveal the panel BEFORE building the chart: Chart.js sizes the canvas
-    // from its container, which is 0×0 while still display:none.
-    resultsEl.classList.remove('hidden');
-    renderChart();
-    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    instructionEl.innerHTML = records.length
+        ? 'Drop complete — the graph and statistics include every recorded click.'
+        : 'Drop complete. Reset and click the red flashes to collect data.';
 }
 
-function renderChart() {
-    const obs = records.map((r) => ({ x: r.tObs, y: r.x }));
+function calculateStats() {
+    if (!records.length) return { gHat: null, meanDelay: null };
 
-    // Smooth theoretical curve x = 1/2 g t^2.
-    const tMax = trueTimeAt(H);
-    const curve = [];
-    for (let i = 0; i <= 60; i++) {
-        const t = (tMax * i) / 60;
-        curve.push({ x: t, y: 0.5 * G * t * t });
+    // Estimate g from x = 1/2 g t² with least squares through the origin:
+    // g_hat = 2 * sum(x * t²) / sum(t⁴).
+    let numerator = 0;
+    let denominator = 0;
+    let delaySum = 0;
+    for (const record of records) {
+        const tSquared = record.tObs * record.tObs;
+        numerator += record.x * tSquared;
+        denominator += tSquared * tSquared;
+        delaySum += record.tObs - record.tTrue;
     }
 
-    if (chart) chart.destroy();
+    return {
+        gHat: denominator > 0 ? (2 * numerator) / denominator : null,
+        meanDelay: delaySum / records.length,
+    };
+}
+
+function makeCurve(gravity) {
+    if (!Number.isFinite(gravity) || gravity <= 0) return [];
+    const endTime = Math.sqrt((2 * H) / gravity);
+    const curve = [];
+    for (let index = 0; index <= 80; index++) {
+        const time = (endTime * index) / 80;
+        curve.push({ x: time, y: 0.5 * gravity * time * time });
+    }
+    return curve;
+}
+
+function updateAnalysis() {
+    const stats = calculateStats();
+    gEstimateEl.textContent = Number.isFinite(stats.gHat)
+        ? stats.gHat.toFixed(3) + ' m/s²'
+        : '—';
+
+    if (Number.isFinite(stats.meanDelay)) {
+        const sign = stats.meanDelay >= 0 ? '+' : '';
+        meanDelayEl.textContent = sign + stats.meanDelay.toFixed(3) + ' s';
+    } else {
+        meanDelayEl.textContent = '—';
+    }
+
+    renderChart(stats.gHat);
+}
+
+function renderChart(gHat) {
+    if (typeof Chart === 'undefined') return;
+
+    const observedPoints = records.map((record) => ({ x: record.tObs, y: record.x }));
+    const trueCurve = makeCurve(G);
+    const fittedCurve = makeCurve(gHat);
+
+    if (chart) {
+        chart.data.datasets[0].data = trueCurve;
+        chart.data.datasets[1].data = fittedCurve;
+        chart.data.datasets[2].data = observedPoints;
+        chart.update('none');
+        return;
+    }
+
     chart = new Chart(document.getElementById('chart'), {
         type: 'scatter',
         data: {
             datasets: [
                 {
-                    label: 'Theory: x = ½ g t²',
-                    data: curve,
+                    label: 'True Moon: x = ½gt²',
+                    data: trueCurve,
                     type: 'line',
-                    borderColor: '#5b8cff',
-                    borderWidth: 2,
+                    borderColor: 'rgba(91, 140, 255, 0.4)',
+                    borderWidth: 1.7,
                     pointRadius: 0,
-                    tension: 0.3,
+                    tension: 0.22,
                 },
                 {
-                    label: 'Your clicks (t, x)',
-                    data: obs,
+                    label: 'Live fit: x = ½ĝt²',
+                    data: fittedCurve,
+                    type: 'line',
+                    borderColor: '#4ade80',
+                    borderDash: [7, 5],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.22,
+                },
+                {
+                    label: 'Your clicks',
+                    data: observedPoints,
                     backgroundColor: '#ff5a5a',
-                    borderColor: '#ff5a5a',
+                    borderColor: '#ffd0d0',
+                    borderWidth: 1.5,
                     pointRadius: 5,
+                    pointHoverRadius: 6,
                 },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
+            normalized: true,
             scales: {
                 x: {
-                    title: { display: true, text: 'time t (s)', color: '#9aa3c4' },
+                    title: { display: true, text: 'observed time t (s)', color: '#9aa3c4' },
                     min: 0,
+                    max: Math.ceil(trueTimeAt(H) + 0.75),
                     grid: { color: 'rgba(255,255,255,0.06)' },
-                    ticks: { color: '#9aa3c4' },
+                    ticks: { color: '#9aa3c4', maxTicksLimit: 7 },
                 },
                 y: {
                     title: { display: true, text: 'distance fallen x (m)', color: '#9aa3c4' },
                     min: 0,
                     max: H,
                     grid: { color: 'rgba(255,255,255,0.06)' },
-                    ticks: { color: '#9aa3c4' },
+                    ticks: { color: '#9aa3c4', maxTicksLimit: 6 },
                 },
             },
             plugins: {
-                legend: { labels: { color: '#e8ecf8' } },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 18,
+                        boxHeight: 2,
+                        color: '#e8ecf8',
+                        font: { size: 11 },
+                        padding: 14,
+                    },
+                },
+                tooltip: {
+                    callbacks: {
+                        label(context) {
+                            return `${context.dataset.label}: (${context.parsed.x.toFixed(2)} s, ${context.parsed.y.toFixed(1)} m)`;
+                        },
+                    },
+                },
             },
         },
     });
@@ -415,7 +471,6 @@ function reset() {
     instructionEl.innerHTML =
         'Click anywhere on the scene to <strong>drop the ball</strong> and start the clock.';
     csvBtn.disabled = true;
-    resultsEl.classList.add('hidden');
     updateReadouts();
     draw();
 }
