@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Geometry of Linear Algebra — Design Proposal</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Geometry of Linear Algebra — Design Proposal</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#geometry-of-linear-algebra-design-proposal"
+id="toc-geometry-of-linear-algebra-design-proposal">Geometry of Linear
+Algebra — Design Proposal</a>
+<ul>
+<li><a href="#recommendation" id="toc-recommendation">1.
+Recommendation</a></li>
+</ul></li>
+<li><a href="#geometry-of-linear-algebra"
+id="toc-geometry-of-linear-algebra">Geometry of Linear Algebra</a>
+<ul>
+<li><a href="#product-idea" id="toc-product-idea">2. Product
+idea</a></li>
+<li><a href="#language-and-mathematical-precision"
+id="toc-language-and-mathematical-precision">3. Language and
+mathematical precision</a>
+<ul>
+<li><a href="#point-versus-vector" id="toc-point-versus-vector">Point
+versus vector</a></li>
+<li><a href="#linear-versus-affine-objects"
+id="toc-linear-versus-affine-objects">Linear versus affine
+objects</a></li>
+<li><a href="#space-versus-volume" id="toc-space-versus-volume">Space
+versus volume</a></li>
+<li><a href="#intrinsic-versus-ambient-dimension"
+id="toc-intrinsic-versus-ambient-dimension">Intrinsic versus ambient
+dimension</a></li>
+</ul></li>
+<li><a href="#learning-goals" id="toc-learning-goals">4. Learning
+goals</a></li>
+<li><a href="#the-dimension-ladder" id="toc-the-dimension-ladder">5. The
+dimension ladder</a></li>
+<li><a href="#core-mathematical-model"
+id="toc-core-mathematical-model">6. Core mathematical model</a></li>
+<li><a href="#guided-sequence" id="toc-guided-sequence">7. Guided
+sequence</a>
+<ul>
+<li><a href="#chapter-1-same-object-more-room"
+id="toc-chapter-1-same-object-more-room">Chapter 1 — Same object, more
+room</a></li>
+<li><a href="#chapter-2-build-with-directions"
+id="toc-chapter-2-build-with-directions">Chapter 2 — Build with
+directions</a></li>
+<li><a href="#chapter-3-cut-with-equations"
+id="toc-chapter-3-cut-with-equations">Chapter 3 — Cut with
+equations</a></li>
+<li><a href="#chapter-4-drop-a-perpendicular"
+id="toc-chapter-4-drop-a-perpendicular">Chapter 4 — Drop a
+perpendicular</a></li>
+<li><a href="#chapter-5-area-volume-and-collapse"
+id="toc-chapter-5-area-volume-and-collapse">Chapter 5 — Area, volume,
+and collapse</a></li>
+<li><a href="#chapter-6-directions-a-transformation-preserves"
+id="toc-chapter-6-directions-a-transformation-preserves">Chapter 6 —
+Directions a transformation preserves</a></li>
+<li><a href="#chapter-7-projection-is-a-transformation"
+id="toc-chapter-7-projection-is-a-transformation">Chapter 7 — Projection
+is a transformation</a></li>
+</ul></li>
+<li><a href="#proposed-screen-layout" id="toc-proposed-screen-layout">8.
+Proposed screen layout</a>
+<ul>
+<li><a href="#desktop" id="toc-desktop">Desktop</a></li>
+<li><a href="#mobile" id="toc-mobile">Mobile</a></li>
+</ul></li>
+<li><a href="#interaction-system" id="toc-interaction-system">9.
+Interaction system</a>
+<ul>
+<li><a href="#coordinated-highlighting"
+id="toc-coordinated-highlighting">Coordinated highlighting</a></li>
+<li><a href="#direct-manipulation" id="toc-direct-manipulation">Direct
+manipulation</a></li>
+<li><a href="#representation-toggle"
+id="toc-representation-toggle">Representation toggle</a></li>
+</ul></li>
+<li><a href="#presets" id="toc-presets">10. Presets</a>
+<ul>
+<li><a href="#geometry-presets" id="toc-geometry-presets">Geometry
+presets</a></li>
+<li><a href="#projection-presets" id="toc-projection-presets">Projection
+presets</a></li>
+<li><a href="#transformation-presets"
+id="toc-transformation-presets">Transformation presets</a></li>
+</ul></li>
+<li><a href="#visual-language" id="toc-visual-language">11. Visual
+language</a></li>
+<li><a href="#mathematical-invariants"
+id="toc-mathematical-invariants">12. Mathematical invariants</a></li>
+<li><a href="#accessibility-requirements"
+id="toc-accessibility-requirements">13. Accessibility
+requirements</a></li>
+<li><a href="#scope-boundaries" id="toc-scope-boundaries">14. Scope
+boundaries</a>
+<ul>
+<li><a href="#first-complete-version"
+id="toc-first-complete-version">First complete version</a></li>
+<li><a href="#explicitly-deferred"
+id="toc-explicitly-deferred">Explicitly deferred</a></li>
+</ul></li>
+<li><a href="#implementation-architecture"
+id="toc-implementation-architecture">15. Implementation architecture</a>
+<ul>
+<li><a href="#rendering" id="toc-rendering">Rendering</a></li>
+<li><a href="#state-and-model" id="toc-state-and-model">State and
+model</a></li>
+<li><a href="#canonical-object-representation"
+id="toc-canonical-object-representation">Canonical object
+representation</a></li>
+<li><a href="#suggested-file-split"
+id="toc-suggested-file-split">Suggested file split</a></li>
+</ul></li>
+<li><a href="#implementation-phases" id="toc-implementation-phases">16.
+Implementation phases</a>
+<ul>
+<li><a href="#phase-1-geometry-kernel-and-dimension-ladder"
+id="toc-phase-1-geometry-kernel-and-dimension-ladder">Phase 1 — Geometry
+kernel and dimension ladder</a></li>
+<li><a href="#phase-2-build-and-cut-representations"
+id="toc-phase-2-build-and-cut-representations">Phase 2 — Build and cut
+representations</a></li>
+<li><a href="#phase-3-projection" id="toc-phase-3-projection">Phase 3 —
+Projection</a></li>
+<li><a href="#phase-4-determinant-transformation-lab"
+id="toc-phase-4-determinant-transformation-lab">Phase 4 — Determinant
+transformation lab</a></li>
+<li><a href="#phase-5-eigenvector-lab-and-synthesis"
+id="toc-phase-5-eigenvector-lab-and-synthesis">Phase 5 — Eigenvector lab
+and synthesis</a></li>
+<li><a href="#phase-6-accessibility-polish-and-library-integration"
+id="toc-phase-6-accessibility-polish-and-library-integration">Phase 6 —
+Accessibility, polish, and library integration</a></li>
+</ul></li>
+<li><a href="#validation-plan" id="toc-validation-plan">17. Validation
+plan</a>
+<ul>
+<li><a href="#model-tests" id="toc-model-tests">Model tests</a></li>
+<li><a href="#visual-invariants" id="toc-visual-invariants">Visual
+invariants</a></li>
+<li><a href="#interaction-checks"
+id="toc-interaction-checks">Interaction checks</a></li>
+</ul></li>
+<li><a href="#success-criteria" id="toc-success-criteria">18. Success
+criteria</a></li>
+<li><a href="#main-design-risks" id="toc-main-design-risks">19. Main
+design risks</a>
+<ul>
+<li><a href="#risk-too-many-topics-in-one-app"
+id="toc-risk-too-many-topics-in-one-app">Risk: too many topics in one
+app</a></li>
+<li><a href="#risk-3d-spectacle-obscures-the-mathematics"
+id="toc-risk-3d-spectacle-obscures-the-mathematics">Risk: 3D spectacle
+obscures the mathematics</a></li>
+<li><a href="#risk-editable-equivalent-representations-drift-apart"
+id="toc-risk-editable-equivalent-representations-drift-apart">Risk:
+editable equivalent representations drift apart</a></li>
+<li><a href="#risk-degeneracy-looks-like-a-rendering-failure"
+id="toc-risk-degeneracy-looks-like-a-rendering-failure">Risk: degeneracy
+looks like a rendering failure</a></li>
+<li><a href="#risk-eigenvectors-become-a-root-finding-exercise"
+id="toc-risk-eigenvectors-become-a-root-finding-exercise">Risk:
+eigenvectors become a root-finding exercise</a></li>
+</ul></li>
+<li><a href="#final-product-position"
+id="toc-final-product-position">20. Final product position</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="geometry-of-linear-algebra-design-proposal">Geometry of Linear
+Algebra — Design Proposal</h1>
+<h2 id="recommendation">1. Recommendation</h2>
+<p>Build this as a prequel to <strong>Geometry of Least Squares</strong>
+called:</p>
+<h1 id="geometry-of-linear-algebra">Geometry of Linear Algebra</h1>
+<p><strong>Subtitle:</strong> Build, cut, project, transform.</p>
+<p>The app should not be organized as three disconnected tours of 1D,
+2D, and 3D. Its central idea should be:</p>
+<blockquote>
+<p>An object has an <strong>intrinsic dimension</strong>, and it lives
+inside an <strong>ambient dimension</strong>.</p>
+</blockquote>
+<p>A line is still one-dimensional whether it is the whole of <span
+class="math inline">\(\mathbb R^1\)</span>, drawn in <span
+class="math inline">\(\mathbb R^2\)</span>, or embedded in <span
+class="math inline">\(\mathbb R^3\)</span>. A plane is two-dimensional
+whether it is the whole of <span class="math inline">\(\mathbb
+R^2\)</span> or embedded in <span class="math inline">\(\mathbb
+R^3\)</span>.</p>
+<p>From there, the app should present two complementary ways to describe
+the same geometric object:</p>
+<ol type="1">
+<li><strong>Build it from directions:</strong> parametric/span
+form.</li>
+<li><strong>Cut it out with constraints:</strong> implicit/normal
+form.</li>
+</ol>
+<p>Projection, determinant, and eigenvectors then become connected
+consequences rather than a collection of unrelated linear-algebra
+topics.</p>
+<p>The conceptual finale should be a projection onto a plane in <span
+class="math inline">\(\mathbb R^3\)</span>:</p>
+<ul>
+<li>the plane is built from two directions;</li>
+<li>it is cut out by one normal equation;</li>
+<li>projection removes the normal component;</li>
+<li>the projection matrix has eigenvalue <span
+class="math inline">\(1\)</span> along the plane and <span
+class="math inline">\(0\)</span> normal to it;</li>
+<li>its determinant is <span class="math inline">\(0\)</span> because it
+collapses 3D volume onto a 2D object.</li>
+</ul>
+<p>That single construction unifies the whole app and hands the learner
+directly to the least-squares experience without introducing
+regression.</p>
+<hr />
+<h2 id="product-idea">2. Product idea</h2>
+<p>An interactive visual explanation of points, lines, planes, and
+transformations in dimensions one through three.</p>
+<p>The learner should be able to move continuously among four
+synchronized descriptions:</p>
+<ol type="1">
+<li><strong>Geometric scene:</strong> the object inside <span
+class="math inline">\(\mathbb R^1\)</span>, <span
+class="math inline">\(\mathbb R^2\)</span>, or <span
+class="math inline">\(\mathbb R^3\)</span>.</li>
+<li><strong>Parametric description:</strong> an anchor point plus
+generating directions.</li>
+<li><strong>Implicit description:</strong> one or more equations that
+constrain the coordinates.</li>
+<li><strong>Transformation description:</strong> what a matrix does to
+the object and its surrounding space.</li>
+</ol>
+<p>The app should feel like a manipulable concept map, not a matrix
+calculator. Equations should identify something already visible in the
+scene.</p>
+<hr />
+<h2 id="language-and-mathematical-precision">3. Language and
+mathematical precision</h2>
+<p>The app should distinguish several commonly conflated ideas.</p>
+<h3 id="point-versus-vector">Point versus vector</h3>
+<p>A point is a location. A vector is a displacement. Both may be
+represented by the same coordinate tuple, but their roles differ.</p>
+<ul>
+<li>Point: <span class="math inline">\(p=(p_1,p_2,p_3)\)</span>.</li>
+<li>Vector: <span class="math inline">\(v=(v_1,v_2,v_3)\)</span>.</li>
+<li>Point translated by vector: <span
+class="math inline">\(p+v\)</span>.</li>
+</ul>
+<p>The visual language should use dots for points and arrows for
+vectors.</p>
+<h3 id="linear-versus-affine-objects">Linear versus affine objects</h3>
+<p>A linear subspace passes through the origin. An affine flat may be
+translated away from it.</p>
+<ul>
+<li>Linear line: <span class="math inline">\(\{tv:t\in\mathbb
+R\}\)</span>.</li>
+<li>Affine line: <span class="math inline">\(\{p+tv:t\in\mathbb
+R\}\)</span>.</li>
+<li>Linear plane: <span
+class="math inline">\(\operatorname{span}\{u,v\}\)</span>.</li>
+<li>Affine plane: <span
+class="math inline">\(p+\operatorname{span}\{u,v\}\)</span>.</li>
+</ul>
+<p>Use “flat” as the general term only after points, lines, and planes
+are familiar.</p>
+<h3 id="space-versus-volume">Space versus volume</h3>
+<p>A three-dimensional linear subspace of <span
+class="math inline">\(\mathbb R^3\)</span> is all of <span
+class="math inline">\(\mathbb R^3\)</span>, not a bounded solid. Actual
+area and volume enter when the determinant measures the parallelogram or
+parallelepiped spanned by transformed vectors.</p>
+<h3 id="intrinsic-versus-ambient-dimension">Intrinsic versus ambient
+dimension</h3>
+<p>Use:</p>
+<ul>
+<li><span class="math inline">\(n\)</span> for ambient dimension;</li>
+<li><span class="math inline">\(k\)</span> for the intrinsic dimension
+of the object;</li>
+<li><span class="math inline">\(n-k\)</span> for the number of
+independent constraints required to cut it out.</li>
+</ul>
+<p>The app should repeatedly display the relation:</p>
+<p><span class="math display">\[
+\text{dimension of object}+\text{number of independent
+constraints}=\text{ambient dimension}.
+\]</span></p>
+<hr />
+<h2 id="learning-goals">4. Learning goals</h2>
+<p>By the end of the experience, a learner should understand that:</p>
+<ul>
+<li>A point, line, or plane is classified by its own dimension, not by
+the size of the space around it.</li>
+<li>Coordinates describe an embedding in an ambient space.</li>
+<li>A line in <span class="math inline">\(\mathbb R^3\)</span> needs one
+generating direction but two independent scalar constraints.</li>
+<li>A plane in <span class="math inline">\(\mathbb R^3\)</span> needs
+two independent generating directions or one independent scalar
+constraint.</li>
+<li>The equation <span class="math inline">\(ax+by+cz=d\)</span>
+describes a plane because <span class="math inline">\((a,b,c)\)</span>
+is normal to every allowed in-plane movement.</li>
+<li>A span gains dimension only when a new independent direction is
+added.</li>
+<li>Orthogonal projection decomposes a vector into a part inside a
+subspace and a perpendicular part.</li>
+<li>A determinant is signed area or volume scale, not merely a formula
+involving matrix entries.</li>
+<li>A zero determinant means that a transformation has collapsed
+dimension.</li>
+<li>An eigenvector is a direction that a transformation does not turn;
+its eigenvalue gives the signed scale along that direction.</li>
+<li>Projection matrices provide a concrete example of eigenvalues <span
+class="math inline">\(1\)</span> and <span
+class="math inline">\(0\)</span>.</li>
+<li>The geometric vocabulary used in least squares—column space,
+projection, orthogonality, rank, and dimension—does not depend on
+regression.</li>
+</ul>
+<hr />
+<h2 id="the-dimension-ladder">5. The dimension ladder</h2>
+<p>Use a persistent dimension ladder as the app’s orienting device.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Intrinsic dimension</th>
+<th>In <span class="math inline">\(\mathbb R^1\)</span></th>
+<th>In <span class="math inline">\(\mathbb R^2\)</span></th>
+<th>In <span class="math inline">\(\mathbb R^3\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>point</td>
+<td>point</td>
+<td>point</td>
+</tr>
+<tr>
+<td>1</td>
+<td>line / all of <span class="math inline">\(\mathbb R^1\)</span></td>
+<td>line</td>
+<td>line</td>
+</tr>
+<tr>
+<td>2</td>
+<td>—</td>
+<td>plane / all of <span class="math inline">\(\mathbb R^2\)</span></td>
+<td>plane</td>
+</tr>
+<tr>
+<td>3</td>
+<td>—</td>
+<td>—</td>
+<td>3-space / all of <span class="math inline">\(\mathbb
+R^3\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Each valid cell should be selectable. Changing cells should preserve
+the current concept when possible.</p>
+<p>Examples:</p>
+<ul>
+<li>Moving across the “line” row shows the same one-dimensional object
+embedded in progressively larger spaces.</li>
+<li>Moving down the <span class="math inline">\(\mathbb R^3\)</span>
+column adds independent directions: point <span
+class="math inline">\(\to\)</span> line <span
+class="math inline">\(\to\)</span> plane <span
+class="math inline">\(\to\)</span> 3-space.</li>
+<li>Impossible cells are visible but inactive, making <span
+class="math inline">\(k\le n\)</span> concrete.</li>
+</ul>
+<p>When ambient dimension changes:</p>
+<ul>
+<li><span class="math inline">\(\mathbb R^1\)</span>: emphasize the
+<span class="math inline">\(x\)</span>-axis; hide or ghost the other
+axes.</li>
+<li><span class="math inline">\(\mathbb R^2\)</span>: emphasize the
+<span class="math inline">\(xy\)</span>-plane; ghost the <span
+class="math inline">\(z\)</span>-axis.</li>
+<li><span class="math inline">\(\mathbb R^3\)</span>: show the full
+scene with an orbitable camera.</li>
+</ul>
+<hr />
+<h2 id="core-mathematical-model">6. Core mathematical model</h2>
+<p>Represent a <span class="math inline">\(k\)</span>-dimensional affine
+flat in <span class="math inline">\(\mathbb R^n\)</span> by an anchor
+point <span class="math inline">\(p\)</span> and <span
+class="math inline">\(k\)</span> independent direction vectors collected
+as columns of <span class="math inline">\(V\)</span>:</p>
+<p><span class="math display">\[
+\mathcal F
+=
+\{p+Vc:c\in\mathbb R^k\}
+=
+p+\mathcal C(V).
+\]</span></p>
+<p>If the columns of <span class="math inline">\(N\)</span> form a basis
+for the orthogonal complement of <span class="math inline">\(\mathcal
+C(V)\)</span>, then the same object has the constraint form:</p>
+<p><span class="math display">\[
+\mathcal F
+=
+\{x:N^\top(x-p)=0\}
+=
+\{x:N^\top x=N^\top p\}.
+\]</span></p>
+<p>This gives the app’s “build versus cut” duality:</p>
+<table>
+<thead>
+<tr>
+<th>Build</th>
+<th>Cut</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(k\)</span> independent directions</td>
+<td><span class="math inline">\(n-k\)</span> independent
+constraints</td>
+</tr>
+<tr>
+<td><span class="math inline">\(x=p+Vc\)</span></td>
+<td><span class="math inline">\(N^\top x=N^\top p\)</span></td>
+</tr>
+<tr>
+<td>column space</td>
+<td>orthogonal complement / normals</td>
+</tr>
+</tbody>
+</table>
+<p>For a plane in <span class="math inline">\(\mathbb R^3\)</span>,
+<span class="math inline">\(N\)</span> contains one normal vector <span
+class="math inline">\(n=(a,b,c)\)</span>, so:</p>
+<p><span class="math display">\[
+n^\top x=d
+\quad\Longleftrightarrow\quad
+ax+by+cz=d.
+\]</span></p>
+<p>For projection onto the linear subspace with orthonormal basis <span
+class="math inline">\(Q\)</span>:</p>
+<p><span class="math display">\[
+\operatorname{proj}_{\mathcal C(Q)}(x)=QQ^\top x.
+\]</span></p>
+<p>For an affine flat <span class="math inline">\(p+\mathcal
+C(Q)\)</span>:</p>
+<p><span class="math display">\[
+\operatorname{proj}_{\mathcal F}(x)
+=
+p+QQ^\top(x-p).
+\]</span></p>
+<p>The orthogonal decomposition is:</p>
+<p><span class="math display">\[
+x-p
+=
+QQ^\top(x-p)
++
+(I-QQ^\top)(x-p).
+\]</span></p>
+<p>For a linear transformation <span class="math inline">\(A:\mathbb
+R^n\to\mathbb R^n\)</span>:</p>
+<ul>
+<li><span class="math inline">\(|\det A|\)</span> is area scale in <span
+class="math inline">\(\mathbb R^2\)</span> or volume scale in <span
+class="math inline">\(\mathbb R^3\)</span>;</li>
+<li>the sign of <span class="math inline">\(\det A\)</span> records
+orientation;</li>
+<li><span class="math inline">\(\det A=0\)</span> exactly when the
+transformation collapses dimension;</li>
+<li><span class="math inline">\(Av=\lambda v\)</span> identifies an
+eigenvector/eigenvalue pair.</li>
+</ul>
+<hr />
+<h2 id="guided-sequence">7. Guided sequence</h2>
+<p>Use seven chapters. The whole workspace remains recognizable, but
+each chapter changes the active manipulation and the equation being
+explained.</p>
+<h3 id="chapter-1-same-object-more-room">Chapter 1 — Same object, more
+room</h3>
+<p><strong>Message:</strong> Dimension belongs to the object;
+coordinates tell us what space it occupies.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>The dimension ladder.</li>
+<li>A point, then a line, embedded in <span
+class="math inline">\(\mathbb R^1\)</span>, <span
+class="math inline">\(\mathbb R^2\)</span>, and <span
+class="math inline">\(\mathbb R^3\)</span>.</li>
+<li>Active ambient axes and ghosted unused axes.</li>
+<li>A badge reading, for example, “1D object in 3D space.”</li>
+</ul>
+<p><strong>Interaction:</strong></p>
+<p>Select cells in the dimension ladder. Drag a line’s anchor point in
+<span class="math inline">\(\mathbb R^3\)</span> without changing the
+line’s intrinsic dimension.</p>
+<p><strong>Key insight:</strong></p>
+<p>A line does not become three-dimensional merely because its points
+require three coordinates.</p>
+<h3 id="chapter-2-build-with-directions">Chapter 2 — Build with
+directions</h3>
+<p><strong>Message:</strong> An independent direction adds one degree of
+freedom.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>Anchor point <span class="math inline">\(p\)</span>.</li>
+<li>Direction arrows <span
+class="math inline">\(v_1,v_2,v_3\)</span>.</li>
+<li>Coefficient controls <span
+class="math inline">\(c_1,c_2,c_3\)</span>.</li>
+<li>The generated point <span class="math inline">\(p+Vc\)</span> moving
+on the current flat.</li>
+<li>A live rank and dimension indicator.</li>
+</ul>
+<p><strong>Interaction:</strong></p>
+<ul>
+<li>Drag coefficients to move along a line, across a plane, or through
+3-space.</li>
+<li>Rotate a generating direction.</li>
+<li>Add a second direction to turn a line into a plane.</li>
+<li>Move the second direction until it becomes parallel to the first and
+watch the plane collapse back to a line.</li>
+</ul>
+<p><strong>Live mathematics:</strong></p>
+<p><span class="math display">\[
+x=p+c_1v_1+c_2v_2
+\]</span></p>
+<p>followed by:</p>
+<p><span class="math display">\[
+x=p+Vc,
+\qquad
+\dim(\mathcal F)=\operatorname{rank}(V).
+\]</span></p>
+<p><strong>Key insight:</strong></p>
+<p>More vectors do not necessarily mean more dimensions; only
+independent vectors do.</p>
+<h3 id="chapter-3-cut-with-equations">Chapter 3 — Cut with
+equations</h3>
+<p><strong>Message:</strong> One independent scalar equation removes one
+degree of freedom.</p>
+<p>This chapter should directly answer how a plane equation is embedded
+in 3D.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>The normal vector <span
+class="math inline">\(n=(a,b,c)\)</span>.</li>
+<li>A translucent plane perpendicular to <span
+class="math inline">\(n\)</span>.</li>
+<li>A stack of parallel level-set planes <span
+class="math inline">\(n^\top x=d\)</span> for several values of <span
+class="math inline">\(d\)</span>.</li>
+<li>A trace from coordinate coefficients <span
+class="math inline">\((a,b,c,d)\)</span> to the visible normal and
+offset.</li>
+</ul>
+<p><strong>Interaction:</strong></p>
+<ul>
+<li>Drag the tip of <span class="math inline">\(n\)</span> to rotate the
+plane.</li>
+<li>Drag <span class="math inline">\(d\)</span> to slide the plane
+parallel to itself.</li>
+<li>Toggle the same one-equation pattern across ambient dimensions:</li>
+</ul>
+<p><span class="math display">\[
+\begin{aligned}
+ax&amp;=d &amp;&amp;\text{cuts a point from }\mathbb R^1,\\
+ax+by&amp;=d &amp;&amp;\text{cuts a line from }\mathbb R^2,\\
+ax+by+cz&amp;=d &amp;&amp;\text{cuts a plane from }\mathbb R^3.
+\end{aligned}
+\]</span></p>
+<ul>
+<li>In <span class="math inline">\(\mathbb R^3\)</span>, add constraints
+one at a time:</li>
+</ul>
+<p><span class="math display">\[
+\text{3-space}\xrightarrow{1\text{ equation}}\text{plane}
+\xrightarrow{2}\text{line}
+\xrightarrow{3}\text{point}.
+\]</span></p>
+<p><strong>Key insight:</strong></p>
+<p>The coefficients of a plane equation are not arbitrary labels. They
+form a vector perpendicular to every movement that remains in the
+plane.</p>
+<h3 id="chapter-4-drop-a-perpendicular">Chapter 4 — Drop a
+perpendicular</h3>
+<p><strong>Message:</strong> Projection chooses the nearest point by
+removing the perpendicular component.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>A draggable query point <span class="math inline">\(x\)</span>.</li>
+<li>Its projection <span class="math inline">\(\hat x\)</span> onto a
+selected line or plane.</li>
+<li>The parallel and perpendicular components.</li>
+<li>A right-angle marker.</li>
+<li>A live distance readout.</li>
+</ul>
+<p><strong>Interaction:</strong></p>
+<ul>
+<li>Drag <span class="math inline">\(x\)</span> freely and watch <span
+class="math inline">\(\hat x\)</span> remain constrained to the
+target.</li>
+<li>Switch the target among an axis, a line in <span
+class="math inline">\(\mathbb R^2\)</span>, a line in <span
+class="math inline">\(\mathbb R^3\)</span>, and a plane in <span
+class="math inline">\(\mathbb R^3\)</span>.</li>
+<li>Toggle between the basis and normal calculations.</li>
+</ul>
+<p><strong>Basis form:</strong></p>
+<p><span class="math display">\[
+\hat x=p+QQ^\top(x-p).
+\]</span></p>
+<p><strong>Normal form for a plane:</strong></p>
+<p><span class="math display">\[
+\hat x
+=
+x-
+\frac{n^\top x-d}{n^\top n}n.
+\]</span></p>
+<p><strong>Key insight:</strong></p>
+<p>The projected point is the same whether the target is described by
+directions or by constraints.</p>
+<p>No regression language should appear in this chapter.</p>
+<h3 id="chapter-5-area-volume-and-collapse">Chapter 5 — Area, volume,
+and collapse</h3>
+<p><strong>Message:</strong> A determinant measures how a linear
+transformation scales oriented area or volume.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>A unit square in <span class="math inline">\(\mathbb R^2\)</span>
+and unit cube in <span class="math inline">\(\mathbb R^3\)</span>.</li>
+<li>Basis vectors before and after applying <span
+class="math inline">\(A\)</span>.</li>
+<li>The transformed parallelogram or parallelepiped.</li>
+<li>Numeric area/volume and orientation indicators.</li>
+</ul>
+<p><strong>Interaction:</strong></p>
+<p>Use curated transformations before allowing arbitrary entries:</p>
+<ol type="1">
+<li>Uniform and nonuniform scale.</li>
+<li>Shear.</li>
+<li>Rotation.</li>
+<li>Reflection.</li>
+<li>Dimension collapse.</li>
+</ol>
+<p>Animate the transformation from <span
+class="math inline">\(I\)</span> to <span
+class="math inline">\(A\)</span> and scrub it with a timeline.</p>
+<p><strong>Live mathematics:</strong></p>
+<p><span class="math display">\[
+\text{new signed area/volume}
+=
+\det(A)\cdot\text{old signed area/volume}.
+\]</span></p>
+<p>When <span class="math inline">\(\det(A)=0\)</span>, show the square
+collapse to a line or the cube collapse to a plane. Coordinate this with
+the rank/dimension indicator.</p>
+<p><strong>Key insight:</strong></p>
+<p>A zero determinant means lost dimension, not merely “the matrix has
+no inverse.”</p>
+<h3 id="chapter-6-directions-a-transformation-preserves">Chapter 6 —
+Directions a transformation preserves</h3>
+<p><strong>Message:</strong> Most directions turn. Eigenvectors stay on
+their own line.</p>
+<p>The primary eigenvector lab should be in <span
+class="math inline">\(\mathbb R^2\)</span>, where the geometry and
+equation can remain readable. Selected symmetric examples may extend to
+<span class="math inline">\(\mathbb R^3\)</span>.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>A field or fan of direction arrows before and after applying <span
+class="math inline">\(A\)</span>.</li>
+<li>Eigenlines highlighted while ordinary vectors visibly turn away from
+their original lines.</li>
+<li>Signed eigenvalue controls/readouts.</li>
+<li>Before/after unit circle, becoming an ellipse for symmetric
+transformations.</li>
+</ul>
+<p><strong>Interaction:</strong></p>
+<ul>
+<li>Drag a test vector around the unit circle and compare <span
+class="math inline">\(v\)</span> with <span
+class="math inline">\(Av\)</span>.</li>
+<li>Snap to an eigenline when <span class="math inline">\(Av\)</span>
+becomes parallel to <span class="math inline">\(v\)</span>.</li>
+<li>Explore presets for positive stretch, negative stretch/reflection,
+repeated eigenvalue, shear, and rotation.</li>
+<li>Include a rotation preset with no real eigenvector, explicitly
+showing that not every real matrix has a real eigenline.</li>
+</ul>
+<p><strong>Live mathematics:</strong></p>
+<p><span class="math display">\[
+Av=\lambda v.
+\]</span></p>
+<p>For symmetric matrices, emphasize orthogonal eigendirections. In the
+2D real-eigenvalue presets, connect determinant to the product of
+directional scales:</p>
+<p><span class="math display">\[
+\det(A)=\lambda_1\lambda_2.
+\]</span></p>
+<p><strong>Key insight:</strong></p>
+<p>An eigenvector is a direction preserved by the transformation, not a
+point left fixed. It may stretch, shrink, reverse, or collapse.</p>
+<h3 id="chapter-7-projection-is-a-transformation">Chapter 7 — Projection
+is a transformation</h3>
+<p><strong>Message:</strong> Projection unifies dimension, constraints,
+determinants, and eigenvectors.</p>
+<p>Use orthogonal projection from <span class="math inline">\(\mathbb
+R^3\)</span> onto a plane as the capstone.</p>
+<p><strong>Visual emphasis:</strong></p>
+<ul>
+<li>A cloud of points and a small cube being projected onto a
+plane.</li>
+<li>The cube flattening into a parallelogram.</li>
+<li>Two independent in-plane directions.</li>
+<li>The plane normal.</li>
+<li>Eigenvalue labels <span class="math inline">\(1,1,0\)</span>
+attached to those directions.</li>
+</ul>
+<p><strong>Live mathematics:</strong></p>
+<p>For an orthonormal plane basis <span
+class="math inline">\(Q\)</span>:</p>
+<p><span class="math display">\[
+P=QQ^\top.
+\]</span></p>
+<p>Then:</p>
+<p><span class="math display">\[
+Pv=v\quad\text{for }v\text{ in the plane},
+\]</span></p>
+<p>and:</p>
+<p><span class="math display">\[
+Pn=0\quad\text{for }n\text{ normal to the plane}.
+\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[
+\operatorname{rank}(P)=2,
+\qquad
+\det(P)=0,
+\qquad
+\text{eigenvalues}(P)=\{1,1,0\}.
+\]</span></p>
+<p>Also show:</p>
+<p><span class="math display">\[
+P^2=P,
+\qquad
+P^\top=P.
+\]</span></p>
+<p>Label these as “projecting twice changes nothing” and “orthogonal
+projection,” respectively, before introducing the formal terms
+idempotent and symmetric.</p>
+<p><strong>Handoff:</strong></p>
+<p>End with a link to <strong>Geometry of Least Squares</strong>:</p>
+<blockquote>
+<p>In the next app, three measurements form a point in <span
+class="math inline">\(\mathbb R^3\)</span>, possible fitted values form
+a plane, and least squares performs exactly this projection.</p>
+</blockquote>
+<hr />
+<h2 id="proposed-screen-layout">8. Proposed screen layout</h2>
+<h3 id="desktop">Desktop</h3>
+<pre class="text"><code>┌──────────────────────────────────────────────────────────────────────────────┐
+│ GEOMETRY OF LINEAR ALGEBRA         Build · Cut · Project · Transform         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 1 Dimension  2 Span  3 Equations  4 Projection  5 Determinant  6 Eigen  7 P │
+├─────────────────┬───────────────────────────────────┬────────────────────────┤
+│ Guided idea     │ Geometric scene                   │ Same object, live math │
+│                 │                                   │                        │
+│ Step message    │      orbitable ℝ¹ / ℝ² / ℝ³       │ Ambient: n = 3         │
+│                 │                                   │ Object: k = 2          │
+│ Dimension       │      point / line / plane         │ Constraints: n-k = 1   │
+│ ladder          │                                   │                        │
+│                 │      vectors and construction     │ x = p + Vc             │
+│ Active controls │                                   │ Nᵀx = Nᵀp              │
+│                 │                                   │ rank / det / eigen     │
+├─────────────────┴───────────────────────────────────┴────────────────────────┤
+│ Presets / timeline / keyboard controls / accessible scene summary           │
+└──────────────────────────────────────────────────────────────────────────────┘</code></pre>
+<p>The scene should be the dominant surface. The right panel should
+reveal equivalent representations, not become a dense dashboard.</p>
+<h3 id="mobile">Mobile</h3>
+<p>Stack in this order:</p>
+<ol type="1">
+<li>Chapter message and navigation.</li>
+<li>Geometric scene.</li>
+<li>Active manipulation controls.</li>
+<li>Dimension ladder.</li>
+<li>Live mathematics.</li>
+<li>Presets and textual scene summary.</li>
+</ol>
+<p>Use a canonical camera button in 3D and fixed canonical views in
+1D/2D.</p>
+<hr />
+<h2 id="interaction-system">9. Interaction system</h2>
+<h3 id="coordinated-highlighting">Coordinated highlighting</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Focused object</th>
+<th>Coordinated highlights</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Anchor point <span class="math inline">\(p\)</span></td>
+<td>Point in scene and constant term in parametric form</td>
+</tr>
+<tr>
+<td>Direction <span class="math inline">\(v_i\)</span></td>
+<td>Arrow, column of <span class="math inline">\(V\)</span>, and
+coefficient <span class="math inline">\(c_i\)</span></td>
+</tr>
+<tr>
+<td>Normal <span class="math inline">\(n_i\)</span></td>
+<td>Normal arrow, row/column of <span
+class="math inline">\(N^\top\)</span>, and matching constraint</td>
+</tr>
+<tr>
+<td>Projected point <span class="math inline">\(\hat x\)</span></td>
+<td>Point, parallel component, and projection formula</td>
+</tr>
+<tr>
+<td>Perpendicular component</td>
+<td>Right-angle marker, normal space, and distance</td>
+</tr>
+<tr>
+<td>Transformed basis vector</td>
+<td>Matrix column and edge of area/volume element</td>
+</tr>
+<tr>
+<td>Eigenvector <span class="math inline">\(v\)</span></td>
+<td>Eigenline and equation <span class="math inline">\(Av=\lambda
+v\)</span></td>
+</tr>
+<tr>
+<td>Determinant</td>
+<td>Area/volume element, orientation, and rank warning</td>
+</tr>
+</tbody>
+</table>
+<h3 id="direct-manipulation">Direct manipulation</h3>
+<ul>
+<li>Drag points and vector tips in the scene.</li>
+<li>Provide sliders and numeric fields for every drag operation.</li>
+<li>Constrain coefficient dragging to sensible ranges without changing
+the underlying mathematics.</li>
+<li>Snap only when it teaches a concept, such as near dependence or an
+eigenline; never silently alter input.</li>
+<li>Pause calculations while the camera orbits only if needed for
+performance, not as a visible state change.</li>
+</ul>
+<h3 id="representation-toggle">Representation toggle</h3>
+<p>A persistent segmented control should switch among:</p>
+<ul>
+<li><strong>Geometry</strong></li>
+<li><strong>Build</strong></li>
+<li><strong>Cut</strong></li>
+<li><strong>Matrix</strong></li>
+</ul>
+<p>The underlying object must not change when the learner changes
+representation.</p>
+<hr />
+<h2 id="presets">10. Presets</h2>
+<h3 id="geometry-presets">Geometry presets</h3>
+<ol type="1">
+<li>Axis in <span class="math inline">\(\mathbb R^2\)</span>.</li>
+<li>Diagonal line in <span class="math inline">\(\mathbb
+R^2\)</span>.</li>
+<li>Skew line in <span class="math inline">\(\mathbb R^3\)</span>.</li>
+<li>Plane through the origin.</li>
+<li>Translated plane <span class="math inline">\(2x-y+z=3\)</span>.</li>
+<li>Nearly dependent generators.</li>
+<li>Exactly dependent generators.</li>
+</ol>
+<h3 id="projection-presets">Projection presets</h3>
+<ol type="1">
+<li>Project onto an axis.</li>
+<li>Project onto a diagonal line.</li>
+<li>Project onto a plane through the origin.</li>
+<li>Project onto a translated plane.</li>
+<li>Query point already on the target.</li>
+</ol>
+<h3 id="transformation-presets">Transformation presets</h3>
+<ol type="1">
+<li>Scale.</li>
+<li>Shear with determinant <span class="math inline">\(1\)</span>.</li>
+<li>Rotation with determinant <span
+class="math inline">\(1\)</span>.</li>
+<li>Reflection with determinant <span
+class="math inline">\(-1\)</span>.</li>
+<li>Rank-one collapse with determinant <span
+class="math inline">\(0\)</span>.</li>
+<li>Symmetric stretch with orthogonal eigenvectors.</li>
+<li>Shear with only one eigenline.</li>
+<li>Rotation with no real eigenline.</li>
+<li>Orthogonal projection with eigenvalues <span
+class="math inline">\(1\)</span> and <span
+class="math inline">\(0\)</span>.</li>
+</ol>
+<hr />
+<h2 id="visual-language">11. Visual language</h2>
+<p>Reuse enough of the least-squares palette to make the relationship
+recognizable, while assigning colors by geometric role rather than by
+regression meaning.</p>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Suggested role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Given point / test vector</td>
+<td>Deep blue</td>
+</tr>
+<tr>
+<td>Generated flat / allowed directions</td>
+<td>Teal</td>
+</tr>
+<tr>
+<td>Normal / perpendicular component</td>
+<td>Coral</td>
+</tr>
+<tr>
+<td>Projection / retained component</td>
+<td>Emerald</td>
+</tr>
+<tr>
+<td>Transformation output</td>
+<td>Amber</td>
+</tr>
+<tr>
+<td>Eigenvectors / invariant directions</td>
+<td>Violet</td>
+</tr>
+<tr>
+<td>Axes and construction lines</td>
+<td>Slate</td>
+</tr>
+<tr>
+<td>Background</td>
+<td>Warm off-white</td>
+</tr>
+</tbody>
+</table>
+<p>Do not rely on color alone. Use labels, line styles, arrowheads,
+surface patterns, and endpoint shapes.</p>
+<p>Motion should explain cause:</p>
+<ul>
+<li>adding an independent direction expands dimension;</li>
+<li>making directions dependent collapses a plane to a line;</li>
+<li>adding a constraint cuts dimension;</li>
+<li>projection removes the normal component;</li>
+<li>a determinant animation shows area or volume changing
+continuously;</li>
+<li>an eigenvector remains on its line while nearby directions
+turn.</li>
+</ul>
+<p>Avoid continuous ambient animation.</p>
+<hr />
+<h2 id="mathematical-invariants">12. Mathematical invariants</h2>
+<p>The implementation and visuals must preserve these facts:</p>
+<ul>
+<li><span class="math inline">\(0\le k\le n\le3\)</span>.</li>
+<li><span class="math inline">\(\dim(\mathcal
+C(V))=\operatorname{rank}(V)\)</span>.</li>
+<li>The derived normal basis satisfies <span
+class="math inline">\(N^\top V\approx0\)</span>.</li>
+<li>The number of independent normal directions is <span
+class="math inline">\(n-k\)</span>.</li>
+<li>A generated point satisfies its derived constraints.</li>
+<li>An orthogonal projection lies in the target flat.</li>
+<li>The projection residual is orthogonal to every target
+direction.</li>
+<li>For an orthogonal projection matrix, <span
+class="math inline">\(P^2\approx P\)</span> and <span
+class="math inline">\(P^\top\approx P\)</span>.</li>
+<li>Equal world-unit scaling must be used on all visible axes.</li>
+<li>In determinant scenes, displayed area/volume must be computed from
+the same unrounded matrix used for rendering.</li>
+<li>Eigenvectors must satisfy <span
+class="math inline">\(Av\approx\lambda v\)</span> before they are
+labeled as such.</li>
+<li>Near-dependence and exact dependence must be visually and
+numerically distinguished.</li>
+<li>Rounded values must be marked or presented in a way that does not
+imply exactness.</li>
+</ul>
+<hr />
+<h2 id="accessibility-requirements">13. Accessibility requirements</h2>
+<ul>
+<li>Every 3D drag must have keyboard and numeric alternatives.</li>
+<li>Provide a text summary of the current ambient dimension, object
+dimension, equations, basis, normal directions, and relevant
+invariants.</li>
+<li>Make chapter navigation and the dimension ladder fully keyboard
+operable.</li>
+<li>Announce discrete changes such as “plane collapsed to a line” or
+“determinant is now zero,” not every animation frame.</li>
+<li>Support reduced motion; replace transformation morphs with
+before/after states.</li>
+<li>Keep equations readable at 200% zoom.</li>
+<li>Use an accessible table for matrices, basis vectors, transformed
+vectors, and eigenpairs.</li>
+<li>Do not encode orientation or dimension loss by color alone.</li>
+<li>Give the 3D scene canonical-view controls and a nonvisual
+description of camera-independent geometry.</li>
+</ul>
+<hr />
+<h2 id="scope-boundaries">14. Scope boundaries</h2>
+<h3 id="first-complete-version">First complete version</h3>
+<ul>
+<li>Ambient dimensions <span
+class="math inline">\(n=1,2,3\)</span>.</li>
+<li>Points, affine lines, affine planes, and all of <span
+class="math inline">\(\mathbb R^n\)</span> where valid.</li>
+<li>Parametric and implicit representations.</li>
+<li>Linear independence and rank for at most three vectors.</li>
+<li>Orthogonal projection onto lines and planes.</li>
+<li>Determinants in <span class="math inline">\(2\times2\)</span> and
+<span class="math inline">\(3\times3\)</span> examples.</li>
+<li>Eigenvector exploration primarily for real <span
+class="math inline">\(2\times2\)</span> examples.</li>
+<li>Selected symmetric and projection examples in <span
+class="math inline">\(\mathbb R^3\)</span>.</li>
+<li>The seven-chapter guided sequence.</li>
+<li>A link into the existing least-squares app.</li>
+</ul>
+<h3 id="explicitly-deferred">Explicitly deferred</h3>
+<ul>
+<li>Dimensions above three.</li>
+<li>General row reduction as its own lesson.</li>
+<li>Full numerical eigendecomposition for arbitrary nonsymmetric <span
+class="math inline">\(3\times3\)</span> matrices.</li>
+<li>Complex eigenvectors beyond explaining that some real
+transformations have no real eigenline.</li>
+<li>Jordan form.</li>
+<li>Singular value decomposition.</li>
+<li>Oblique projections.</li>
+<li>Determinants defined primarily through cofactor expansion.</li>
+<li>Cross products as a separate topic.</li>
+<li>Arbitrary large user-entered matrices.</li>
+<li>Proof-heavy treatment of abstract vector spaces.</li>
+</ul>
+<p>These topics can follow later, but they would dilute the
+geometry-first arc.</p>
+<hr />
+<h2 id="implementation-architecture">15. Implementation
+architecture</h2>
+<p>Follow the existing least-squares app’s no-build, GitHub
+Pages-compatible approach.</p>
+<h3 id="rendering">Rendering</h3>
+<ul>
+<li>Use Three.js/WebGL with an <code>OrthographicCamera</code> for the
+central scene.</li>
+<li>Keep equal scaling across axes.</li>
+<li>Use CSS2D labels or equivalent screen-space labels for mathematical
+names.</li>
+<li>Use SVG for the dimension ladder, small exact 2D diagrams, and
+accessible visual supplements.</li>
+<li>Use KaTeX for equations.</li>
+</ul>
+<h3 id="state-and-model">State and model</h3>
+<p>All views should consume one immutable model result. Avoid letting
+the scene, equations, and controls perform separate calculations.</p>
+<p>Suggested state:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode js"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  chapter<span class="op">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  ambientDimension<span class="op">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  intrinsicDimension<span class="op">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  representation<span class="op">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  anchor<span class="op">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  generators<span class="op">,</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  constraints<span class="op">,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  queryPoint<span class="op">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  transformation<span class="op">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  preset<span class="op">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  camera</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Suggested computed result:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode js"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  n<span class="op">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  k<span class="op">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  rank<span class="op">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  anchor<span class="op">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  rawGenerators<span class="op">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  orthonormalBasis<span class="op">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  normalBasis<span class="op">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  constraintRhs<span class="op">,</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  generatedPoint<span class="op">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  projectedPoint<span class="op">,</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  parallelComponent<span class="op">,</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  perpendicularComponent<span class="op">,</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  projectionMatrix<span class="op">,</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  transformedBasis<span class="op">,</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  determinant<span class="op">,</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  orientation<span class="op">,</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  eigenpairs<span class="op">,</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  residualChecks<span class="op">,</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  warnings</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="canonical-object-representation">Canonical object
+representation</h3>
+<p>The scene should render a canonical affine-flat result consisting
+of:</p>
+<ul>
+<li>anchor <span class="math inline">\(p\)</span>;</li>
+<li>orthonormal tangent basis <span
+class="math inline">\(Q\)</span>;</li>
+<li>orthonormal normal basis <span
+class="math inline">\(N\)</span>;</li>
+<li>intrinsic dimension <span class="math inline">\(k\)</span>.</li>
+</ul>
+<p>In <strong>Build</strong> mode, derive this result from user-edited
+generators. In <strong>Cut</strong> mode, derive it from user-edited
+independent constraints. Switching modes should convert the current
+object rather than reset it.</p>
+<p>For <span class="math inline">\(n\le3\)</span>, a small custom
+linear-algebra module is sufficient:</p>
+<ul>
+<li>vector arithmetic and dot products;</li>
+<li>Gram–Schmidt with rank tolerance;</li>
+<li>orthogonal-complement construction;</li>
+<li><span class="math inline">\(2\times2\)</span> and <span
+class="math inline">\(3\times3\)</span> determinant;</li>
+<li>affine projection;</li>
+<li>closed-form real <span class="math inline">\(2\times2\)</span>
+eigenpairs;</li>
+<li>a stable symmetric <span class="math inline">\(3\times3\)</span>
+eigensolver only if the selected 3D presets require it.</li>
+</ul>
+<p>Do not implement a general-purpose matrix package inside the app. If
+arbitrary matrices become a later goal, adopt a tested numerical library
+rather than expanding bespoke routines indefinitely.</p>
+<h3 id="suggested-file-split">Suggested file split</h3>
+<pre class="text"><code>linear-algebra/
+├── DESIGN.md
+├── index.html
+├── linear-algebra.css
+├── app.js
+├── state.js
+├── model.js
+├── geometry-model.js
+├── transformation-model.js
+├── scene-3d.js
+├── dimension-ladder.js
+├── math-panel.js
+├── controls.js
+├── lesson.js
+└── preview.png</code></pre>
+<p>Possible responsibilities:</p>
+<ul>
+<li><code>model.js</code>: shared vector/matrix primitives and
+tolerances.</li>
+<li><code>geometry-model.js</code>: span, rank, complements,
+constraints, and projections.</li>
+<li><code>transformation-model.js</code>: determinant, transformed
+basis, and eigenpairs.</li>
+<li><code>scene-3d.js</code>: points, vectors, flats, transformed cells,
+labels, and camera.</li>
+<li><code>dimension-ladder.js</code>: the intrinsic/ambient dimension
+grid.</li>
+<li><code>lesson.js</code>: chapter copy, emphasis, and available
+controls.</li>
+<li><code>app.js</code>: state transitions and render coordination.</li>
+</ul>
+<hr />
+<h2 id="implementation-phases">16. Implementation phases</h2>
+<h3 id="phase-1-geometry-kernel-and-dimension-ladder">Phase 1 — Geometry
+kernel and dimension ladder</h3>
+<ul>
+<li>Implement tested vector/matrix primitives for <span
+class="math inline">\(n\le3\)</span>.</li>
+<li>Implement rank, orthonormal bases, and orthogonal complements.</li>
+<li>Build the canonical affine-flat model.</li>
+<li>Render points, lines, planes, axes, anchor points, and direction
+vectors.</li>
+<li>Add the intrinsic/ambient dimension ladder.</li>
+</ul>
+<p><strong>Exit criterion:</strong> the same line can be moved among
+<span class="math inline">\(\mathbb R^1\)</span>, <span
+class="math inline">\(\mathbb R^2\)</span>, and <span
+class="math inline">\(\mathbb R^3\)</span> while retaining dimension
+one.</p>
+<h3 id="phase-2-build-and-cut-representations">Phase 2 — Build and cut
+representations</h3>
+<ul>
+<li>Add generator controls and coefficient-driven points.</li>
+<li>Derive implicit constraints from the tangent basis.</li>
+<li>Add normal and offset controls.</li>
+<li>Derive a canonical flat from constraints.</li>
+<li>Animate dependence and added constraints without hiding rank
+changes.</li>
+</ul>
+<p><strong>Exit criterion:</strong> a learner can create the same plane
+from two directions or from <span
+class="math inline">\(ax+by+cz=d\)</span> and switch representations
+without changing it.</p>
+<h3 id="phase-3-projection">Phase 3 — Projection</h3>
+<ul>
+<li>Add draggable query points.</li>
+<li>Implement line and plane projections in linear and affine
+cases.</li>
+<li>Render parallel/perpendicular decomposition and right-angle
+markers.</li>
+<li>Add basis-form and normal-form equations.</li>
+</ul>
+<p><strong>Exit criterion:</strong> geometry and equations agree for all
+projection presets, including translated planes.</p>
+<h3 id="phase-4-determinant-transformation-lab">Phase 4 — Determinant
+transformation lab</h3>
+<ul>
+<li>Render unit square/cube and transformed cells.</li>
+<li>Add transformation interpolation and scrubber.</li>
+<li>Implement determinant, orientation, and collapse states.</li>
+<li>Coordinate determinant zero with rank and visible dimension
+loss.</li>
+</ul>
+<p><strong>Exit criterion:</strong> scale, shear, rotation, reflection,
+and collapse presets all visibly match their determinant.</p>
+<h3 id="phase-5-eigenvector-lab-and-synthesis">Phase 5 — Eigenvector lab
+and synthesis</h3>
+<ul>
+<li>Add real <span class="math inline">\(2\times2\)</span> eigenpair
+calculations and presets.</li>
+<li>Show preserved eigenlines and signed scaling.</li>
+<li>Handle repeated eigenvalues, one eigenline, and no real eigenline
+honestly.</li>
+<li>Build the projection-matrix capstone with eigenvalues <span
+class="math inline">\(1\)</span> and <span
+class="math inline">\(0\)</span>.</li>
+<li>Add the conceptual link to Geometry of Least Squares.</li>
+</ul>
+<p><strong>Exit criterion:</strong> projection visibly unifies rank,
+determinant, and eigenvectors.</p>
+<h3 id="phase-6-accessibility-polish-and-library-integration">Phase 6 —
+Accessibility, polish, and library integration</h3>
+<ul>
+<li>Add semantic summaries, matrix tables, keyboard controls, and
+announcements.</li>
+<li>Add reduced-motion behavior.</li>
+<li>Tune mobile layout and canonical camera views.</li>
+<li>Add <code>preview.png</code>.</li>
+<li>Add the app to the root interactive-library index before the
+least-squares card, labeling it as the conceptual prequel.</li>
+</ul>
+<hr />
+<h2 id="validation-plan">17. Validation plan</h2>
+<h3 id="model-tests">Model tests</h3>
+<p>Test exact and near-degenerate examples for:</p>
+<ul>
+<li>rank of zero, dependent, nearly dependent, and independent generator
+sets;</li>
+<li><span class="math inline">\(N^\top Q\approx0\)</span>;</li>
+<li>equivalence of parametric and implicit forms;</li>
+<li>affine projection onto lines and planes;</li>
+<li>projection orthogonality;</li>
+<li><span class="math inline">\(P^2\approx P\)</span> and <span
+class="math inline">\(P^\top\approx P\)</span>;</li>
+<li><span class="math inline">\(2\times2\)</span> and <span
+class="math inline">\(3\times3\)</span> determinants;</li>
+<li>determinant sign under reflection;</li>
+<li>determinant zero under rank loss;</li>
+<li>real <span class="math inline">\(2\times2\)</span> eigenpairs;</li>
+<li>repeated eigenvalues, defective shear, and complex-eigenvalue
+rotation classification.</li>
+</ul>
+<h3 id="visual-invariants">Visual invariants</h3>
+<ul>
+<li>Equal axis scales in every scene.</li>
+<li>Normal arrows remain perpendicular to visible flats.</li>
+<li>Generated and projected points remain on the displayed object.</li>
+<li>The transformed square/cube uses the exact matrix columns shown in
+the math panel.</li>
+<li>No chapter labels an approximate relationship as exact.</li>
+</ul>
+<h3 id="interaction-checks">Interaction checks</h3>
+<ul>
+<li>Switching representation preserves the current object within
+numerical tolerance.</li>
+<li>Every pointer drag has a keyboard/numeric equivalent.</li>
+<li>Dimension-collapse transitions remain understandable with reduced
+motion.</li>
+<li>Chapter and preset changes reset only state that is incompatible
+with the new concept.</li>
+</ul>
+<hr />
+<h2 id="success-criteria">18. Success criteria</h2>
+<p>The app succeeds if a learner can answer these questions after using
+it:</p>
+<ol type="1">
+<li>What is the difference between the dimension of an object and the
+dimension of the space around it?</li>
+<li>How can the same line or plane be described using directions or
+equations?</li>
+<li>Why does <span class="math inline">\(ax+by+cz=d\)</span> describe a
+plane in <span class="math inline">\(\mathbb R^3\)</span>?</li>
+<li>Why does one equation usually reduce dimension by one?</li>
+<li>What does it mean for generating vectors to be dependent?</li>
+<li>Why is an orthogonal projection the nearest point?</li>
+<li>What does a determinant measure geometrically?</li>
+<li>Why does determinant zero mean dimension has collapsed?</li>
+<li>What does a transformation preserve along an eigenvector?</li>
+<li>Why does projection have eigenvalues <span
+class="math inline">\(1\)</span> and <span
+class="math inline">\(0\)</span>?</li>
+<li>How do these ideas prepare us to understand least squares as
+projection onto a model space?</li>
+</ol>
+<p>Each answer should be visible in the geometry before it is summarized
+symbolically.</p>
+<hr />
+<h2 id="main-design-risks">19. Main design risks</h2>
+<h3 id="risk-too-many-topics-in-one-app">Risk: too many topics in one
+app</h3>
+<p><strong>Mitigation:</strong> use projection as the unifying finale
+and keep each chapter attached to the same dimension/build/cut
+vocabulary. Do not turn determinant or eigenvectors into separate
+formula courses.</p>
+<h3 id="risk-3d-spectacle-obscures-the-mathematics">Risk: 3D spectacle
+obscures the mathematics</h3>
+<p><strong>Mitigation:</strong> prefer canonical views, sparse geometry,
+equal scaling, and 2D views when the idea is genuinely two-dimensional.
+Use 3D only when embedding, plane geometry, volume, or dimension
+collapse requires it.</p>
+<h3 id="risk-editable-equivalent-representations-drift-apart">Risk:
+editable equivalent representations drift apart</h3>
+<p><strong>Mitigation:</strong> compute one canonical affine-flat model
+and derive all views from it. Do not maintain unrelated “plane equation”
+and “plane mesh” state.</p>
+<h3 id="risk-degeneracy-looks-like-a-rendering-failure">Risk: degeneracy
+looks like a rendering failure</h3>
+<p><strong>Mitigation:</strong> treat dependence, determinant zero, and
+projection collapse as named lesson states with explicit dimension
+badges and transitions.</p>
+<h3 id="risk-eigenvectors-become-a-root-finding-exercise">Risk:
+eigenvectors become a root-finding exercise</h3>
+<p><strong>Mitigation:</strong> start from visible preserved directions
+and curated matrices. Present <span class="math inline">\(\det(A-\lambda
+I)=0\)</span> only as an optional algebraic explanation after the
+geometry, not as the main interaction.</p>
+<hr />
+<h2 id="final-product-position">20. Final product position</h2>
+<p>The two apps should form a sequence:</p>
+<ol type="1">
+<li><strong>Geometry of Linear Algebra</strong> — What are subspaces,
+constraints, projections, determinants, and eigenvectors?</li>
+<li><strong>Geometry of Least Squares</strong> — Why does fitting a line
+become projection onto a plane of possible fitted values?</li>
+</ol>
+<p>The prequel should make the least-squares app’s model plane feel
+inevitable rather than surprising. The learner should arrive already
+knowing that a plane may be built from two columns, characterized by
+perpendicular constraints, and used as the target of an orthogonal
+projection.</p>
+</body>
+</html>

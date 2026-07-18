@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore dimension, span, equations, projection, determinants, and eigenvectors through the geometry of linear algebra.">
+  <title>Geometry of Linear Algebra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="linear-algebra.css">
+</head>
+<body data-chapter="0">
+  <a class="skip-link" href="#mainContent">Skip to the workspace</a>
+
+  <div class="page-shell">
+    <nav class="lesson-nav" aria-label="Linear algebra chapters">
+      <button class="lesson-tab is-active" type="button" data-step="0" aria-current="step">
+        <span class="lesson-number">01</span>
+        <span>Dimension</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="1">
+        <span class="lesson-number">02</span>
+        <span>Span</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="2">
+        <span class="lesson-number">03</span>
+        <span>Equations</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="3">
+        <span class="lesson-number">04</span>
+        <span>Projection</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="4">
+        <span class="lesson-number">05</span>
+        <span>Determinant</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="5">
+        <span class="lesson-number">06</span>
+        <span>Eigenvectors</span>
+      </button>
+      <button class="lesson-tab" type="button" data-step="6">
+        <span class="lesson-number">07</span>
+        <span>Synthesis</span>
+      </button>
+    </nav>
+
+    <main class="workspace" id="mainContent">
+      <aside class="left-column" aria-label="Lesson and controls">
+        <section class="card lesson-card" aria-labelledby="stepTitle">
+          <div class="step-meta">
+            <span id="stepCounter">Chapter 1 of 7</span>
+            <span class="step-rule" aria-hidden="true"></span>
+          </div>
+          <p class="eyebrow">Guided idea</p>
+          <h2 id="stepTitle">The same object can live in more room</h2>
+          <p id="stepCopy">Dimension belongs to the object. Coordinates tell us how much ambient space surrounds it.</p>
+          <div class="step-insight" id="stepInsight">
+            <span class="insight-label">Keep in view</span>
+            <p>A line stays one-dimensional even when each point needs three coordinates.</p>
+          </div>
+          <div class="step-actions">
+            <button class="text-button" id="previousStep" type="button" disabled>
+              <span aria-hidden="true">←</span> Previous
+            </button>
+            <button class="primary-button" id="nextStep" type="button">
+              Next idea <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="card dimension-card" aria-labelledby="dimensionTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Intrinsic × ambient</p>
+              <h2 id="dimensionTitle">Dimension ladder</h2>
+            </div>
+            <span class="constraint-token"><i>k</i> ≤ <i>n</i></span>
+          </div>
+          <p class="section-copy">Choose an object dimension <i>k</i> and the surrounding dimension <i>n</i>.</p>
+
+          <div class="dimension-table-wrap">
+            <table class="dimension-ladder">
+              <caption class="sr-only">Select an intrinsic object dimension and ambient space</caption>
+              <thead>
+                <tr>
+                  <th scope="col"><span class="sr-only">Intrinsic dimension</span><i>k</i> \ <i>n</i></th>
+                  <th scope="col">ℝ<sup>1</sup></th>
+                  <th scope="col">ℝ<sup>2</sup></th>
+                  <th scope="col">ℝ<sup>3</sup></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row"><span><i>k</i> = 0</span><small>point</small></th>
+                  <td><button class="dimension-cell" type="button" data-n="1" data-k="0" aria-label="Point in R 1">Point</button></td>
+                  <td><button class="dimension-cell" type="button" data-n="2" data-k="0" aria-label="Point in R 2">Point</button></td>
+                  <td><button class="dimension-cell" type="button" data-n="3" data-k="0" aria-label="Point in R 3">Point</button></td>
+                </tr>
+                <tr>
+                  <th scope="row"><span><i>k</i> = 1</span><small>line</small></th>
+                  <td><button class="dimension-cell" type="button" data-n="1" data-k="1" aria-label="All of R 1">All ℝ<sup>1</sup></button></td>
+                  <td><button class="dimension-cell" type="button" data-n="2" data-k="1" aria-label="Line in R 2">Line</button></td>
+                  <td><button class="dimension-cell is-active" type="button" data-n="3" data-k="1" aria-label="Line in R 3" aria-pressed="true">Line</button></td>
+                </tr>
+                <tr>
+                  <th scope="row"><span><i>k</i> = 2</span><small>plane</small></th>
+                  <td><span class="dimension-cell is-impossible" aria-label="A 2 dimensional object cannot fit in R 1">—</span></td>
+                  <td><button class="dimension-cell" type="button" data-n="2" data-k="2" aria-label="All of R 2">All ℝ<sup>2</sup></button></td>
+                  <td><button class="dimension-cell" type="button" data-n="3" data-k="2" aria-label="Plane in R 3">Plane</button></td>
+                </tr>
+                <tr>
+                  <th scope="row"><span><i>k</i> = 3</span><small>space</small></th>
+                  <td><span class="dimension-cell is-impossible" aria-label="A 3 dimensional object cannot fit in R 1">—</span></td>
+                  <td><span class="dimension-cell is-impossible" aria-label="A 3 dimensional object cannot fit in R 2">—</span></td>
+                  <td><button class="dimension-cell" type="button" data-n="3" data-k="3" aria-label="All of R 3">All ℝ<sup>3</sup></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card controls-card" aria-labelledby="controlsTitle">
+          <div class="section-heading controls-heading">
+            <div>
+              <p class="eyebrow">Direct manipulation</p>
+              <h2 id="controlsTitle">Active controls</h2>
+            </div>
+            <span class="keyboard-note">Arrow keys work</span>
+          </div>
+
+          <section class="control-section" id="geometryControls" aria-labelledby="geometryControlsTitle">
+            <div class="control-section-heading">
+              <h3 id="geometryControlsTitle">Build and cut the flat</h3>
+              <span>geometry</span>
+            </div>
+
+            <div class="range-control">
+              <div class="range-heading">
+                <label for="orientationRange">Direction orientation</label>
+                <output id="orientationValue" for="orientationRange">35°</output>
+              </div>
+              <input id="orientationRange" type="range" min="-180" max="180" step="1" value="35">
+            </div>
+
+            <div class="range-control">
+              <div class="range-heading">
+                <label for="tiltRange">Direction tilt</label>
+                <output id="tiltValue" for="tiltRange">18°</output>
+              </div>
+              <input id="tiltRange" type="range" min="-80" max="80" step="1" value="18">
+            </div>
+
+            <div class="range-control offset-control">
+              <div class="range-heading">
+                <label for="offsetRange">Affine offset <i>d</i></label>
+                <output id="offsetValue" for="offsetRange">0.5</output>
+              </div>
+              <input id="offsetRange" type="range" min="-3" max="3" step="0.1" value="0.5">
+            </div>
+
+            <div class="range-control dependence-control" aria-describedby="dependenceHint">
+              <div class="range-heading">
+                <label for="dependenceRange">Generator dependence</label>
+                <output id="dependenceValue" for="dependenceRange">0.20</output>
+              </div>
+              <input id="dependenceRange" type="range" min="0" max="1" step="0.01" value="0.2">
+              <p class="control-hint" id="dependenceHint">Move toward 1 to align the second direction with the first.</p>
+            </div>
+
+            <div class="coefficient-grid">
+              <div class="range-control compact-control">
+                <div class="range-heading">
+                  <label for="coefficient1Range"><span class="sr-only">Coefficient </span><i>c</i><sub>1</sub></label>
+                  <output id="coefficient1Value" for="coefficient1Range">1.0</output>
+                </div>
+                <input id="coefficient1Range" type="range" min="-3" max="3" step="0.1" value="1">
+              </div>
+              <div class="range-control compact-control">
+                <div class="range-heading">
+                  <label for="coefficient2Range"><span class="sr-only">Coefficient </span><i>c</i><sub>2</sub></label>
+                  <output id="coefficient2Value" for="coefficient2Range">0.5</output>
+                </div>
+                <input id="coefficient2Range" type="range" min="-3" max="3" step="0.1" value="0.5">
+              </div>
+              <div class="range-control compact-control">
+                <div class="range-heading">
+                  <label for="coefficient3Range"><span class="sr-only">Coefficient </span><i>c</i><sub>3</sub></label>
+                  <output id="coefficient3Value" for="coefficient3Range">−0.4</output>
+                </div>
+                <input id="coefficient3Range" type="range" min="-3" max="3" step="0.1" value="-0.4">
+              </div>
+            </div>
+          </section>
+
+          <section class="control-section" id="projectionControls" aria-labelledby="projectionControlsTitle">
+            <div class="control-section-heading">
+              <h3 id="projectionControlsTitle">Place the query point</h3>
+              <span>projection</span>
+            </div>
+
+            <div class="range-control">
+              <div class="range-heading">
+                <label for="queryXRange">Query point <i>x</i>-coordinate</label>
+                <output id="queryXValue" for="queryXRange">1.8</output>
+              </div>
+              <input id="queryXRange" type="range" min="-3" max="3" step="0.1" value="1.8">
+            </div>
+            <div class="range-control">
+              <div class="range-heading">
+                <label for="queryYRange">Query point <i>y</i>-coordinate</label>
+                <output id="queryYValue" for="queryYRange">1.2</output>
+              </div>
+              <input id="queryYRange" type="range" min="-3" max="3" step="0.1" value="1.2">
+            </div>
+            <div class="range-control">
+              <div class="range-heading">
+                <label for="queryZRange">Query point <i>z</i>-coordinate</label>
+                <output id="queryZValue" for="queryZRange">2.2</output>
+              </div>
+              <input id="queryZRange" type="range" min="-3" max="3" step="0.1" value="2.2">
+            </div>
+          </section>
+
+          <section class="control-section" id="transformationControls" aria-labelledby="transformationControlsTitle">
+            <div class="control-section-heading">
+              <h3 id="transformationControlsTitle">Transform the space</h3>
+              <span>matrix</span>
+            </div>
+
+            <label class="select-field transform-preset-field" for="transformPreset">
+              <span>Transformation preset</span>
+              <select id="transformPreset">
+                <option value="scale">Scale</option>
+                <option value="shear">Shear</option>
+                <option value="rotation">Rotation</option>
+                <option value="reflection">Reflection</option>
+                <option value="collapse">Dimension collapse</option>
+                <option value="symmetric">Symmetric stretch</option>
+                <option value="quarterTurn">Quarter turn</option>
+                <option value="projection">Orthogonal projection</option>
+              </select>
+            </label>
+
+            <div class="range-control timeline-control">
+              <div class="range-heading">
+                <label for="transformProgress">Transformation progress</label>
+                <output id="transformProgressValue" for="transformProgress">0%</output>
+              </div>
+              <input id="transformProgress" type="range" min="0" max="1" step="0.01" value="0">
+              <div class="timeline-labels" aria-hidden="true"><span>Identity</span><span>Preset A</span></div>
+            </div>
+          </section>
+        </section>
+      </aside>
+
+      <section class="card scene-card" aria-label="Geometric scene">
+        <div class="scene-toolbar">
+          <div class="representation-tabs" role="group" aria-label="Choose a representation of the current object">
+            <button class="representation-tab is-active" type="button" data-representation="geometry" aria-pressed="true">Geometry</button>
+            <button class="representation-tab" type="button" data-representation="build" aria-pressed="false">Build</button>
+            <button class="representation-tab" type="button" data-representation="cut" aria-pressed="false">Cut</button>
+            <button class="representation-tab" type="button" data-representation="matrix" aria-pressed="false">Matrix</button>
+          </div>
+          <div class="scene-tools">
+            <div class="scene-badges" aria-label="Current dimensions and rank">
+              <span class="status-badge" id="ambientBadge"><b>Ambient</b> <i>n</i> = 3</span>
+              <span class="status-badge" id="objectBadge"><b>Object</b> <i>k</i> = 1</span>
+              <span class="status-badge rank-badge" id="rankBadge"><b>Rank</b> 1</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="sceneContainer" class="scene-container" role="img" aria-label="Interactive linear algebra scene" aria-describedby="sceneSummary">
+          <div class="scene-origin" aria-hidden="true"></div>
+          <p class="scene-hint"><span aria-hidden="true">↔</span> Drag to orbit <span aria-hidden="true">·</span> Wheel to zoom</p>
+        </div>
+
+        <ul class="legend" aria-label="Scene legend">
+          <li><i class="legend-mark mark-point" aria-hidden="true"></i><span>Point</span></li>
+          <li><i class="legend-mark mark-vector" aria-hidden="true"></i><span>Vector</span></li>
+          <li><i class="legend-mark mark-flat" aria-hidden="true"></i><span>Flat</span></li>
+          <li><i class="legend-mark mark-normal" aria-hidden="true"></i><span>Normal</span></li>
+          <li><i class="legend-mark mark-projection" aria-hidden="true"></i><span>Projection</span></li>
+          <li><i class="legend-mark mark-eigen" aria-hidden="true"></i><span>Eigen direction</span></li>
+        </ul>
+
+        <p id="sceneSummary" class="sr-only">A one-dimensional affine line is shown inside three-dimensional space. It has one independent direction and two independent constraints. The camera view does not change the geometry.</p>
+      </section>
+
+      <aside class="right-column" aria-label="Live mathematics">
+        <section class="card math-card" aria-labelledby="mathTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Same object, live mathematics</p>
+              <h2 id="mathTitle">Four synchronized descriptions</h2>
+            </div>
+            <span class="sync-badge"><span aria-hidden="true">↔</span> linked</span>
+          </div>
+
+          <div class="dimension-equation math-row is-active" data-representation="geometry" data-math-role="dimension">
+            <span class="math-row-label">Dimension balance</span>
+            <div class="math-display" id="dimensionMath" aria-label="Dimension equation">
+              <span class="plain-math"><i>k</i> + (<i>n</i> − <i>k</i>) = <i>n</i></span>
+            </div>
+          </div>
+
+          <div class="math-chain">
+            <article class="math-row" data-representation="build" data-math-role="parametric">
+              <div class="math-row-heading">
+                <span class="math-row-label">Build · parametric</span>
+                <span class="role-chip build-chip">directions</span>
+              </div>
+              <div class="math-display" id="parametricMath" aria-label="Parametric representation">
+                <span class="plain-math"><i>x</i> = <i>p</i> + <i>Vc</i></span>
+              </div>
+            </article>
+
+            <article class="math-row" data-representation="cut" data-math-role="constraint">
+              <div class="math-row-heading">
+                <span class="math-row-label">Cut · implicit</span>
+                <span class="role-chip cut-chip">constraints</span>
+              </div>
+              <div class="math-display" id="constraintMath" aria-label="Constraint representation">
+                <span class="plain-math"><i>N</i><sup>T</sup><i>x</i> = <i>N</i><sup>T</sup><i>p</i></span>
+              </div>
+            </article>
+
+            <article class="math-row is-active" data-representation="geometry" data-math-role="active">
+              <div class="math-row-heading">
+                <span class="math-row-label">In focus</span>
+                <span class="role-chip active-chip">chapter 1</span>
+              </div>
+              <div class="math-display" id="activeMath" aria-label="Active chapter equation">
+                <span class="plain-math">1 direction + 2 constraints = 3 ambient dimensions</span>
+              </div>
+            </article>
+
+            <article class="math-row" data-representation="matrix" data-math-role="matrix">
+              <div class="math-row-heading">
+                <span class="math-row-label">Matrix view</span>
+                <span class="role-chip matrix-chip">rank</span>
+              </div>
+              <div class="math-display" id="matrixMath" aria-label="Matrix representation">
+                <span class="plain-math">rank(<i>V</i>) = dim(ℱ) = 1</span>
+              </div>
+            </article>
+          </div>
+
+          <section class="invariant-panel" aria-labelledby="invariantTitle">
+            <div class="invariant-heading">
+              <h3 id="invariantTitle">What remains true</h3>
+              <span>invariants</span>
+            </div>
+            <ul id="invariantList">
+              <li><span class="check-mark" aria-hidden="true">✓</span><span>0 ≤ <i>k</i> ≤ <i>n</i> ≤ 3</span></li>
+              <li><span class="check-mark" aria-hidden="true">✓</span><span>dim(𝒞(<i>V</i>)) = rank(<i>V</i>)</span></li>
+              <li><span class="check-mark" aria-hidden="true">✓</span><span><i>N</i><sup>T</sup><i>V</i> = 0</span></li>
+            </ul>
+          </section>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div id="liveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
