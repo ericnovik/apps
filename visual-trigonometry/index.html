@@ -149,6 +149,42 @@
         </div>
       </header>
 
+      <section class="exact-angle-strip" aria-labelledby="exactAnglesHeading">
+        <header class="exact-angle-strip__heading">
+          <p class="eyebrow">Exact geometry</p>
+          <h2 id="exactAnglesHeading">Standard angles</h2>
+        </header>
+
+        <div class="exact-angle-chips" role="group" aria-label="Choose a standard angle">
+          <button class="exact-angle-chip" type="button" data-angle="0" data-radians="0" data-degrees="0°" aria-label="Set angle to zero" aria-pressed="false">0</button>
+          <button class="exact-angle-chip" type="button" data-angle="0.5235987755982988" data-radians="π/6" data-degrees="30°" aria-label="Set angle to pi over six, 30 degrees" aria-pressed="false">π/6</button>
+          <button class="exact-angle-chip is-active" type="button" data-angle="0.7853981633974483" data-radians="π/4" data-degrees="45°" aria-label="Set angle to pi over four, 45 degrees" aria-pressed="true">π/4</button>
+          <button class="exact-angle-chip" type="button" data-angle="1.0471975511965976" data-radians="π/3" data-degrees="60°" aria-label="Set angle to pi over three, 60 degrees" aria-pressed="false">π/3</button>
+          <button class="exact-angle-chip" type="button" data-angle="1.5707963267948966" data-radians="π/2" data-degrees="90°" aria-label="Set angle to pi over two, 90 degrees" aria-pressed="false">π/2</button>
+          <button class="exact-angle-chip" type="button" data-angle="3.141592653589793" data-radians="π" data-degrees="180°" aria-label="Set angle to pi, 180 degrees" aria-pressed="false">π</button>
+          <button class="exact-angle-chip" type="button" data-angle="4.71238898038469" data-radians="3π/2" data-degrees="270°" aria-label="Set angle to three pi over two, 270 degrees" aria-pressed="false">3π/2</button>
+          <button class="exact-angle-chip" type="button" data-angle="6.283185307179586" data-radians="2π" data-degrees="360°" aria-label="Set angle to two pi, 360 degrees" aria-pressed="false">2π</button>
+        </div>
+
+        <div class="exact-angle-actions">
+          <button
+            class="snap-toggle"
+            id="snapButton"
+            type="button"
+            aria-pressed="false"
+            aria-describedby="snapHint"
+          >
+            <span class="snap-toggle__marker" aria-hidden="true"></span>
+            <span>Snap <strong id="snapStateLabel">off</strong></span>
+          </button>
+          <div class="exact-angle-status">
+            <span class="control-label">Current construction</span>
+            <output id="exactAngleStatus">π/4 · 45° · exact</output>
+          </div>
+          <p class="sr-only" id="snapHint">When enabled, dragging near a standard-angle guide snaps to it.</p>
+        </div>
+      </section>
+
       <main class="instrument-main">
         <section class="coordinate-strip" aria-labelledby="coordinateHeading">
           <div class="coordinate-strip__core">
@@ -301,23 +337,31 @@
             </p>
           </header>
 
-          <ol class="notation-flow" aria-label="Three descriptions of the same point">
-            <li>
-              <span>Polar</span>
-              <strong>(<var>r</var>, <var>θ</var>)</strong>
-              <small>scale + direction</small>
-            </li>
-            <li>
-              <span>Cartesian</span>
-              <strong>(<var>x</var>, <var>y</var>)</strong>
-              <small>horizontal + vertical</small>
-            </li>
-            <li>
-              <span>Complex</span>
-              <strong><var>z</var> = <var>x</var> + <var>iy</var></strong>
-              <small>one number, one point</small>
-            </li>
-          </ol>
+          <article
+            class="exact-derivation-card"
+            id="exactDerivation"
+            data-exact="true"
+            aria-labelledby="exactConstructionTitle"
+            aria-describedby="exactConstructionExplanation"
+          >
+            <header class="exact-derivation-card__header">
+              <div>
+                <p class="eyebrow">Exact derivation</p>
+                <h3 id="exactConstructionTitle">45° isosceles-right triangle</h3>
+              </div>
+              <span class="quadrant-badge" id="exactQuadrantBadge">Quadrant I · signs (+, +)</span>
+            </header>
+            <div class="exact-equation math-expression" id="exactEquationMath">
+              <var>a</var><sup>2</sup> + <var>a</var><sup>2</sup> = 1 → <var>a</var> = √2/2
+            </div>
+            <div class="exact-result-line">
+              <span class="math-expression" id="exactValuesMath">cos θ = √2/2 · sin θ = √2/2</span>
+              <small id="exactApproximation">≈ (0.707, 0.707)</small>
+            </div>
+            <p class="sr-only" id="exactConstructionExplanation">
+              Equal legs in a right triangle with unit hypotenuse have length square root of two over two.
+            </p>
+          </article>
 
           <article class="euler-card" aria-labelledby="eulerHeading">
             <div>

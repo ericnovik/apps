@@ -9,6 +9,7 @@
   --radius-teal: #187b77;
   --radius-teal-soft: #e4f1ef;
   --angle-amber: #bc7a1e;
+  --angle-amber-ink: #8f570e;
   --angle-amber-soft: #f8eedb;
   --derived-emerald: #2d8066;
   --reference-slate: #69747b;
@@ -183,7 +184,7 @@ sup {
   margin: 0 auto;
   padding: 12px 16px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -208,6 +209,7 @@ sup {
 }
 
 .toolbar,
+.exact-angle-strip,
 .coordinate-strip,
 .view-card,
 .relationship-dock {
@@ -250,6 +252,144 @@ sup {
   font-weight: 650;
   line-height: 1.05;
   letter-spacing: -0.015em;
+}
+
+.exact-angle-strip {
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 9px 6px 11px;
+  display: grid;
+  grid-template-columns: max-content minmax(390px, 1fr) max-content;
+  align-items: center;
+  gap: 11px;
+  border-radius: var(--card-radius);
+}
+
+.exact-angle-strip__heading {
+  min-width: 116px;
+  padding-right: 12px;
+  border-right: 1px solid var(--line);
+}
+
+.exact-angle-strip__heading h2 {
+  margin-top: 2px;
+  font-family: var(--font-editorial);
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.05;
+}
+
+.exact-angle-chips {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(38px, 1fr));
+  gap: 4px;
+}
+
+.exact-angle-chip {
+  min-width: 0;
+  height: 30px;
+  padding: 0 7px;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper-warm);
+  font-family: var(--font-math);
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.exact-angle-chip.is-active,
+.exact-angle-chip[aria-pressed="true"] {
+  color: var(--angle-amber-ink);
+  border-color: var(--angle-amber);
+  background: #f3dfb8;
+  box-shadow: inset 0 -3px 0 rgba(188, 122, 30, 0.34);
+  font-weight: 800;
+}
+
+.exact-angle-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.snap-toggle {
+  min-width: 86px;
+  height: 32px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--ink-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--paper-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.snap-toggle strong {
+  color: var(--muted);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+}
+
+.snap-toggle__marker {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--angle-amber);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--paper-strong);
+}
+
+.snap-toggle.is-active,
+.snap-toggle[aria-pressed="true"] {
+  color: var(--angle-amber-ink);
+  border-color: var(--angle-amber);
+  background: var(--angle-amber-soft);
+}
+
+.snap-toggle.is-active .snap-toggle__marker,
+.snap-toggle[aria-pressed="true"] .snap-toggle__marker {
+  background: var(--angle-amber);
+  box-shadow: 0 0 0 2px var(--paper-strong), 0 0 0 3px rgba(188, 122, 30, 0.3);
+}
+
+.snap-toggle.is-active strong,
+.snap-toggle[aria-pressed="true"] strong {
+  color: var(--angle-amber-ink);
+}
+
+.exact-angle-status {
+  min-width: 156px;
+}
+
+.exact-angle-status .control-label {
+  margin-bottom: 2px;
+}
+
+.exact-angle-status output {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--font-math);
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exact-angle-status output[data-exact="true"] {
+  color: var(--angle-amber-ink);
 }
 
 .toolbar-controls {
@@ -593,7 +733,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .readout--angle dd {
-  color: var(--angle-amber);
+  color: var(--angle-amber-ink);
 }
 
 .readout--cosine dd {
@@ -602,6 +742,14 @@ input[type="range"]::-moz-range-thumb {
 
 .readout--sine dd {
   color: var(--sine-coral);
+}
+
+.readout.is-exact {
+  background: linear-gradient(to bottom, rgba(248, 238, 219, 0.55), transparent);
+}
+
+.readout.is-exact dd .katex {
+  font-size: 0.98em;
 }
 
 .visual-stage {
@@ -825,6 +973,91 @@ input[type="range"]::-moz-range-thumb {
   color: var(--muted);
   font-size: 0.7rem;
   line-height: 1.3;
+}
+
+.exact-derivation-card {
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid rgba(188, 122, 30, 0.28);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(248, 238, 219, 0.62), var(--paper-warm) 60%);
+}
+
+.exact-derivation-card[data-exact="false"] {
+  border-color: var(--line);
+  background: var(--paper-warm);
+}
+
+.exact-derivation-card__header {
+  min-width: 0;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.exact-derivation-card__header > div {
+  min-width: 0;
+}
+
+.exact-derivation-card h3 {
+  margin-top: 2px;
+  overflow: hidden;
+  font-family: var(--font-editorial);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quadrant-badge {
+  max-width: 126px;
+  padding: 3px 5px;
+  overflow: hidden;
+  color: var(--angle-amber-ink);
+  border: 1px solid rgba(188, 122, 30, 0.35);
+  border-radius: 5px;
+  background: rgba(255, 253, 248, 0.72);
+  font-size: 0.55rem;
+  font-weight: 750;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exact-derivation-card[data-exact="false"] .quadrant-badge {
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+.exact-equation {
+  margin-top: 4px;
+  color: var(--unit-violet);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.exact-result-line {
+  min-width: 0;
+  margin-top: 3px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.exact-result-line .math-expression {
+  color: var(--ink-soft);
+  font-size: 0.67rem;
+  font-weight: 650;
+}
+
+.exact-result-line small {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.56rem;
+  white-space: nowrap;
 }
 
 .notation-flow {
@@ -1168,6 +1401,22 @@ tbody th {
   cursor: ew-resize;
 }
 
+.vt-exact-guide-ray,
+.vt-exact-guide-tick,
+.wave-exact-guide-line,
+.wave-exact-guide-tick,
+.wave-exact-point-halo {
+  transition: opacity 120ms ease, stroke-width 120ms ease;
+}
+
+.vt-exact-construction text {
+  font-family: var(--font-ui);
+}
+
+.wave-exact-point-halo-active {
+  filter: drop-shadow(0 0 2px rgba(188, 122, 30, 0.32));
+}
+
 .svg-label,
 .tick-label,
 .current-value-label {
@@ -1215,7 +1464,9 @@ tbody th {
 
 @media (hover: hover) {
   .button:hover,
-  .segment-button:hover {
+  .segment-button:hover,
+  .exact-angle-chip:hover,
+  .snap-toggle:hover {
     border-color: var(--ink-soft);
   }
 
@@ -1262,6 +1513,15 @@ tbody th {
 
   .toolbar-controls {
     grid-template-columns: auto minmax(70px, 0.28fr) minmax(220px, 1.35fr) minmax(180px, 0.9fr) auto;
+  }
+
+  .exact-angle-strip {
+    grid-template-columns: max-content minmax(350px, 1fr) max-content;
+    gap: 8px;
+  }
+
+  .exact-angle-status {
+    min-width: 132px;
   }
 
   .strip-heading {
@@ -1311,6 +1571,22 @@ tbody th {
 
   .toolbar-controls {
     grid-template-columns: auto minmax(78px, 0.35fr) minmax(240px, 1.35fr) minmax(210px, 1fr) auto;
+  }
+
+  .exact-angle-strip {
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .exact-angle-strip__heading {
+    grid-row: 1 / 3;
+    align-self: stretch;
+    display: grid;
+    align-content: center;
+  }
+
+  .exact-angle-actions {
+    justify-content: flex-start;
   }
 
   .coordinate-strip {
@@ -1371,6 +1647,30 @@ tbody th {
   .toolbar-controls {
     grid-template-columns: minmax(0, 1fr) minmax(90px, 0.72fr);
     gap: 9px;
+  }
+
+  .exact-angle-strip {
+    grid-template-columns: 1fr;
+    padding: 9px;
+  }
+
+  .exact-angle-strip__heading {
+    grid-row: auto;
+    padding: 0 0 7px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .exact-angle-chips {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .exact-angle-actions {
+    justify-content: space-between;
+  }
+
+  .exact-angle-status {
+    flex: 1;
   }
 
   .playback-controls {
@@ -1468,6 +1768,15 @@ tbody th {
     flex: 1;
   }
 
+  .exact-angle-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .snap-toggle {
+    width: 100%;
+  }
+
   .direction-button {
     min-width: 62px;
   }
@@ -1538,6 +1847,7 @@ tbody th {
 
   .view-card,
   .toolbar,
+  .exact-angle-strip,
   .coordinate-strip,
   .relationship-dock {
     box-shadow: none;

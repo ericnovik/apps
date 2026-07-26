@@ -17,6 +17,24 @@ const ANGLE_TICKS = Object.freeze([
   Object.freeze({ value: (3 * Math.PI) / 2, label: "3π/2", degrees: 270 }),
   Object.freeze({ value: TAU, label: "2π", degrees: 360 }),
 ]);
+const STANDARD_ANGLE_DEGREES = Object.freeze([
+  0,
+  30,
+  45,
+  60,
+  90,
+  120,
+  135,
+  150,
+  180,
+  210,
+  225,
+  240,
+  270,
+  300,
+  315,
+  330,
+]);
 const Y_TICKS = Object.freeze([-1, 0, 1]);
 
 const plotWidth = PLOT.right - PLOT.left;
@@ -34,6 +52,11 @@ function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+function angularDistance(firstAngle, secondAngle) {
+  const distance = Math.abs(firstAngle - secondAngle) % TAU;
+  return Math.min(distance, TAU - distance);
+}
+
 function svgNumber(value) {
   const rounded = Number(value.toFixed(4));
   return Object.is(rounded, -0) ? "0" : String(rounded);
@@ -47,6 +70,16 @@ function createSvgElement(document, name, attributes = {}) {
   }
 
   return element;
+}
+
+function setAttributes(element, attributes) {
+  for (const [attribute, value] of Object.entries(attributes)) {
+    if (value === null || value === undefined) {
+      element.removeAttribute(attribute);
+    } else {
+      element.setAttribute(attribute, String(value));
+    }
+  }
 }
 
 function appendText(document, parent, text, attributes = {}) {
@@ -191,6 +224,8 @@ export function createWaveView(container, options = {}) {
     role: "group",
     "aria-label": `Interactive ${functionName} plot`,
     "data-wave-kind": kind,
+    "data-snap-enabled": "false",
+    "data-has-exact-angle": "false",
   });
   svg.style.display = "block";
   svg.style.width = "100%";
@@ -239,6 +274,60 @@ export function createWaveView(container, options = {}) {
     );
   }
   svg.appendChild(grid);
+
+  const exactGuides = createSvgElement(document, "g", {
+    class: "wave-exact-guides",
+    "data-part": "exact-angle-guides",
+    "data-snap-enabled": "false",
+    "pointer-events": "none",
+    focusable: "false",
+    "aria-hidden": "true",
+  });
+  const exactGuideEntries = STANDARD_ANGLE_DEGREES.map((degrees) => {
+    const angle = degrees * DEGREE;
+    const x = xForAngle(angle);
+    const guide = createSvgElement(document, "g", {
+      class: "wave-exact-guide",
+      "data-angle-degrees": degrees,
+      "data-angle-radians": svgNumber(angle),
+      "data-guide-family":
+        degrees % 90 === 0 ? "30-and-45" : degrees % 30 === 0 ? "30" : "45",
+      "data-active": "false",
+    });
+    const line = createSvgElement(document, "line", {
+      class: "wave-exact-guide-line",
+      x1: svgNumber(x),
+      y1: PLOT.top,
+      x2: svgNumber(x),
+      y2: PLOT.bottom,
+      fill: "none",
+      stroke: "var(--reference-slate, #69747b)",
+      "stroke-width": 0.75,
+      "stroke-dasharray": "2 5",
+      opacity: 0.09,
+      "vector-effect": "non-scaling-stroke",
+      "data-active": "false",
+    });
+    const tick = createSvgElement(document, "line", {
+      class: "wave-exact-guide-tick",
+      x1: svgNumber(x),
+      y1: svgNumber(yForValue(0) - 5),
+      x2: svgNumber(x),
+      y2: svgNumber(yForValue(0) + 5),
+      stroke: "var(--reference-slate, #69747b)",
+      "stroke-width": 1.25,
+      "stroke-linecap": "round",
+      opacity: 0.34,
+      "vector-effect": "non-scaling-stroke",
+      "data-active": "false",
+    });
+
+    guide.appendChild(line);
+    guide.appendChild(tick);
+    exactGuides.appendChild(guide);
+    return { angle, guide, line, tick };
+  });
+  svg.appendChild(exactGuides);
 
   const axes = createSvgElement(document, "g", {
     class: "wave-axes plot-axes",
@@ -337,6 +426,26 @@ export function createWaveView(container, options = {}) {
     "aria-hidden": "true",
   });
   svg.appendChild(cursor);
+
+  const exactPointHalo = createSvgElement(document, "circle", {
+    class: "wave-exact-point-halo wave-exact-halo",
+    "data-part": "exact-angle-point-halo",
+    "data-active": "false",
+    cx: PLOT.left,
+    cy: yForValue(initialValue),
+    r: 11,
+    fill: "none",
+    stroke: "var(--angle-amber, #bc7a1e)",
+    "stroke-width": 2.25,
+    "stroke-dasharray": "3 2",
+    opacity: 0.92,
+    visibility: "hidden",
+    "pointer-events": "none",
+    focusable: "false",
+    "vector-effect": "non-scaling-stroke",
+    "aria-hidden": "true",
+  });
+  svg.appendChild(exactPointHalo);
 
   const point = createSvgElement(document, "circle", {
     class: `wave-point ${cssKind}`,
@@ -609,6 +718,113 @@ export function createWaveView(container, options = {}) {
   hitArea.addEventListener("lostpointercapture", handleLostPointerCapture);
   hitArea.addEventListener("keydown", handleKeyDown);
 
+  function updateExactVisualization(
+    exactAngle,
+    snapEnabled,
+    angle,
+    value,
+    displayAngleLabel = null,
+  ) {
+    const exactAngleValue = Number(exactAngle?.angle?.value);
+    const hasExactAngle = Number.isFinite(exactAngleValue);
+    const atTurnEnd = Math.abs(angle - TAU) < 1e-9;
+    const exactDegrees = hasExactAngle
+      ? atTurnEnd ? 360 : Math.round(exactAngleValue / DEGREE)
+      : null;
+    const exactAngleLabel = hasExactAngle
+      ? typeof displayAngleLabel === "string" && displayAngleLabel.trim()
+        ? displayAngleLabel
+        : typeof exactAngle.angle?.plain === "string" && exactAngle.angle.plain.trim()
+          ? exactAngle.angle.plain
+          : svgNumber(exactAngleValue)
+      : null;
+    const exactDescriptor = hasExactAngle ? exactAngle[kind] : null;
+    const exactValueLabel =
+      exactDescriptor && typeof exactDescriptor.plain === "string"
+        ? exactDescriptor.plain
+        : null;
+    const exactValueTex =
+      exactDescriptor && typeof exactDescriptor.tex === "string"
+        ? exactDescriptor.tex
+        : null;
+    const exactValue = Number(exactDescriptor?.value);
+    const exactAngleRadians = hasExactAngle ? svgNumber(exactAngleValue) : null;
+
+    setAttributes(svg, {
+      "data-snap-enabled": snapEnabled ? "true" : "false",
+      "data-has-exact-angle": hasExactAngle ? "true" : "false",
+      "data-exact-angle": exactAngleLabel,
+      "data-exact-angle-radians": exactAngleRadians,
+      "data-exact-angle-degrees": exactDegrees,
+    });
+    setAttributes(exactGuides, {
+      class: snapEnabled
+        ? "wave-exact-guides wave-exact-guides-snap-enabled"
+        : "wave-exact-guides",
+      "data-snap-enabled": snapEnabled ? "true" : "false",
+      "data-active-angle": exactAngleLabel,
+      "data-active-angle-radians": exactAngleRadians,
+      "data-active-angle-degrees": exactDegrees,
+    });
+
+    for (const entry of exactGuideEntries) {
+      const active =
+        hasExactAngle
+        && !atTurnEnd
+        && angularDistance(exactAngleValue, entry.angle) < 1e-7;
+      const guideStroke = active
+        ? "var(--angle-amber, #bc7a1e)"
+        : "var(--reference-slate, #69747b)";
+
+      setAttributes(entry.guide, {
+        class: active
+          ? "wave-exact-guide wave-exact-guide-active"
+          : "wave-exact-guide",
+        "data-active": active ? "true" : "false",
+      });
+      setAttributes(entry.line, {
+        stroke: guideStroke,
+        "stroke-width": active ? 2.4 : snapEnabled ? 1.2 : 0.75,
+        "stroke-dasharray": active ? "none" : "2 5",
+        opacity: active ? 0.92 : snapEnabled ? 0.25 : 0.09,
+        "data-active": active ? "true" : "false",
+      });
+      setAttributes(entry.tick, {
+        stroke: guideStroke,
+        "stroke-width": active ? 3 : snapEnabled ? 1.8 : 1.25,
+        opacity: active ? 1 : snapEnabled ? 0.62 : 0.34,
+        "data-active": active ? "true" : "false",
+      });
+    }
+
+    const exactStateAttributes = {
+      "data-exact-angle": exactAngleLabel,
+      "data-exact-angle-radians": exactAngleRadians,
+      "data-exact-angle-degrees": exactDegrees,
+      "data-exact-value": exactValueLabel,
+      "data-exact-value-tex": exactValueTex,
+      "data-exact-value-number": Number.isFinite(exactValue)
+        ? svgNumber(exactValue)
+        : null,
+    };
+
+    setAttributes(exactPointHalo, {
+      ...exactStateAttributes,
+      class: hasExactAngle
+        ? "wave-exact-point-halo wave-exact-halo wave-exact-point-halo-active wave-exact-halo-active"
+        : "wave-exact-point-halo wave-exact-halo",
+      cx: svgNumber(xForAngle(angle)),
+      cy: svgNumber(yForValue(value)),
+      visibility: hasExactAngle ? "visible" : "hidden",
+      "data-active": hasExactAngle ? "true" : "false",
+      "data-wave-kind": kind,
+    });
+    setAttributes(point, {
+      ...exactStateAttributes,
+      "data-exact-active": hasExactAngle ? "true" : "false",
+    });
+  }
+
   function updateDynamicElements(angle, value, renderOptions) {
     const x = xForAngle(angle);
     const y = yForValue(value);
@@ -670,7 +886,7 @@ export function createWaveView(container, options = {}) {
       throw new TypeError("waveView.render requires a model object.");
     }
 
-    const angle = Number(model.normalizedTheta);
+    const angle = Number(model.plotTheta ?? model.normalizedTheta);
     const value = Number(model[valueKey]);
 
     if (!Number.isFinite(angle)) {
@@ -683,7 +899,23 @@ export function createWaveView(container, options = {}) {
       throw new TypeError(`model.${valueKey} must be a finite number.`);
     }
 
+    const exactAngle =
+      model.exactAngle && typeof model.exactAngle === "object"
+        ? model.exactAngle
+        : null;
+    const snapEnabled =
+      renderOptions &&
+      typeof renderOptions === "object" &&
+      renderOptions.snapEnabled === true;
+
     updateDynamicElements(angle, value, renderOptions);
+    updateExactVisualization(
+      exactAngle,
+      snapEnabled,
+      angle,
+      value,
+      renderOptions.angleLabel,
+    );
   }
 
   function destroy() {
@@ -708,6 +940,7 @@ export function createWaveView(container, options = {}) {
   }
 
   updateDynamicElements(0, initialValue, {});
+  updateExactVisualization(null, false, 0, initialValue);
   container.appendChild(svg);
 
   return { render, destroy };

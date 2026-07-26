@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { recognizeExactAngle } from "./exact-values.js";
 import {
   TAU,
   normalizeAngle,
@@ -227,9 +228,14 @@ test("computeTrigModel keeps every representation consistent", () => {
   assert.equal(model.unwrappedTheta, unwrappedTheta);
   closeTo(model.normalizedTheta, Math.PI / 3);
   closeTo(model.principalTheta, Math.PI / 3);
+  closeTo(model.displayTheta, Math.PI / 3);
+  closeTo(model.plotTheta, Math.PI / 3);
   assert.equal(model.revolutions, 5);
   assert.equal(model.radius, radius);
   closeTo(model.degrees, 5 * 360 + 60);
+  assert.equal(model.exactAngle, recognizeExactAngle(unwrappedTheta));
+  assert.equal(model.exactCos, model.exactAngle.cos);
+  assert.equal(model.exactSin, model.exactAngle.sin);
   assert.deepEqual(model.unitPoint, { x: model.cosTheta, y: model.sinTheta });
   closeTo(model.polarPoint.x, radius * model.cosTheta);
   closeTo(model.polarPoint.y, radius * model.sinTheta);
@@ -242,6 +248,35 @@ test("computeTrigModel keeps every representation consistent", () => {
   assert.equal(model.checks.pythagoreanResidual, 0);
   assert.equal(model.checks.polarRadiusResidual, 0);
   assert.ok(!Object.hasOwn(model, "ignored"));
+});
+
+test("display and plot representatives preserve signed and endpoint intent", () => {
+  const positivePi = computeTrigModel({ unwrappedTheta: Math.PI, radius: 1 });
+  const negativePi = computeTrigModel({ unwrappedTheta: -Math.PI, radius: 1 });
+  const positiveEndpoint = computeTrigModel({
+    unwrappedTheta: -Math.PI,
+    principalEndpoint: "positive",
+    radius: 1
+  });
+  const endOfTurn = computeTrigModel({
+    unwrappedTheta: TAU,
+    plotEndpoint: "end",
+    radius: 1
+  });
+  const startOfTurn = computeTrigModel({ unwrappedTheta: TAU, radius: 1 });
+
+  assert.equal(positivePi.displayTheta, Math.PI);
+  assert.equal(negativePi.displayTheta, -Math.PI);
+  assert.equal(positiveEndpoint.displayTheta, Math.PI);
+  assert.equal(endOfTurn.plotTheta, TAU);
+  assert.equal(startOfTurn.plotTheta, 0);
+});
+
+test("arbitrary angles do not claim symbolic exact values", () => {
+  const model = computeTrigModel({ unwrappedTheta: 0.37, radius: 1 });
+  assert.equal(model.exactAngle, null);
+  assert.equal(model.exactCos, null);
+  assert.equal(model.exactSin, null);
 });
 
 test("invalid model state falls back safely", () => {

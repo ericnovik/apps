@@ -1,4 +1,5 @@
 import { computeTrigModel, formatNumber, TAU } from "./model.js";
+import { snapToExactAngle } from "./exact-values.js";
 import { createCircleView } from "./circle-view.js";
 import { createWaveView } from "./wave-view.js";
 import {
@@ -7,11 +8,14 @@ import {
   createState,
   endAngleInteraction,
   homeAngle,
+  selectExactAngle,
   setAngleUnit,
   setDirection,
   setPrincipalAngle,
   setRadius,
+  setSnapToExactAngles,
   setSpeedMultiplier,
+  setWaveAngle,
   stepAngle,
   togglePlayback
 } from "./state.js";
@@ -31,11 +35,22 @@ const elements = {
   radiusInput: byId("radiusInput"),
   radianButton: byId("radianButton"),
   degreeButton: byId("degreeButton"),
+  snapButton: byId("snapButton"),
+  snapStateLabel: byId("snapStateLabel"),
+  exactAngleStatus: byId("exactAngleStatus"),
+  exactAngleChips: Array.from(document.querySelectorAll(".exact-angle-chip")),
   polarMath: byId("polarMath"),
   cartesianMath: byId("cartesianMath"),
   complexMath: byId("complexMath"),
   exponentialMath: byId("exponentialMath"),
   eulerMath: byId("eulerMath"),
+  exactDerivation: byId("exactDerivation"),
+  exactConstructionTitle: byId("exactConstructionTitle"),
+  exactQuadrantBadge: byId("exactQuadrantBadge"),
+  exactEquationMath: byId("exactEquationMath"),
+  exactValuesMath: byId("exactValuesMath"),
+  exactApproximation: byId("exactApproximation"),
+  exactConstructionExplanation: byId("exactConstructionExplanation"),
   thetaReadout: byId("thetaReadout"),
   cosReadout: byId("cosReadout"),
   sinReadout: byId("sinReadout"),
@@ -55,6 +70,7 @@ let lastFrameTime = null;
 let lastMathTime = -Infinity;
 let animationFrame = null;
 let destroyed = false;
+let interactionSnapped = false;
 
 function announce(message) {
   elements.liveRegion.textContent = "";
@@ -65,8 +81,8 @@ function announce(message) {
 
 function angleForControl(model) {
   return state.angleUnit === "degrees"
-    ? model.principalTheta * 180 / Math.PI
-    : model.principalTheta;
+    ? model.displayTheta * 180 / Math.PI
+    : model.displayTheta;
 }
 
 function radiansFromControl(value) {
@@ -86,7 +102,7 @@ function syncControls(model) {
     input.step = String(angleStep);
   });
 
-  if (document.activeElement !== elements.angleRange) {
+  if (document.activeElement !== elements.angleRange || interactionSnapped) {
     elements.angleRange.value = String(controlAngle);
   }
   if (document.activeElement !== elements.angleInput) {
@@ -119,13 +135,57 @@ function syncControls(model) {
   elements.radianButton.setAttribute("aria-pressed", String(!useDegrees));
   elements.degreeButton.classList.toggle("is-active", useDegrees);
   elements.degreeButton.setAttribute("aria-pressed", String(useDegrees));
+
+  elements.snapButton.setAttribute("aria-pressed", String(state.snapToExactAngles));
+  elements.snapButton.classList.toggle("is-active", state.snapToExactAngles);
+  elements.snapStateLabel.textContent = state.snapToExactAngles ? "on" : "off";
+
+  const exactAngle = model.exactAngle;
+  const atPositiveTurnBoundary = model.plotTheta === TAU;
+  const activeChipAngle = atPositiveTurnBoundary ? TAU : exactAngle?.angle.value;
+  for (const chip of elements.exactAngleChips) {
+    const chipAngle = Number(chip.dataset.angle);
+    const active = Number.isFinite(activeChipAngle)
+      && Math.abs(chipAngle - activeChipAngle) < 1e-9;
+    chip.classList.toggle("is-active", active);
+    chip.setAttribute("aria-pressed", String(active));
+    chip.textContent = useDegrees ? chip.dataset.degrees : chip.dataset.radians;
+  }
+
+  if (exactAngle) {
+    const canonicalLabel = atPositiveTurnBoundary
+      ? useDegrees ? "360°" : "2π"
+      : useDegrees ? exactAngle.angle.degreeLabel : exactAngle.angle.plain;
+    const displayLabel = formatAngleLabel(model, state.angleUnit);
+    const equivalence = canonicalLabel === displayLabel
+      ? canonicalLabel
+      : `${canonicalLabel} ≡ ${displayLabel}`;
+    elements.exactAngleStatus.textContent = `${equivalence} · ${exactAngle.quadrant.label}`;
+    elements.exactAngleStatus.dataset.exact = "true";
+  } else {
+    elements.exactAngleStatus.textContent = "Arbitrary angle · decimal values";
+    elements.exactAngleStatus.dataset.exact = "false";
+  }
 }
 
 function renderViews(model) {
   const angleLabel = formatAngleLabel(model, state.angleUnit);
-  circle.render(model, { angleUnit: state.angleUnit, precision: 3 });
-  cosine.render(model, { angleLabel, valueLabel: formatNumber(model.cosTheta, 3) });
-  sine.render(model, { angleLabel, valueLabel: formatNumber(model.sinTheta, 3) });
+  const sharedOptions = {
+    angleUnit: state.angleUnit,
+    angleLabel,
+    snapEnabled: state.snapToExactAngles
+  };
+  circle.render(model, { ...sharedOptions, precision: 3 });
+  cosine.render(model, {
+    ...sharedOptions,
+    angleLabel,
+    valueLabel: model.exactCos?.plain ?? formatNumber(model.cosTheta, 3)
+  });
+  sine.render(model, {
+    ...sharedOptions,
+    angleLabel,
+    valueLabel: model.exactSin?.plain ?? formatNumber(model.sinTheta, 3)
+  });
 }
 
 function renderFull(now = performance.now()) {
@@ -147,22 +207,40 @@ function renderAnimationFrame(now) {
   }
 }
 
-function setAngleFromInteraction(angle) {
-  setPrincipalAngle(state, angle);
+function applyInteractiveAngle(angle, allowSnap = true, source = "principal") {
+  const snapResult = snapToExactAngle(angle, {
+    enabled: allowSnap && state.snapToExactAngles
+  });
+  interactionSnapped = snapResult.snapped;
+  if (source === "wave") {
+    setWaveAngle(state, snapResult.angle);
+  } else {
+    setPrincipalAngle(state, snapResult.angle);
+  }
+  return snapResult;
+}
+
+function setAngleFromInteraction(angle, source = "principal") {
+  applyInteractiveAngle(angle, true, source);
   renderFull();
 }
 
-function startAngleInteraction(angle) {
+function startAngleInteraction(angle, source = "principal") {
   beginAngleInteraction(state);
-  setPrincipalAngle(state, angle);
+  interactionSnapped = false;
+  applyInteractiveAngle(angle, true, source);
   renderFull();
 }
 
-function finishAngleInteraction(angle) {
-  setPrincipalAngle(state, angle);
+function finishAngleInteraction(angle, source = "principal") {
+  const snapResult = applyInteractiveAngle(angle, true, source);
   endAngleInteraction(state);
   renderFull();
-  announce(`Angle ${formatAngleLabel(currentModel, state.angleUnit)}. Cosine ${formatNumber(currentModel.cosTheta, 3)}; sine ${formatNumber(currentModel.sinTheta, 3)}.`);
+  const exactPrefix = snapResult.snapped && currentModel.exactAngle
+    ? `Snapped to ${currentModel.exactAngle.angle.degreeLabel}. `
+    : "";
+  announce(`${exactPrefix}Angle ${formatAngleLabel(currentModel, state.angleUnit)}. Cosine ${currentModel.exactCos?.plain ?? formatNumber(currentModel.cosTheta, 3)}; sine ${currentModel.exactSin?.plain ?? formatNumber(currentModel.sinTheta, 3)}.`);
+  interactionSnapped = false;
 }
 
 function stepFromView(delta) {
@@ -186,36 +264,51 @@ function togglePlayFromView() {
   announce(state.playing ? "Rotation playing." : "Rotation paused.");
 }
 
-const sharedViewCallbacks = {
-  onAngleStart: startAngleInteraction,
-  onAngleChange: setAngleFromInteraction,
-  onAngleEnd: finishAngleInteraction,
+const sharedKeyboardCallbacks = {
   onAngleStep: stepFromView,
   onAngleHome: homeFromView,
   onTogglePlay: togglePlayFromView
 };
+const circleCallbacks = {
+  ...sharedKeyboardCallbacks,
+  onAngleStart: startAngleInteraction,
+  onAngleChange: setAngleFromInteraction,
+  onAngleEnd: finishAngleInteraction
+};
+const waveCallbacks = {
+  ...sharedKeyboardCallbacks,
+  onAngleStart: (angle) => startAngleInteraction(angle, "wave"),
+  onAngleChange: (angle) => setAngleFromInteraction(angle, "wave"),
+  onAngleEnd: (angle) => finishAngleInteraction(angle, "wave")
+};
 
-const circle = createCircleView(elements.circleView, sharedViewCallbacks);
-const cosine = createWaveView(elements.cosineView, { kind: "cos", ...sharedViewCallbacks });
-const sine = createWaveView(elements.sineView, { kind: "sin", ...sharedViewCallbacks });
+const circle = createCircleView(elements.circleView, circleCallbacks);
+const cosine = createWaveView(elements.cosineView, { kind: "cos", ...waveCallbacks });
+const sine = createWaveView(elements.sineView, { kind: "sin", ...waveCallbacks });
 
 function beginControlAngleInteraction() {
+  interactionSnapped = false;
   beginAngleInteraction(state);
 }
 
-function updateAngleFromControl(rawValue) {
+function updateAngleFromControl(rawValue, allowSnap) {
   const value = Number(rawValue);
   if (!Number.isFinite(value)) return;
   if (!state.dragging) beginControlAngleInteraction();
-  setPrincipalAngle(state, radiansFromControl(value));
+  applyInteractiveAngle(radiansFromControl(value), allowSnap);
   renderFull();
 }
 
 function endControlAngleInteraction() {
   if (!state.dragging) return;
+  const snapped = interactionSnapped;
   endAngleInteraction(state);
   renderFull();
-  announce(`Angle ${formatAngleLabel(currentModel, state.angleUnit)}.`);
+  const exactPrefix = snapped && currentModel.exactAngle
+    ? `Snapped to ${currentModel.exactAngle.angle.degreeLabel}. `
+    : "";
+  announce(`${exactPrefix}Angle ${formatAngleLabel(currentModel, state.angleUnit)}.`);
+  interactionSnapped = false;
 }
 
 elements.playButton.addEventListener("click", togglePlayFromView);
@@ -231,11 +324,11 @@ elements.speedSelect.addEventListener("change", () => {
 });
 
 elements.angleRange.addEventListener("pointerdown", beginControlAngleInteraction);
-elements.angleRange.addEventListener("input", () => updateAngleFromControl(elements.angleRange.value));
+elements.angleRange.addEventListener("input", () => updateAngleFromControl(elements.angleRange.value, true));
 elements.angleRange.addEventListener("change", endControlAngleInteraction);
 elements.angleRange.addEventListener("pointerup", endControlAngleInteraction);
 elements.angleRange.addEventListener("pointercancel", endControlAngleInteraction);
-elements.angleInput.addEventListener("input", () => updateAngleFromControl(elements.angleInput.value));
+elements.angleInput.addEventListener("input", () => updateAngleFromControl(elements.angleInput.value, false));
 elements.angleInput.addEventListener("change", endControlAngleInteraction);
 elements.angleInput.addEventListener("blur", () => {
   if (state.dragging) endControlAngleInteraction();
@@ -270,6 +363,29 @@ elements.degreeButton.addEventListener("click", () => {
   renderFull();
   announce("Angles shown in degrees.");
 });
+
+elements.snapButton.addEventListener("click", () => {
+  setSnapToExactAngles(state, !state.snapToExactAngles);
+  renderFull();
+  announce(state.snapToExactAngles
+    ? "Exact-angle snapping enabled. The current angle was not changed."
+    : "Exact-angle snapping disabled. The current angle was not changed.");
+});
+
+for (const chip of elements.exactAngleChips) {
+  chip.addEventListener("click", () => {
+    const angle = Number(chip.dataset.angle);
+    if (!Number.isFinite(angle)) return;
+    togglePlayback(state, false);
+    selectExactAngle(state, angle);
+    lastFrameTime = null;
+    renderFull();
+    const exactAngle = currentModel.exactAngle;
+    announce(exactAngle
+      ? `Exact angle ${chip.dataset.degrees}. Cosine ${exactAngle.cos.plain}; sine ${exactAngle.sin.plain}.`
+      : `Angle ${formatAngleLabel(currentModel, state.angleUnit)}.`);
+  });
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.defaultPrevented) return;

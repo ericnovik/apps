@@ -1,3 +1,5 @@
+import { recognizeExactAngle } from "./exact-values.js";
+
 export const TAU = 2 * Math.PI;
 
 const DEFAULT_THETA = Math.PI / 4;
@@ -133,6 +135,15 @@ export function computeTrigModel(state) {
 
   const normalizedTheta = normalizeAngle(unwrappedTheta);
   const principalTheta = principalAngle(unwrappedTheta);
+  const displayTheta = principalTheta === -Math.PI
+    && (source.principalEndpoint === "positive" || (
+      source.principalEndpoint !== "negative" && unwrappedTheta > 0
+    ))
+    ? Math.PI
+    : principalTheta;
+  const plotTheta = normalizedTheta === 0 && source.plotEndpoint === "end"
+    ? TAU
+    : normalizedTheta;
   const cosTheta = cleanUnitValue(Math.cos(unwrappedTheta));
   const sinTheta = cleanUnitValue(Math.sin(unwrappedTheta));
   const unitPoint = { x: cosTheta, y: sinTheta };
@@ -146,16 +157,22 @@ export function computeTrigModel(state) {
   const unitNormSquared = pythagoreanResidual === 0 ? 1 : rawUnitNormSquared;
   const polarRadiusResidual = cleanZero(Math.hypot(polarPoint.x, polarPoint.y) - radius);
   const revolutions = completedRevolutions(unwrappedTheta);
+  const exactAngle = recognizeExactAngle(unwrappedTheta);
 
   return deepFreeze({
     theta: unwrappedTheta,
     unwrappedTheta,
     normalizedTheta,
     principalTheta,
+    displayTheta,
+    plotTheta,
     revolutions,
     radius,
     cosTheta,
     sinTheta,
+    exactAngle,
+    exactCos: exactAngle?.cos ?? null,
+    exactSin: exactAngle?.sin ?? null,
     degrees: unwrappedTheta * (180 / Math.PI),
     unitPoint,
     polarPoint,

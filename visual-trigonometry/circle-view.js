@@ -8,6 +8,24 @@ const TAU = Math.PI * 2;
 const SMALL_ANGLE_STEP = Math.PI / 180;
 const LARGE_ANGLE_STEP = Math.PI / 12;
 const DEFAULT_POLAR_EPSILON = 0.02;
+const STANDARD_ANGLE_DEGREES = Object.freeze([
+  0,
+  30,
+  45,
+  60,
+  90,
+  120,
+  135,
+  150,
+  180,
+  210,
+  225,
+  240,
+  270,
+  300,
+  315,
+  330,
+]);
 
 const COLORS = {
   ink: "var(--vt-ink, #334155)",
@@ -115,6 +133,69 @@ function setLine(line, x1, y1, x2, y2) {
     x2: svgCoordinate(x2),
     y2: svgCoordinate(y2),
   });
+}
+
+function textOr(value, fallback) {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function midpoint(start, end, ratio = 0.5) {
+  return {
+    x: start.x + (end.x - start.x) * ratio,
+    y: start.y + (end.y - start.y) * ratio,
+  };
+}
+
+function unitVector(start, end) {
+  const deltaX = end.x - start.x;
+  const deltaY = end.y - start.y;
+  const length = Math.hypot(deltaX, deltaY);
+
+  return length > 1e-9
+    ? { x: deltaX / length, y: deltaY / length }
+    : { x: 0, y: 0 };
+}
+
+function outsideSegmentLabel(start, end, insidePoint, ratio = 0.7, offset = 15) {
+  const point = midpoint(start, end, ratio);
+  const direction = unitVector(start, end);
+  let normalX = -direction.y;
+  let normalY = direction.x;
+  const insideX = insidePoint.x - point.x;
+  const insideY = insidePoint.y - point.y;
+
+  if (normalX * insideX + normalY * insideY > 0) {
+    normalX *= -1;
+    normalY *= -1;
+  }
+
+  return {
+    x: point.x + normalX * offset,
+    y: point.y + normalY * offset,
+  };
+}
+
+function rightAnglePathAt(vertex, firstEnd, secondEnd, size) {
+  const firstDirection = unitVector(vertex, firstEnd);
+  const secondDirection = unitVector(vertex, secondEnd);
+  const firstPoint = {
+    x: vertex.x + firstDirection.x * size,
+    y: vertex.y + firstDirection.y * size,
+  };
+  const corner = {
+    x: firstPoint.x + secondDirection.x * size,
+    y: firstPoint.y + secondDirection.y * size,
+  };
+  const secondPoint = {
+    x: vertex.x + secondDirection.x * size,
+    y: vertex.y + secondDirection.y * size,
+  };
+
+  return [
+    `M ${svgCoordinate(firstPoint.x)} ${svgCoordinate(firstPoint.y)}`,
+    `L ${svgCoordinate(corner.x)} ${svgCoordinate(corner.y)}`,
+    `L ${svgCoordinate(secondPoint.x)} ${svgCoordinate(secondPoint.y)}`,
+  ].join(" ");
 }
 
 /**
@@ -324,6 +405,53 @@ export function createCircleView(container, callbacks = {}) {
     });
   }
 
+  const exactGuides = add(svg, "g", {
+    class: "vt-exact-guides",
+    "data-part": "exact-angle-guides",
+    "data-snap-enabled": "false",
+    "pointer-events": "none",
+    "aria-hidden": "true",
+  });
+  const exactGuideEntries = STANDARD_ANGLE_DEGREES.map((degrees) => {
+    const angle = (degrees * Math.PI) / 180;
+    const directionX = Math.cos(angle);
+    const directionY = -Math.sin(angle);
+    const guide = add(exactGuides, "g", {
+      class: "vt-exact-guide",
+      "data-angle-degrees": degrees,
+      "data-angle-radians": svgCoordinate(angle),
+      "data-guide-family":
+        degrees % 90 === 0 ? "30-and-45" : degrees % 30 === 0 ? "30" : "45",
+      "data-active": "false",
+    });
+    const ray = add(guide, "line", {
+      class: "vt-exact-guide-ray",
+      x1: CENTER,
+      y1: CENTER,
+      x2: svgCoordinate(CENTER + directionX * UNIT_RADIUS),
+      y2: svgCoordinate(CENTER + directionY * UNIT_RADIUS),
+      stroke: COLORS.grid,
+      "stroke-width": 1,
+      "stroke-linecap": "round",
+      opacity: 0.07,
+      "vector-effect": "non-scaling-stroke",
+    });
+    const tick = add(guide, "line", {
+      class: "vt-exact-guide-tick",
+      x1: svgCoordinate(CENTER + directionX * (UNIT_RADIUS - 7)),
+      y1: svgCoordinate(CENTER + directionY * (UNIT_RADIUS - 7)),
+      x2: svgCoordinate(CENTER + directionX * (UNIT_RADIUS + 8)),
+      y2: svgCoordinate(CENTER + directionY * (UNIT_RADIUS + 8)),
+      stroke: COLORS.grid,
+      "stroke-width": 1.5,
+      "stroke-linecap": "round",
+      opacity: 0.38,
+      "vector-effect": "non-scaling-stroke",
+    });
+
+    return { angle, guide, ray, tick };
+  });
+
   const staticLabels = add(svg, "g", {
     class: "vt-circle-static-labels",
     fill: COLORS.muted,
@@ -440,6 +568,156 @@ export function createCircleView(container, callbacks = {}) {
     "stroke-linecap": "square",
     "stroke-linejoin": "miter",
   });
+
+  const exactConstruction = add(svg, "g", {
+    class: "vt-exact-construction",
+    "data-part": "exact-angle-construction",
+    visibility: "hidden",
+    "pointer-events": "none",
+    "aria-hidden": "true",
+  });
+
+  function addExactGeometryLabel(parent, className, fill = COLORS.ink) {
+    return add(parent, "text", {
+      class: className,
+      fill,
+      stroke: COLORS.handleOutline,
+      "stroke-width": 5,
+      "stroke-linejoin": "round",
+      "paint-order": "stroke fill",
+      "font-size": 15,
+      "font-weight": 700,
+      "text-anchor": "middle",
+      "dominant-baseline": "middle",
+    });
+  }
+
+  const exactHalfEquilateral = add(exactConstruction, "g", {
+    class: "vt-exact-half-equilateral",
+    visibility: "hidden",
+  });
+  const exactSecondUnitSide = add(exactHalfEquilateral, "line", {
+    class: "vt-exact-second-unit-side",
+    stroke: COLORS.unit,
+    "stroke-width": 2.25,
+    "stroke-linecap": "round",
+    opacity: 0.42,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactClosingSide = add(exactHalfEquilateral, "line", {
+    class: "vt-exact-closing-side",
+    stroke: COLORS.unit,
+    "stroke-width": 2,
+    "stroke-linecap": "round",
+    "stroke-dasharray": "6 5",
+    opacity: 0.38,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactLongLeg = add(exactHalfEquilateral, "line", {
+    class: "vt-exact-long-leg",
+    "stroke-width": 3,
+    "stroke-linecap": "round",
+    opacity: 0.66,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactShortLeg = add(exactHalfEquilateral, "line", {
+    class: "vt-exact-short-leg",
+    "stroke-width": 3,
+    "stroke-linecap": "round",
+    opacity: 0.72,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactHalfRightAngle = add(exactHalfEquilateral, "path", {
+    class: "vt-exact-right-angle",
+    fill: "none",
+    stroke: COLORS.muted,
+    "stroke-width": 1.75,
+    "stroke-linecap": "square",
+    "stroke-linejoin": "miter",
+    opacity: 0.9,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactReflectedPoint = add(exactHalfEquilateral, "circle", {
+    class: "vt-exact-reflected-point",
+    r: 4.5,
+    fill: COLORS.unit,
+    stroke: COLORS.handleOutline,
+    "stroke-width": 2,
+    opacity: 0.58,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactLongMagnitudeLabel = addExactGeometryLabel(
+    exactHalfEquilateral,
+    "vt-exact-magnitude-label vt-exact-long-leg-label",
+  );
+  const exactShortMagnitudeLabel = addExactGeometryLabel(
+    exactHalfEquilateral,
+    "vt-exact-magnitude-label vt-exact-short-leg-label",
+  );
+
+  const exactIsosceles = add(exactConstruction, "g", {
+    class: "vt-exact-isosceles-right",
+    visibility: "hidden",
+  });
+  const exactCosineLegTick = add(exactIsosceles, "line", {
+    class: "vt-exact-isosceles-tick vt-exact-cosine-leg-tick",
+    stroke: COLORS.ink,
+    "stroke-width": 2.75,
+    "stroke-linecap": "round",
+    opacity: 0.9,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactSineLegTick = add(exactIsosceles, "line", {
+    class: "vt-exact-isosceles-tick vt-exact-sine-leg-tick",
+    stroke: COLORS.ink,
+    "stroke-width": 2.75,
+    "stroke-linecap": "round",
+    opacity: 0.9,
+    "vector-effect": "non-scaling-stroke",
+  });
+
+  const exactQuadrantal = add(exactConstruction, "g", {
+    class: "vt-exact-quadrantal",
+    visibility: "hidden",
+  });
+  const exactAxisEmphasis = add(exactQuadrantal, "line", {
+    class: "vt-exact-axis-emphasis",
+    stroke: COLORS.angle,
+    "stroke-width": 9,
+    "stroke-linecap": "round",
+    opacity: 0.15,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactAxisRay = add(exactQuadrantal, "line", {
+    class: "vt-exact-axis-ray",
+    stroke: COLORS.angle,
+    "stroke-width": 3.25,
+    "stroke-linecap": "round",
+    opacity: 0.62,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactZeroLeader = add(exactQuadrantal, "line", {
+    class: "vt-exact-zero-leader",
+    stroke: COLORS.muted,
+    "stroke-width": 1.5,
+    "stroke-linecap": "round",
+    "stroke-dasharray": "3 3",
+    opacity: 0.75,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const exactZeroLabel = addExactGeometryLabel(
+    exactQuadrantal,
+    "vt-exact-zero-coordinate-label",
+    COLORS.angle,
+  );
+
+  const exactUnitSideLabel = addExactGeometryLabel(
+    exactConstruction,
+    "vt-exact-unit-side-label",
+    COLORS.unit,
+  );
+  exactUnitSideLabel.textContent = "1";
+  exactUnitSideLabel.setAttribute("visibility", "hidden");
 
   const angleArc = add(svg, "path", {
     class: "vt-angle-arc",
@@ -803,6 +1081,276 @@ export function createCircleView(container, callbacks = {}) {
   listen(unitHandle, "focus", () => focusHalo.setAttribute("opacity", "0.55"));
   listen(unitHandle, "blur", () => focusHalo.setAttribute("opacity", "0"));
 
+  function updateExactGuides(exactAngle, snapEnabled) {
+    const activeAngle = finiteNumber(exactAngle?.angle?.value, NaN);
+    const activeAnglePlain = exactAngle
+      ? textOr(exactAngle.angle?.plain, formatNumber(activeAngle, 3))
+      : null;
+
+    setAttributes(exactGuides, {
+      "data-snap-enabled": snapEnabled ? "true" : "false",
+      "data-active-angle": activeAnglePlain,
+    });
+
+    for (const entry of exactGuideEntries) {
+      const active =
+        Number.isFinite(activeAngle) &&
+        Math.abs(principalAngle(activeAngle - entry.angle)) < 1e-7;
+
+      setAttributes(entry.guide, {
+        class: active ? "vt-exact-guide vt-exact-guide-active" : "vt-exact-guide",
+        "data-active": active ? "true" : "false",
+      });
+      setAttributes(entry.ray, {
+        stroke: active ? COLORS.angle : COLORS.grid,
+        "stroke-width": active ? 3.5 : snapEnabled ? 1.35 : 1,
+        opacity: active ? 0.9 : snapEnabled ? 0.2 : 0.07,
+      });
+      setAttributes(entry.tick, {
+        stroke: active ? COLORS.angle : COLORS.grid,
+        "stroke-width": active ? 4 : snapEnabled ? 1.8 : 1.5,
+        opacity: active ? 1 : snapEnabled ? 0.58 : 0.38,
+      });
+    }
+  }
+
+  function renderExactConstruction(exactAngle, geometry) {
+    const constructionType = textOr(exactAngle?.construction?.type, "");
+    const showQuadrantal = constructionType === "quadrantal";
+    const showIsosceles = constructionType === "isosceles-right";
+    const showHalfEquilateral = constructionType === "half-equilateral";
+
+    setAttributes(exactConstruction, {
+      class: constructionType
+        ? `vt-exact-construction vt-exact-construction-${constructionType}`
+        : "vt-exact-construction",
+      visibility: exactAngle ? "visible" : "hidden",
+      "data-construction-type": constructionType || null,
+      "data-angle": exactAngle?.angle?.plain ?? null,
+      "data-quadrant": exactAngle?.quadrant?.label ?? null,
+    });
+    exactQuadrantal.setAttribute("visibility", showQuadrantal ? "visible" : "hidden");
+    exactIsosceles.setAttribute("visibility", showIsosceles ? "visible" : "hidden");
+    exactHalfEquilateral.setAttribute(
+      "visibility",
+      showHalfEquilateral ? "visible" : "hidden",
+    );
+    exactUnitSideLabel.setAttribute(
+      "visibility",
+      showIsosceles || showHalfEquilateral ? "visible" : "hidden",
+    );
+
+    if (!exactAngle) {
+      return;
+    }
+
+    const { origin, unitPoint, projectionFoot, cosine, sine } = geometry;
+
+    if (showQuadrantal) {
+      const exactCosine = finiteNumber(exactAngle.cos?.value, cosine);
+      const exactSine = finiteNumber(exactAngle.sin?.value, sine);
+      const zeroCoordinate =
+        Math.abs(exactCosine) <= Math.abs(exactSine) ? "cos" : "sin";
+      const horizontalAxis = zeroCoordinate === "sin";
+      const zeroMetadata = exactAngle[zeroCoordinate];
+      const zeroPlain = textOr(zeroMetadata?.plain, "0");
+
+      setAttributes(exactQuadrantal, {
+        "data-axis": exactAngle.quadrant?.axis ?? null,
+        "data-zero-coordinate": zeroCoordinate,
+      });
+      if (horizontalAxis) {
+        setLine(
+          exactAxisEmphasis,
+          CENTER - UNIT_RADIUS,
+          CENTER,
+          CENTER + UNIT_RADIUS,
+          CENTER,
+        );
+        setLine(
+          exactZeroLeader,
+          unitPoint.x,
+          unitPoint.y + 12,
+          unitPoint.x,
+          unitPoint.y + 30,
+        );
+        setAttributes(exactZeroLabel, {
+          x: svgCoordinate(unitPoint.x),
+          y: svgCoordinate(unitPoint.y + 46),
+          "text-anchor": "middle",
+        });
+      } else {
+        setLine(
+          exactAxisEmphasis,
+          CENTER,
+          CENTER - UNIT_RADIUS,
+          CENTER,
+          CENTER + UNIT_RADIUS,
+        );
+        setLine(
+          exactZeroLeader,
+          unitPoint.x - 12,
+          unitPoint.y,
+          unitPoint.x - 30,
+          unitPoint.y,
+        );
+        setAttributes(exactZeroLabel, {
+          x: svgCoordinate(unitPoint.x - 38),
+          y: svgCoordinate(unitPoint.y),
+          "text-anchor": "end",
+        });
+      }
+      setLine(exactAxisRay, origin.x, origin.y, unitPoint.x, unitPoint.y);
+      exactZeroLabel.textContent = `${zeroCoordinate} θ = ${zeroPlain}`;
+    }
+
+    if (showIsosceles) {
+      const horizontalMidpoint = midpoint(origin, projectionFoot);
+      const verticalMidpoint = midpoint(projectionFoot, unitPoint);
+      const tickHalfLength = 6;
+
+      setLine(
+        exactCosineLegTick,
+        horizontalMidpoint.x,
+        horizontalMidpoint.y - tickHalfLength,
+        horizontalMidpoint.x,
+        horizontalMidpoint.y + tickHalfLength,
+      );
+      setLine(
+        exactSineLegTick,
+        verticalMidpoint.x - tickHalfLength,
+        verticalMidpoint.y,
+        verticalMidpoint.x + tickHalfLength,
+        verticalMidpoint.y,
+      );
+      setAttributes(exactCosineLegTick, {
+        "data-coordinate": "cos",
+        "data-magnitude": exactAngle.cos?.magnitudePlain ?? null,
+      });
+      setAttributes(exactSineLegTick, {
+        "data-coordinate": "sin",
+        "data-magnitude": exactAngle.sin?.magnitudePlain ?? null,
+      });
+
+      const unitSidePosition = outsideSegmentLabel(
+        origin,
+        unitPoint,
+        projectionFoot,
+        0.7,
+        16,
+      );
+      setAttributes(exactUnitSideLabel, {
+        x: svgCoordinate(unitSidePosition.x),
+        y: svgCoordinate(unitSidePosition.y),
+        "data-role": "hypotenuse",
+      });
+    }
+
+    if (showHalfEquilateral) {
+      const requestedShortCoordinate =
+        exactAngle.construction?.shortCoordinate ?? exactAngle.construction?.shortLeg;
+      const shortCoordinate =
+        requestedShortCoordinate === "cos" || requestedShortCoordinate === "sin"
+          ? requestedShortCoordinate
+          : Math.abs(cosine) <= Math.abs(sine)
+            ? "cos"
+            : "sin";
+      const longCoordinate = shortCoordinate === "cos" ? "sin" : "cos";
+      const reflectedPoint =
+        shortCoordinate === "cos"
+          ? { x: 2 * CENTER - unitPoint.x, y: unitPoint.y }
+          : { x: unitPoint.x, y: 2 * CENTER - unitPoint.y };
+      const longAxisFoot =
+        shortCoordinate === "cos"
+          ? { x: CENTER, y: unitPoint.y }
+          : { x: unitPoint.x, y: CENTER };
+      const shortColor = shortCoordinate === "cos" ? COLORS.cosine : COLORS.sine;
+      const longColor = longCoordinate === "cos" ? COLORS.cosine : COLORS.sine;
+      const shortMagnitude = textOr(
+        exactAngle[shortCoordinate]?.magnitudePlain,
+        formatNumber(Math.abs(shortCoordinate === "cos" ? cosine : sine), 3),
+      );
+      const longMagnitude = textOr(
+        exactAngle[longCoordinate]?.magnitudePlain,
+        formatNumber(Math.abs(longCoordinate === "cos" ? cosine : sine), 3),
+      );
+
+      setAttributes(exactHalfEquilateral, {
+        "data-short-coordinate": shortCoordinate,
+        "data-long-coordinate": longCoordinate,
+      });
+      setLine(
+        exactSecondUnitSide,
+        origin.x,
+        origin.y,
+        reflectedPoint.x,
+        reflectedPoint.y,
+      );
+      setLine(
+        exactClosingSide,
+        unitPoint.x,
+        unitPoint.y,
+        reflectedPoint.x,
+        reflectedPoint.y,
+      );
+      setLine(exactLongLeg, origin.x, origin.y, longAxisFoot.x, longAxisFoot.y);
+      setLine(exactShortLeg, longAxisFoot.x, longAxisFoot.y, unitPoint.x, unitPoint.y);
+      setAttributes(exactLongLeg, {
+        stroke: longColor,
+        "data-coordinate": longCoordinate,
+        "data-magnitude": longMagnitude,
+      });
+      setAttributes(exactShortLeg, {
+        stroke: shortColor,
+        "data-coordinate": shortCoordinate,
+        "data-magnitude": shortMagnitude,
+      });
+      exactHalfRightAngle.setAttribute(
+        "d",
+        rightAnglePathAt(longAxisFoot, origin, unitPoint, 10),
+      );
+      setAttributes(exactReflectedPoint, {
+        cx: svgCoordinate(reflectedPoint.x),
+        cy: svgCoordinate(reflectedPoint.y),
+        "data-reflected-across": `${longCoordinate}-axis`,
+      });
+
+      const towardShortSide = unitVector(longAxisFoot, unitPoint);
+      const towardOrigin = unitVector(longAxisFoot, origin);
+      const longLabelPosition = midpoint(origin, longAxisFoot);
+      const shortLabelPosition = midpoint(longAxisFoot, unitPoint);
+      setAttributes(exactLongMagnitudeLabel, {
+        x: svgCoordinate(longLabelPosition.x + towardShortSide.x * 15),
+        y: svgCoordinate(longLabelPosition.y + towardShortSide.y * 15),
+        fill: longColor,
+        "data-coordinate": longCoordinate,
+      });
+      setAttributes(exactShortMagnitudeLabel, {
+        x: svgCoordinate(shortLabelPosition.x + towardOrigin.x * 15),
+        y: svgCoordinate(shortLabelPosition.y + towardOrigin.y * 15),
+        fill: shortColor,
+        "data-coordinate": shortCoordinate,
+      });
+      exactLongMagnitudeLabel.textContent = longMagnitude;
+      exactShortMagnitudeLabel.textContent = shortMagnitude;
+
+      const unitSidePosition = outsideSegmentLabel(
+        origin,
+        unitPoint,
+        longAxisFoot,
+        0.7,
+        16,
+      );
+      setAttributes(exactUnitSideLabel, {
+        x: svgCoordinate(unitSidePosition.x),
+        y: svgCoordinate(unitSidePosition.y),
+        "data-role": "hypotenuse-full-side",
+      });
+
+      rightAngle.setAttribute("visibility", "hidden");
+    }
+  }
+
   function render(model, options = {}) {
     if (destroyed) {
       return;
@@ -810,8 +1358,11 @@ export function createCircleView(container, callbacks = {}) {
 
     const data = model && typeof model === "object" ? model : {};
     const renderOptions = options && typeof options === "object" ? options : {};
+    const exactAngle =
+      data.exactAngle && typeof data.exactAngle === "object" ? data.exactAngle : null;
+    const snapEnabled = renderOptions.snapEnabled === true;
     const theta = finiteNumber(data.normalizedTheta, 0);
-    const currentPrincipalAngle = principalAngle(theta);
+    const currentPrincipalAngle = finiteNumber(data.displayTheta, principalAngle(theta));
     const cosine = clamp(finiteNumber(data.cosTheta, Math.cos(theta)), -1, 1);
     const sine = clamp(finiteNumber(data.sinTheta, Math.sin(theta)), -1, 1);
     const radius = finiteNumber(data.radius, 1);
@@ -831,6 +1382,8 @@ export function createCircleView(container, callbacks = {}) {
       ? Math.max(0, renderOptions.polarEpsilon)
       : DEFAULT_POLAR_EPSILON;
     const showPolarPoint = Math.abs(radius - 1) > polarEpsilon;
+
+    updateExactGuides(exactAngle, snapEnabled);
 
     const unitScreenX = CENTER + unitX * UNIT_RADIUS;
     const unitScreenY = CENTER - unitY * UNIT_RADIUS;
@@ -876,6 +1429,14 @@ export function createCircleView(container, callbacks = {}) {
       rightAngle.setAttribute("visibility", "hidden");
     }
 
+    renderExactConstruction(exactAngle, {
+      origin: { x: CENTER, y: CENTER },
+      unitPoint: { x: unitScreenX, y: unitScreenY },
+      projectionFoot: { x: projectionScreenX, y: CENTER },
+      cosine,
+      sine,
+    });
+
     const displayedArcAngle = arcAngle(theta);
     const arcPath = angleArcPath(displayedArcAngle);
     angleArc.setAttribute("d", arcPath);
@@ -902,6 +1463,23 @@ export function createCircleView(container, callbacks = {}) {
       "text-anchor": cosine >= 0 ? "start" : "end",
     });
 
+    const exactCosinePlain = exactAngle
+      ? textOr(exactAngle.cos?.plain, formatNumber(cosine, precision))
+      : null;
+    const exactSinePlain = exactAngle
+      ? textOr(exactAngle.sin?.plain, formatNumber(sine, precision))
+      : null;
+    cosineLabel.textContent = exactAngle ? `cos θ = ${exactCosinePlain}` : "cos θ";
+    sineLabel.textContent = exactAngle ? `sin θ = ${exactSinePlain}` : "sin θ";
+    setAttributes(cosineLabel, {
+      "data-exact-value": exactCosinePlain,
+      "data-sign": exactAngle?.cos?.sign ?? null,
+    });
+    setAttributes(sineLabel, {
+      "data-exact-value": exactSinePlain,
+      "data-sign": exactAngle?.sin?.sign ?? null,
+    });
+
     const unitLabelXOffset = unitX >= 0 ? 15 : -15;
     const unitLabelYOffset = unitY >= 0 ? -16 : 24;
     setAttributes(unitLabel, {
@@ -909,10 +1487,9 @@ export function createCircleView(container, callbacks = {}) {
       y: svgCoordinate(unitScreenY + unitLabelYOffset),
       "text-anchor": unitX >= 0 ? "start" : "end",
     });
-    unitLabel.textContent = `u = (${formatNumber(cosine, precision)}, ${formatNumber(
-      sine,
-      precision,
-    )})`;
+    unitLabel.textContent = exactAngle
+      ? `u = (${exactCosinePlain}, ${exactSinePlain})`
+      : `u = (${formatNumber(cosine, precision)}, ${formatNumber(sine, precision)})`;
 
     setAttributes(unitHandle, {
       cx: svgCoordinate(unitScreenX),
@@ -964,12 +1541,29 @@ export function createCircleView(container, callbacks = {}) {
     const accessibleAngle = useDegrees
       ? `${degreesText} degrees (${radiansText} radians)`
       : `${radiansText} radians (${degreesText} degrees)`;
+    const exactAnglePlain = exactAngle
+      ? textOr(renderOptions.angleLabel, textOr(exactAngle.angle?.plain, `${radiansText} radians`))
+      : null;
+    const exactConstructionTitle = exactAngle
+      ? textOr(exactAngle.construction?.title, "Exact-angle")
+      : null;
+    const exactConstructionType = exactAngle
+      ? textOr(exactAngle.construction?.type, "")
+      : null;
+    const accessibleCosine = exactAngle ? exactCosinePlain : cosineText;
+    const accessibleSine = exactAngle ? exactSinePlain : sineText;
+    const exactValueText = exactAngle
+      ? `; active exact angle ${exactAnglePlain}; construction: ${exactConstructionTitle}`
+      : "";
 
     setAttributes(unitHandle, {
       "aria-valuemin": -Math.PI,
       "aria-valuemax": Math.PI,
       "aria-valuenow": currentPrincipalAngle,
-      "aria-valuetext": `${accessibleAngle}; cos theta ${cosineText}; sin theta ${sineText}`,
+      "aria-valuetext":
+        `${accessibleAngle}; cos theta ${accessibleCosine}; sin theta ${accessibleSine}` +
+        exactValueText,
+      "data-exact-angle": exactAnglePlain,
     });
 
     const polarDescription = showPolarPoint
@@ -979,12 +1573,32 @@ export function createCircleView(container, callbacks = {}) {
           false,
         )}) with radius ${formatNumber(radius, precision, false)}.`
       : " The polar point z coincides with u at radius 1.";
+    const exactQuadrant = exactAngle ? textOr(exactAngle.quadrant?.label, "") : "";
+    const exactEquation = exactAngle
+      ? textOr(exactAngle.construction?.equationPlain, "")
+      : "";
+    const exactExplanation = exactAngle
+      ? textOr(exactAngle.construction?.explanation, "").replace(/[.!?]+$/, "")
+      : "";
+    const exactDescription = exactAngle
+      ? ` Active exact angle ${exactAnglePlain}${exactQuadrant ? ` in ${exactQuadrant}` : ""}. ` +
+        `Its exact coordinates are (${exactCosinePlain}, ${exactSinePlain}). ` +
+        `Construction: ${exactConstructionTitle}` +
+        `${exactEquation ? `; ${exactEquation}` : ""}` +
+        `${exactExplanation ? `; ${exactExplanation}` : ""}.`
+      : "";
     description.textContent =
       `Complex plane and unit circle. Angle ${accessibleAngle}. ` +
-      `The unit point u is (${cosineText}, ${sineText}).${polarDescription} ` +
+      `The unit point u is (${cosineText}, ${sineText}).${exactDescription}${polarDescription} ` +
       "Drag u around the circle; with u focused, use arrow keys, Home, or Space.";
 
-    svg.setAttribute("data-principal-angle", formatNumber(currentPrincipalAngle, 6, false));
+    setAttributes(svg, {
+      "data-principal-angle": formatNumber(currentPrincipalAngle, 6, false),
+      "data-snap-enabled": snapEnabled ? "true" : "false",
+      "data-exact-angle": exactAnglePlain,
+      "data-exact-angle-degrees": exactAngle?.angle?.degrees ?? null,
+      "data-exact-construction": exactConstructionType || null,
+    });
     lastRenderedPrincipalAngle = currentPrincipalAngle;
   }
 

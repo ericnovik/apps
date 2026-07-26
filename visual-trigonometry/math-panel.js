@@ -14,23 +14,96 @@ function signedImaginary(value, digits = 3) {
   return `${sign}${formatNumber(Math.abs(value), digits)}i`;
 }
 
-function angleParts(model, angleUnit) {
-  if (angleUnit === "degrees") {
-    const value = model.principalTheta * 180 / Math.PI;
+function greatestCommonDivisor(first, second) {
+  let a = Math.abs(first);
+  let b = Math.abs(second);
+  while (b !== 0) {
+    [a, b] = [b, a % b];
+  }
+  return a || 1;
+}
+
+function piNotation(degrees) {
+  if (degrees === 0) return { plain: "0", tex: "0" };
+
+  const rawNumerator = Math.round(degrees / 15);
+  const divisor = greatestCommonDivisor(rawNumerator, 12);
+  const numerator = rawNumerator / divisor;
+  const denominator = 12 / divisor;
+  const sign = numerator < 0 ? "-" : "";
+  const magnitude = Math.abs(numerator);
+  const coefficient = magnitude === 1 ? "" : String(magnitude);
+
+  if (denominator === 1) {
     return {
-      plain: `${formatNumber(value, 1)}°`,
-      math: `${formatNumber(value, 1)}^{\\circ}`,
-      input: value,
-      shortUnit: "degrees"
+      plain: `${sign}${coefficient}π`,
+      tex: `${sign}${coefficient}\\pi`
     };
   }
 
   return {
-    plain: `${formatNumber(model.principalTheta, 3)} rad`,
-    math: `${formatNumber(model.principalTheta, 3)}\\,\\mathrm{rad}`,
-    input: model.principalTheta,
-    shortUnit: "radians"
+    plain: `${sign}${coefficient}π/${denominator}`,
+    tex: `${sign}\\frac{${coefficient}\\pi}{${denominator}}`
   };
+}
+
+function exactDisplayDegrees(model) {
+  if (model.plotTheta === 2 * Math.PI) return 360;
+
+  let degrees = model.exactAngle.angle.degrees;
+  if (degrees > 180) degrees -= 360;
+  if (degrees === 180 && model.displayTheta < 0) degrees = -180;
+  return degrees;
+}
+
+function angleParts(model, angleUnit) {
+  const exactAngle = model.exactAngle;
+  const exactDegrees = exactAngle ? exactDisplayDegrees(model) : null;
+
+  if (angleUnit === "degrees") {
+    const value = exactAngle
+      ? exactDegrees
+      : model.displayTheta * 180 / Math.PI;
+    return {
+      plain: `${formatNumber(value, exactAngle ? 0 : 1)}°`,
+      math: `${formatNumber(value, exactAngle ? 0 : 1)}^{\\circ}`,
+      input: value,
+      shortUnit: "degrees",
+      exact: Boolean(exactAngle)
+    };
+  }
+
+  if (exactAngle) {
+    const notation = piNotation(exactDegrees);
+    return {
+      plain: notation.plain,
+      math: notation.tex,
+      input: model.displayTheta,
+      shortUnit: "radians",
+      exact: true
+    };
+  }
+
+  return {
+    plain: `${formatNumber(model.displayTheta, 3)} rad`,
+    math: `${formatNumber(model.displayTheta, 3)}\\,\\mathrm{rad}`,
+    input: model.displayTheta,
+    shortUnit: "radians",
+    exact: false
+  };
+}
+
+function signLabel(sign) {
+  if (sign < 0) return "−";
+  if (sign > 0) return "+";
+  return "0";
+}
+
+function exactImaginary(descriptor) {
+  if (!descriptor || descriptor.sign === 0) return "+0i";
+  return descriptor.sign < 0
+    ? `${descriptor.tex}i`
+    : `+${descriptor.tex}i`;
 }
 
 function replaceTableRow(model, angle) {
@@ -70,6 +143,7 @@ export function renderMathPanel(model, state, elements) {
   const cosine = formatNumber(model.cosTheta, 3);
   const sine = formatNumber(model.sinTheta, 3);
   const complexExpression = `${x}${signedImaginary(model.polarPoint.y)}`;
+  const exactAngle = model.exactAngle;
 
   renderMath(elements.polarMath, `(r,\\theta)=(${r},${angle.math})`);
   renderMath(elements.cartesianMath, `(x,y)=(${x},${y})`);
@@ -77,17 +151,58 @@ export function renderMathPanel(model, state, elements) {
   renderMath(elements.exponentialMath, `z=${r}e^{i(${angle.math})}`);
   renderMath(
     elements.eulerMath,
-    `e^{i\\theta}=\\cos\\theta+i\\sin\\theta=${cosine}${signedImaginary(model.sinTheta)}`
+    exactAngle
+      ? `e^{i\\theta}=\\cos\\theta+i\\sin\\theta=${exactAngle.cos.tex}${exactImaginary(exactAngle.sin)}`
+      : `e^{i\\theta}=\\cos\\theta+i\\sin\\theta=${cosine}${signedImaginary(model.sinTheta)}`
   );
 
   elements.thetaReadout.textContent = angle.plain;
-  elements.cosReadout.textContent = cosine;
-  elements.sinReadout.textContent = sine;
+  if (exactAngle) {
+    renderMath(elements.cosReadout, exactAngle.cos.tex);
+    renderMath(elements.sinReadout, exactAngle.sin.tex);
+    elements.cosReadout.title = `Approximately ${cosine}`;
+    elements.sinReadout.title = `Approximately ${sine}`;
+  } else {
+    elements.cosReadout.textContent = cosine;
+    elements.sinReadout.textContent = sine;
+    elements.cosReadout.removeAttribute("title");
+    elements.sinReadout.removeAttribute("title");
+  }
+  elements.cosReadout.closest(".readout").classList.toggle("is-exact", Boolean(exactAngle));
+  elements.sinReadout.closest(".readout").classList.toggle("is-exact", Boolean(exactAngle));
   elements.revolutionReadout.textContent = String(model.revolutions);
 
-  elements.circleSummary.textContent = `At angle ${angle.plain}, the unit point u has horizontal coordinate cosine ${cosine} and vertical coordinate sine ${sine}. The polar point z has radius ${r} and Cartesian coordinates ${x}, ${y}.`;
-  elements.cosineSummary.textContent = `The cosine graph marks angle ${angle.plain} at value ${cosine}, matching the horizontal coordinate of the unit-circle point.`;
-  elements.sineSummary.textContent = `The sine graph marks angle ${angle.plain} at value ${sine}, matching the vertical coordinate of the unit-circle point.`;
+  if (exactAngle) {
+    const construction = exactAngle.construction;
+    elements.exactDerivation.dataset.exact = "true";
+    elements.exactConstructionTitle.textContent = construction.title;
+    elements.exactQuadrantBadge.textContent = `${exactAngle.quadrant.label} · signs (${signLabel(exactAngle.cos.sign)}, ${signLabel(exactAngle.sin.sign)})`;
+    renderMath(elements.exactEquationMath, construction.equationTex);
+    renderMath(
+      elements.exactValuesMath,
+      `\\cos\\theta=${exactAngle.cos.tex}\\quad\\sin\\theta=${exactAngle.sin.tex}`
+    );
+    elements.exactApproximation.textContent = `≈ (${cosine}, ${sine})`;
+    elements.exactConstructionExplanation.textContent = construction.explanation;
+  } else {
+    elements.exactDerivation.dataset.exact = "false";
+    elements.exactConstructionTitle.textContent = "Between standard angles";
+    elements.exactQuadrantBadge.textContent = "Decimal mode";
+    renderMath(elements.exactEquationMath, `\\theta=${angle.math}`);
+    renderMath(
+      elements.exactValuesMath,
+      `\\cos\\theta\\approx${cosine}\\quad\\sin\\theta\\approx${sine}`
+    );
+    elements.exactApproximation.textContent = "Choose a chip or enable snap";
+    elements.exactConstructionExplanation.textContent = "This angle is not being treated as exact, so the app shows rounded decimal values without claiming a symbolic construction.";
+  }
+
+  const exactSummary = exactAngle
+    ? ` This is the exact angle ${angle.plain} in ${exactAngle.quadrant.label}; cosine is ${exactAngle.cos.plain} and sine is ${exactAngle.sin.plain}. ${exactAngle.construction.explanation}`
+    : " This is an arbitrary angle, so its trigonometric coordinates are shown as rounded decimals.";
+  elements.circleSummary.textContent = `At angle ${angle.plain}, the unit point u has horizontal coordinate cosine ${exactAngle?.cos.plain ?? cosine} and vertical coordinate sine ${exactAngle?.sin.plain ?? sine}. The polar point z has radius ${r} and Cartesian coordinates ${x}, ${y}.${exactSummary}`;
+  elements.cosineSummary.textContent = `The cosine graph marks angle ${angle.plain} at value ${exactAngle?.cos.plain ?? cosine}, matching the horizontal coordinate of the unit-circle point.`;
+  elements.sineSummary.textContent = `The sine graph marks angle ${angle.plain} at value ${exactAngle?.sin.plain ?? sine}, matching the vertical coordinate of the unit-circle point.`;
   elements.valuesTableBody.replaceChildren(replaceTableRow(model, angle));
 
   return angle;
