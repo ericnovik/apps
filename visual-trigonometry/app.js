@@ -1,4 +1,4 @@
-import { computeTrigModel, formatNumber, TAU } from "./model.js";
+import { computeTrigModel, formatNumber, principalAngle, TAU } from "./model.js";
 import { snapToExactAngle } from "./exact-values.js";
 import { createCircleView } from "./circle-view.js";
 import { createWaveView } from "./wave-view.js";
@@ -11,6 +11,10 @@ import {
   selectExactAngle,
   setAngleUnit,
   setDirection,
+  setIdentityAlpha,
+  setIdentityBeta,
+  setIdentityMode,
+  setIdentityPower,
   setPrincipalAngle,
   setRadius,
   setSnapToExactAngles,
@@ -43,7 +47,21 @@ const elements = {
   cartesianMath: byId("cartesianMath"),
   complexMath: byId("complexMath"),
   exponentialMath: byId("exponentialMath"),
-  eulerMath: byId("eulerMath"),
+  identityLensButtons: Array.from(document.querySelectorAll(".identity-lens-button")),
+  identityPanel: byId("identityPanel"),
+  identityTitle: byId("identityTitle"),
+  identityBadge: byId("identityBadge"),
+  identityGeometryText: byId("identityGeometryText"),
+  identityComplexMath: byId("identityComplexMath"),
+  identityTrigMath: byId("identityTrigMath"),
+  identityAlgebra: byId("identityAlgebra"),
+  identityDetailMath: byId("identityDetailMath"),
+  identitySummary: byId("identitySummary"),
+  additionParameters: byId("additionParameters"),
+  alphaInput: byId("alphaInput"),
+  betaInput: byId("betaInput"),
+  powerParameters: byId("powerParameters"),
+  powerSelect: byId("powerSelect"),
   exactDerivation: byId("exactDerivation"),
   exactConstructionTitle: byId("exactConstructionTitle"),
   exactQuadrantBadge: byId("exactQuadrantBadge"),
@@ -150,6 +168,35 @@ function syncControls(model) {
     chip.classList.toggle("is-active", active);
     chip.setAttribute("aria-pressed", String(active));
     chip.textContent = useDegrees ? chip.dataset.degrees : chip.dataset.radians;
+  }
+
+  for (const button of elements.identityLensButtons) {
+    const active = button.dataset.identityMode === state.identityMode;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+  elements.additionParameters.hidden = state.identityMode !== "addition";
+  elements.powerParameters.hidden = state.identityMode !== "powers";
+  elements.powerSelect.value = String(state.power);
+
+  const parameterMin = useDegrees ? -180 : -3.142;
+  const parameterMax = useDegrees ? 180 : 3.142;
+  const parameterStep = useDegrees ? 0.1 : 0.001;
+  const parameterValue = (angle) => useDegrees
+    ? principalAngle(angle) * 180 / Math.PI
+    : principalAngle(angle);
+  for (const [input, angle] of [
+    [elements.alphaInput, state.alpha],
+    [elements.betaInput, state.beta]
+  ]) {
+    input.min = String(parameterMin);
+    input.max = String(parameterMax);
+    input.step = String(parameterStep);
+    if (document.activeElement !== input) {
+      input.value = useDegrees
+        ? formatNumber(parameterValue(angle), 1)
+        : formatNumber(parameterValue(angle), 3);
+    }
   }
 
   if (exactAngle) {
@@ -370,6 +417,41 @@ elements.snapButton.addEventListener("click", () => {
   announce(state.snapToExactAngles
     ? "Exact-angle snapping enabled. The current angle was not changed."
     : "Exact-angle snapping disabled. The current angle was not changed.");
+});
+
+for (const button of elements.identityLensButtons) {
+  button.addEventListener("click", () => {
+    setIdentityMode(state, button.dataset.identityMode);
+    renderFull();
+    announce(`${currentModel.identity.title} lens selected. ${currentModel.identity.geometryText}`);
+  });
+}
+
+function updateIdentityAngleParameter(input, setter) {
+  const value = Number(input.value);
+  if (!Number.isFinite(value)) return;
+  togglePlayback(state, false);
+  setter(state, radiansFromControl(value));
+  lastFrameTime = null;
+  renderFull();
+}
+
+elements.alphaInput.addEventListener("input", () => {
+  updateIdentityAngleParameter(elements.alphaInput, setIdentityAlpha);
+});
+elements.betaInput.addEventListener("input", () => {
+  updateIdentityAngleParameter(elements.betaInput, setIdentityBeta);
+});
+elements.alphaInput.addEventListener("change", () => {
+  announce(`Alpha ${formatAngleLabel({ ...currentModel, exactAngle: null, displayTheta: principalAngle(state.alpha) }, state.angleUnit)}.`);
+});
+elements.betaInput.addEventListener("change", () => {
+  announce(`Beta ${formatAngleLabel({ ...currentModel, exactAngle: null, displayTheta: principalAngle(state.beta) }, state.angleUnit)}.`);
+});
+elements.powerSelect.addEventListener("change", () => {
+  setIdentityPower(state, Number(elements.powerSelect.value));
+  renderFull();
+  announce(`Power ${state.power}. The derived point is at ${state.power} theta.`);
 });
 
 for (const chip of elements.exactAngleChips) {

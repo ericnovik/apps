@@ -5,6 +5,10 @@ import {
   advanceAnimation,
   createState,
   selectExactAngle,
+  setIdentityAlpha,
+  setIdentityBeta,
+  setIdentityMode,
+  setIdentityPower,
   setPrincipalAngle,
   setSnapToExactAngles,
   setWaveAngle
@@ -110,6 +114,99 @@ test("the pi chip deliberately selects the positive principal endpoint", () => {
   selectExactAngle(state, Math.PI);
   assert.equal(state.principalEndpoint, "positive");
   assert.equal(computeTrigModel(state).displayTheta, Math.PI);
+});
+
+test("identity lens switches preserve the instrument and align addition components", () => {
+  const state = createState();
+  state.unwrappedTheta = 3 * TAU + 0.9;
+  state.radius = 1.7;
+  state.playing = true;
+  state.speedMultiplier = 2;
+  state.alpha = 0.35;
+  state.beta = -1.2;
+
+  setIdentityMode(state, "norm");
+  assert.equal(state.unwrappedTheta, 3 * TAU + 0.9);
+  assert.equal(state.radius, 1.7);
+  assert.equal(state.playing, true);
+  assert.equal(state.speedMultiplier, 2);
+
+  setIdentityMode(state, "addition");
+  closeTo(
+    Math.atan2(
+      Math.sin(state.alpha + state.beta - state.unwrappedTheta),
+      Math.cos(state.alpha + state.beta - state.unwrappedTheta)
+    ),
+    0
+  );
+  assert.equal(state.unwrappedTheta, 3 * TAU + 0.9);
+  assert.equal(state.playing, true);
+});
+
+test("editing alpha and beta drives the primary addition result angle", () => {
+  const state = createState();
+  setIdentityMode(state, "addition");
+
+  setIdentityAlpha(state, Math.PI / 3);
+  closeTo(
+    Math.atan2(
+      Math.sin(state.unwrappedTheta - state.alpha - state.beta),
+      Math.cos(state.unwrappedTheta - state.alpha - state.beta)
+    ),
+    0
+  );
+
+  setIdentityBeta(state, -Math.PI / 6);
+  closeTo(
+    Math.atan2(
+      Math.sin(state.unwrappedTheta - Math.PI / 6),
+      Math.cos(state.unwrappedTheta - Math.PI / 6)
+    ),
+    0
+  );
+  assert.equal(computeTrigModel(state).identity.checks.resultAngleResidual, 0);
+});
+
+test("direct angle changes and animation keep beta synchronized in addition mode", () => {
+  const state = createState();
+  setIdentityMode(state, "addition");
+  const alpha = state.alpha;
+
+  setPrincipalAngle(state, -Math.PI / 2);
+  closeTo(
+    Math.atan2(
+      Math.sin(alpha + state.beta - state.unwrappedTheta),
+      Math.cos(alpha + state.beta - state.unwrappedTheta)
+    ),
+    0
+  );
+
+  state.playing = true;
+  assert.equal(advanceAnimation(state, 0.05), true);
+  closeTo(
+    Math.atan2(
+      Math.sin(alpha + state.beta - state.unwrappedTheta),
+      Math.cos(alpha + state.beta - state.unwrappedTheta)
+    ),
+    0
+  );
+  assert.equal(computeTrigModel(state).identity.checks.resultAngleResidual, 0);
+});
+
+test("power controls clamp independently without resetting angle or playback", () => {
+  const state = createState();
+  const theta = state.unwrappedTheta;
+  state.playing = true;
+  setIdentityMode(state, "powers");
+
+  setIdentityPower(state, 99);
+  assert.equal(state.power, 6);
+  assert.equal(state.unwrappedTheta, theta);
+  assert.equal(state.playing, true);
+
+  setIdentityPower(state, 3.4);
+  assert.equal(state.power, 3);
+  assert.equal(state.unwrappedTheta, theta);
 });
 
 test("animation clears endpoint display hints before advancing", () => {

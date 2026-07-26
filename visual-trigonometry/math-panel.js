@@ -99,11 +99,13 @@ function signLabel(sign) {
   return "0";
 }
 
-function exactImaginary(descriptor) {
-  if (!descriptor || descriptor.sign === 0) return "+0i";
-  return descriptor.sign < 0
-    ? `${descriptor.tex}i`
-    : `+${descriptor.tex}i`;
+function identityBadge(identity) {
+  if (identity.mode === "addition") return "α + β";
+  if (identity.mode === "powers") return `n = ${identity.parameters.power}`;
+  if (identity.mode === "conjugate") return "θ ↔ −θ";
+  if (identity.mode === "quarter-turn") return "+π/2";
+  if (identity.mode === "norm") return "|u| = 1";
+  return "foundation";
 }
 
 function replaceTableRow(model, angle) {
@@ -144,17 +146,25 @@ export function renderMathPanel(model, state, elements) {
   const sine = formatNumber(model.sinTheta, 3);
   const complexExpression = `${x}${signedImaginary(model.polarPoint.y)}`;
   const exactAngle = model.exactAngle;
+  const identity = model.identity;
 
   renderMath(elements.polarMath, `(r,\\theta)=(${r},${angle.math})`);
   renderMath(elements.cartesianMath, `(x,y)=(${x},${y})`);
   renderMath(elements.complexMath, `z=${complexExpression}`);
   renderMath(elements.exponentialMath, `z=${r}e^{i(${angle.math})}`);
-  renderMath(
-    elements.eulerMath,
-    exactAngle
-      ? `e^{i\\theta}=\\cos\\theta+i\\sin\\theta=${exactAngle.cos.tex}${exactImaginary(exactAngle.sin)}`
-      : `e^{i\\theta}=\\cos\\theta+i\\sin\\theta=${cosine}${signedImaginary(model.sinTheta)}`
-  );
+
+  elements.identityPanel.dataset.identityMode = identity.mode;
+  elements.identityTitle.textContent = identity.title;
+  elements.identityBadge.textContent = identityBadge(identity);
+  elements.identityGeometryText.textContent = identity.geometryText;
+  renderMath(elements.identityComplexMath, identity.complexTex);
+  renderMath(elements.identityTrigMath, identity.trigTex);
+  const hasDetail = Boolean(identity.detailTex);
+  elements.identityAlgebra.hidden = !hasDetail;
+  if (!hasDetail) elements.identityAlgebra.open = false;
+  if (hasDetail) renderMath(elements.identityDetailMath, identity.detailTex);
+  elements.identitySummary.textContent =
+    "The geometry, complex form, and trigonometric result use the same shared point.";
 
   elements.thetaReadout.textContent = angle.plain;
   if (exactAngle) {
@@ -172,6 +182,7 @@ export function renderMathPanel(model, state, elements) {
   elements.sinReadout.closest(".readout").classList.toggle("is-exact", Boolean(exactAngle));
   elements.revolutionReadout.textContent = String(model.revolutions);
 
+  elements.exactDerivation.hidden = !exactAngle;
   if (exactAngle) {
     const construction = exactAngle.construction;
     elements.exactDerivation.dataset.exact = "true";
@@ -184,25 +195,14 @@ export function renderMathPanel(model, state, elements) {
     );
     elements.exactApproximation.textContent = `≈ (${cosine}, ${sine})`;
     elements.exactConstructionExplanation.textContent = construction.explanation;
-  } else {
-    elements.exactDerivation.dataset.exact = "false";
-    elements.exactConstructionTitle.textContent = "Between standard angles";
-    elements.exactQuadrantBadge.textContent = "Decimal mode";
-    renderMath(elements.exactEquationMath, `\\theta=${angle.math}`);
-    renderMath(
-      elements.exactValuesMath,
-      `\\cos\\theta\\approx${cosine}\\quad\\sin\\theta\\approx${sine}`
-    );
-    elements.exactApproximation.textContent = "Choose a chip or enable snap";
-    elements.exactConstructionExplanation.textContent = "This angle is not being treated as exact, so the app shows rounded decimal values without claiming a symbolic construction.";
   }
 
   const exactSummary = exactAngle
     ? ` This is the exact angle ${angle.plain} in ${exactAngle.quadrant.label}; cosine is ${exactAngle.cos.plain} and sine is ${exactAngle.sin.plain}. ${exactAngle.construction.explanation}`
     : " This is an arbitrary angle, so its trigonometric coordinates are shown as rounded decimals.";
-  elements.circleSummary.textContent = `At angle ${angle.plain}, the unit point u has horizontal coordinate cosine ${exactAngle?.cos.plain ?? cosine} and vertical coordinate sine ${exactAngle?.sin.plain ?? sine}. The polar point z has radius ${r} and Cartesian coordinates ${x}, ${y}.${exactSummary}`;
-  elements.cosineSummary.textContent = `The cosine graph marks angle ${angle.plain} at value ${exactAngle?.cos.plain ?? cosine}, matching the horizontal coordinate of the unit-circle point.`;
-  elements.sineSummary.textContent = `The sine graph marks angle ${angle.plain} at value ${exactAngle?.sin.plain ?? sine}, matching the vertical coordinate of the unit-circle point.`;
+  elements.circleSummary.textContent = `At angle ${angle.plain}, the unit point u has horizontal coordinate cosine ${exactAngle?.cos.plain ?? cosine} and vertical coordinate sine ${exactAngle?.sin.plain ?? sine}. The polar point z has radius ${r} and Cartesian coordinates ${x}, ${y}. Active identity: ${identity.geometryText}.${exactSummary}`;
+  elements.cosineSummary.textContent = `The cosine graph marks angle ${angle.plain} at value ${exactAngle?.cos.plain ?? cosine}, matching the horizontal coordinate of the unit-circle point. Active identity lens: ${identity.title}.`;
+  elements.sineSummary.textContent = `The sine graph marks angle ${angle.plain} at value ${exactAngle?.sin.plain ?? sine}, matching the vertical coordinate of the unit-circle point. Active identity lens: ${identity.title}.`;
   elements.valuesTableBody.replaceChildren(replaceTableRow(model, angle));
 
   return angle;

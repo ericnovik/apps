@@ -236,6 +236,8 @@ test("computeTrigModel keeps every representation consistent", () => {
   assert.equal(model.exactAngle, recognizeExactAngle(unwrappedTheta));
   assert.equal(model.exactCos, model.exactAngle.cos);
   assert.equal(model.exactSin, model.exactAngle.sin);
+  assert.equal(model.identity.mode, "coordinates");
+  assert.equal(model.identityConstruction, model.identity);
   assert.deepEqual(model.unitPoint, { x: model.cosTheta, y: model.sinTheta });
   closeTo(model.polarPoint.x, radius * model.cosTheta);
   closeTo(model.polarPoint.y, radius * model.sinTheta);
@@ -248,6 +250,26 @@ test("computeTrigModel keeps every representation consistent", () => {
   assert.equal(model.checks.pythagoreanResidual, 0);
   assert.equal(model.checks.polarRadiusResidual, 0);
   assert.ok(!Object.hasOwn(model, "ignored"));
+});
+
+test("identity state is computed from the same shared angle and parameters", () => {
+  const alpha = Math.PI / 5;
+  const beta = Math.PI / 7;
+  const model = computeTrigModel({
+    unwrappedTheta: alpha + beta,
+    radius: 1,
+    identityMode: "addition",
+    alpha,
+    beta,
+    power: 4
+  });
+
+  assert.equal(model.identity.mode, "addition");
+  assert.equal(model.identity.base.angle, model.unwrappedTheta);
+  assert.equal(model.identity.parameters.alpha, alpha);
+  assert.equal(model.identity.parameters.beta, beta);
+  assert.equal(model.identity.parameters.power, 4);
+  assert.equal(model.identity.checks.resultAngleResidual, 0);
 });
 
 test("display and plot representatives preserve signed and endpoint intent", () => {

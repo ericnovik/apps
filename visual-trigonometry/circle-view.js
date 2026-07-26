@@ -8,6 +8,15 @@ const TAU = Math.PI * 2;
 const SMALL_ANGLE_STEP = Math.PI / 180;
 const LARGE_ANGLE_STEP = Math.PI / 12;
 const DEFAULT_POLAR_EPSILON = 0.02;
+const IDENTITY_MODES = Object.freeze([
+  "coordinates",
+  "norm",
+  "addition",
+  "powers",
+  "conjugate",
+  "quarter-turn",
+]);
+const MAX_POWER_TRAIL_STEPS = 8;
 const STANDARD_ANGLE_DEGREES = Object.freeze([
   0,
   30,
@@ -33,11 +42,15 @@ const COLORS = {
   grid: "var(--vt-grid, #94a3b8)",
   cosine: "var(--vt-cosine, #2563eb)",
   sine: "var(--vt-sine, #ef6a5b)",
+  sineInk: "var(--sine-coral-ink, #9f403b)",
   unit: "var(--vt-unit, #7c3aed)",
   polar: "var(--vt-polar, #0f9388)",
   angle: "var(--vt-angle, #d97706)",
   surface: "var(--vt-surface, transparent)",
   handleOutline: "var(--vt-handle-outline, #ffffff)",
+  derived: "var(--derived-emerald, #216b55)",
+  reference: "var(--reference-slate, #4f5b63)",
+  identityAngle: "var(--angle-amber-ink, #8f570e)",
 };
 
 let nextViewId = 0;
@@ -112,6 +125,66 @@ function angleArcPath(angle) {
     `A ${ANGLE_ARC_RADIUS} ${ANGLE_ARC_RADIUS} 0 ${largeArc} ${sweep}`,
     `${svgCoordinate(endX)} ${svgCoordinate(endY)}`,
   ].join(" ");
+}
+
+function identityArcPath(startAngle, deltaAngle, radius) {
+  const start = finiteNumber(startAngle, 0);
+  const delta = arcAngle(finiteNumber(deltaAngle, 0));
+  const safeRadius = Math.max(0, finiteNumber(radius, 0));
+  const magnitude = Math.abs(delta);
+
+  if (safeRadius < 1e-6 || magnitude < 1e-6) {
+    return "";
+  }
+
+  const sweep = delta < 0 ? 1 : 0;
+  const startX = CENTER + safeRadius * Math.cos(start);
+  const startY = CENTER - safeRadius * Math.sin(start);
+
+  if (Math.abs(magnitude - TAU) < 1e-6) {
+    const halfTurn = delta < 0 ? -Math.PI : Math.PI;
+    const oppositeX = CENTER + safeRadius * Math.cos(start + halfTurn);
+    const oppositeY = CENTER - safeRadius * Math.sin(start + halfTurn);
+    return [
+      `M ${svgCoordinate(startX)} ${svgCoordinate(startY)}`,
+      `A ${safeRadius} ${safeRadius} 0 0 ${sweep} ${svgCoordinate(oppositeX)} ${svgCoordinate(oppositeY)}`,
+      `A ${safeRadius} ${safeRadius} 0 0 ${sweep} ${svgCoordinate(startX)} ${svgCoordinate(startY)}`,
+    ].join(" ");
+  }
+
+  const endAngle = start + delta;
+  const endX = CENTER + safeRadius * Math.cos(endAngle);
+  const endY = CENTER - safeRadius * Math.sin(endAngle);
+  const largeArc = magnitude > Math.PI ? 1 : 0;
+  return [
+    `M ${svgCoordinate(startX)} ${svgCoordinate(startY)}`,
+    `A ${safeRadius} ${safeRadius} 0 ${largeArc} ${sweep}`,
+    `${svgCoordinate(endX)} ${svgCoordinate(endY)}`,
+  ].join(" ");
+}
+
+function firstFiniteNumber(...values) {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return NaN;
+}
+
+function jsonAttribute(value) {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return null;
+  }
+}
+
+function polygonPoints(points) {
+  return points
+    .map((point) => `${svgCoordinate(point.x)},${svgCoordinate(point.y)}`)
+    .join(" ");
 }
 
 function formatNumber(value, precision, unicodeMinus = true) {
@@ -220,6 +293,7 @@ export function createCircleView(container, callbacks = {}) {
   const titleId = `${viewId}-title`;
   const descriptionId = `${viewId}-description`;
   const angleArrowId = `${viewId}-angle-arrow`;
+  const identityArrowId = `${viewId}-identity-derived-arrow`;
   const listeners = [];
 
   let destroyed = false;
@@ -283,6 +357,23 @@ export function createCircleView(container, callbacks = {}) {
   add(angleArrow, "path", {
     d: "M 0 0 L 8 4 L 0 8 z",
     fill: COLORS.angle,
+  });
+
+  const identityArrow = add(definitions, "marker", {
+    id: identityArrowId,
+    class: "vt-identity-arrow-marker",
+    viewBox: "0 0 8 8",
+    markerWidth: 8,
+    markerHeight: 8,
+    refX: 7,
+    refY: 4,
+    orient: "auto",
+    markerUnits: "userSpaceOnUse",
+  });
+  add(identityArrow, "path", {
+    class: "vt-identity-arrowhead",
+    d: "M 0 0 L 8 4 L 0 8 z",
+    fill: COLORS.derived,
   });
 
   add(svg, "rect", {
@@ -568,6 +659,292 @@ export function createCircleView(container, callbacks = {}) {
     "stroke-linecap": "square",
     "stroke-linejoin": "miter",
   });
+
+  function addIdentityLabel(parent, className, fill = COLORS.ink, fontSize = 15) {
+    return add(parent, "text", {
+      class: className,
+      fill,
+      stroke: COLORS.handleOutline,
+      "stroke-width": 4.5,
+      "stroke-linejoin": "round",
+      "paint-order": "stroke fill",
+      "font-size": fontSize,
+      "font-weight": 700,
+      "text-anchor": "middle",
+      "dominant-baseline": "middle",
+    });
+  }
+
+  const identityOverlay = add(svg, "g", {
+    class: "vt-identity-overlay",
+    "data-part": "identity-overlay",
+    "data-active": "false",
+    display: "none",
+    visibility: "hidden",
+    "pointer-events": "none",
+    "aria-hidden": "true",
+  });
+
+  function addIdentityModeGroup(mode) {
+    return add(identityOverlay, "g", {
+      class: `vt-identity-${mode}`,
+      "data-mode": mode,
+      "data-active": "false",
+      display: "none",
+      visibility: "hidden",
+    });
+  }
+
+  function addIdentityPointSlot(parent, mode, slotNumber) {
+    const group = add(parent, "g", {
+      class: `vt-identity-${mode}-point vt-identity-point`,
+      "data-slot": slotNumber,
+      visibility: "hidden",
+    });
+    const ray = add(group, "line", {
+      class: `vt-identity-${mode}-ray vt-identity-point-ray`,
+      x1: CENTER,
+      y1: CENTER,
+      x2: CENTER,
+      y2: CENTER,
+      fill: "none",
+      stroke: COLORS.derived,
+      "stroke-width": 2.5,
+      "stroke-linecap": "round",
+      opacity: 0.78,
+      "vector-effect": "non-scaling-stroke",
+    });
+    const ring = add(group, "circle", {
+      class: `vt-identity-${mode}-point-ring vt-identity-point-ring`,
+      cx: CENTER,
+      cy: CENTER,
+      r: 13,
+      fill: "none",
+      stroke: COLORS.derived,
+      "stroke-width": 1.75,
+      opacity: 0.72,
+      "vector-effect": "non-scaling-stroke",
+    });
+    const marker = add(group, "circle", {
+      class: `vt-identity-${mode}-point-marker vt-identity-point-marker`,
+      cx: CENTER,
+      cy: CENTER,
+      r: 7.5,
+      fill: COLORS.derived,
+      stroke: COLORS.handleOutline,
+      "stroke-width": 2.5,
+      opacity: 0.95,
+      "vector-effect": "non-scaling-stroke",
+    });
+    const label = addIdentityLabel(
+      group,
+      `vt-identity-${mode}-point-label vt-identity-point-label`,
+      COLORS.derived,
+    );
+
+    return { group, ray, ring, marker, label, mode };
+  }
+
+  const identityCoordinates = addIdentityModeGroup("coordinates");
+
+  const identityNorm = addIdentityModeGroup("norm");
+  const identityNormHorizontalSquare = add(identityNorm, "polygon", {
+    class: "vt-identity-norm-square vt-identity-norm-cosine-square",
+    fill: COLORS.cosine,
+    "fill-opacity": 0.055,
+    stroke: COLORS.cosine,
+    "stroke-width": 1.4,
+    "stroke-linejoin": "round",
+    opacity: 0.86,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityNormVerticalSquare = add(identityNorm, "polygon", {
+    class: "vt-identity-norm-square vt-identity-norm-sine-square",
+    fill: COLORS.sine,
+    "fill-opacity": 0.055,
+    stroke: COLORS.sine,
+    "stroke-width": 1.4,
+    "stroke-linejoin": "round",
+    opacity: 0.86,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityNormTriangle = add(identityNorm, "path", {
+    class: "vt-identity-norm-triangle",
+    fill: COLORS.derived,
+    "fill-opacity": 0.025,
+    stroke: COLORS.reference,
+    "stroke-width": 2,
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    opacity: 0.74,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityNormHypotenuse = add(identityNorm, "line", {
+    class: "vt-identity-norm-hypotenuse",
+    stroke: COLORS.derived,
+    "stroke-width": 7,
+    "stroke-linecap": "round",
+    opacity: 0.14,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityNormCosineLabel = addIdentityLabel(
+    identityNorm,
+    "vt-identity-norm-label vt-identity-norm-cosine-label",
+    COLORS.cosine,
+  );
+  identityNormCosineLabel.textContent = "cos² θ";
+  const identityNormSineLabel = addIdentityLabel(
+    identityNorm,
+    "vt-identity-norm-label vt-identity-norm-sine-label",
+    COLORS.sineInk,
+  );
+  identityNormSineLabel.textContent = "sin² θ";
+  const identityNormModulusLabel = addIdentityLabel(
+    identityNorm,
+    "vt-identity-norm-label vt-identity-norm-modulus-label",
+    COLORS.derived,
+  );
+  identityNormModulusLabel.textContent = "|u| = 1";
+
+  const identityAddition = addIdentityModeGroup("addition");
+  const identityAdditionArc = add(identityAddition, "path", {
+    class: "vt-identity-addition-rotation-arc",
+    fill: "none",
+    stroke: COLORS.identityAngle,
+    "stroke-width": 3.5,
+    "stroke-linecap": "round",
+    opacity: 0.88,
+    "marker-end": `url(#${identityArrowId})`,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityAdditionArcLabel = addIdentityLabel(
+    identityAddition,
+    "vt-identity-addition-rotation-label",
+    COLORS.identityAngle,
+    14,
+  );
+  identityAdditionArcLabel.textContent = "+β";
+  const identityAdditionPointSlots = Array.from({ length: 5 }, (_, index) =>
+    addIdentityPointSlot(identityAddition, "addition", index + 1),
+  );
+
+  const identityPowers = addIdentityModeGroup("powers");
+  const identityPowersTrail = add(identityPowers, "g", {
+    class: "vt-identity-powers-trail",
+  });
+  const identityPowersTrailSegments = Array.from(
+    { length: MAX_POWER_TRAIL_STEPS },
+    (_, index) =>
+      add(identityPowersTrail, "path", {
+        class: "vt-identity-powers-trail-segment",
+        "data-step": index + 1,
+        fill: "none",
+        stroke: COLORS.identityAngle,
+        "stroke-width": 2.25,
+        "stroke-linecap": "round",
+        opacity: 0.72,
+        visibility: "hidden",
+        "vector-effect": "non-scaling-stroke",
+      }),
+  );
+  const identityPowersTicks = Array.from({ length: MAX_POWER_TRAIL_STEPS }, (_, index) =>
+    add(identityPowersTrail, "line", {
+      class: "vt-identity-powers-step-tick",
+      "data-step": index + 1,
+      stroke: COLORS.reference,
+      "stroke-width": 2,
+      "stroke-linecap": "round",
+      opacity: 0.72,
+      visibility: "hidden",
+      "vector-effect": "non-scaling-stroke",
+    }),
+  );
+  const identityPowersAngleLabel = addIdentityLabel(
+    identityPowers,
+    "vt-identity-powers-angle-label",
+    COLORS.identityAngle,
+    14,
+  );
+  identityPowersAngleLabel.textContent = "nθ";
+  const identityPowersPointSlots = Array.from({ length: 4 }, (_, index) =>
+    addIdentityPointSlot(identityPowers, "powers", index + 1),
+  );
+
+  const identityConjugate = addIdentityModeGroup("conjugate");
+  const identityConjugateConnector = add(identityConjugate, "line", {
+    class: "vt-identity-conjugate-reflection-guide",
+    stroke: COLORS.reference,
+    "stroke-width": 1.75,
+    "stroke-dasharray": "6 5",
+    "stroke-linecap": "round",
+    opacity: 0.72,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityConjugateEqualTicks = Array.from({ length: 2 }, (_, index) =>
+    add(identityConjugate, "line", {
+      class: "vt-identity-conjugate-equal-distance-tick",
+      "data-side": index === 0 ? "base" : "reflected",
+      stroke: COLORS.reference,
+      "stroke-width": 2.5,
+      "stroke-linecap": "round",
+      opacity: 0.84,
+      "vector-effect": "non-scaling-stroke",
+    }),
+  );
+  const identityConjugateAxisCue = add(identityConjugate, "path", {
+    class: "vt-identity-conjugate-axis-cue",
+    fill: "none",
+    stroke: COLORS.reference,
+    "stroke-width": 1.75,
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    opacity: 0.82,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityConjugatePointSlots = Array.from({ length: 3 }, (_, index) =>
+    addIdentityPointSlot(identityConjugate, "conjugate", index + 1),
+  );
+
+  const identityQuarterTurn = addIdentityModeGroup("quarter-turn");
+  const identityQuarterTurnArc = add(identityQuarterTurn, "path", {
+    class: "vt-identity-quarter-turn-rotation-arc",
+    fill: "none",
+    stroke: COLORS.identityAngle,
+    "stroke-width": 3.5,
+    "stroke-linecap": "round",
+    opacity: 0.9,
+    "marker-end": `url(#${identityArrowId})`,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityQuarterTurnRightAngle = add(identityQuarterTurn, "path", {
+    class: "vt-identity-quarter-turn-right-angle",
+    fill: "none",
+    stroke: COLORS.reference,
+    "stroke-width": 2,
+    "stroke-linecap": "square",
+    "stroke-linejoin": "miter",
+    opacity: 0.86,
+    "vector-effect": "non-scaling-stroke",
+  });
+  const identityQuarterTurnArcLabel = addIdentityLabel(
+    identityQuarterTurn,
+    "vt-identity-quarter-turn-rotation-label",
+    COLORS.identityAngle,
+    14,
+  );
+  identityQuarterTurnArcLabel.textContent = "+π/2";
+  const identityQuarterTurnPointSlots = Array.from({ length: 3 }, (_, index) =>
+    addIdentityPointSlot(identityQuarterTurn, "quarter-turn", index + 1),
+  );
+
+  const identityModeGroups = {
+    coordinates: identityCoordinates,
+    norm: identityNorm,
+    addition: identityAddition,
+    powers: identityPowers,
+    conjugate: identityConjugate,
+    "quarter-turn": identityQuarterTurn,
+  };
 
   const exactConstruction = add(svg, "g", {
     class: "vt-exact-construction",
@@ -1351,6 +1728,797 @@ export function createCircleView(container, callbacks = {}) {
     }
   }
 
+  function identityNormalizedAngle(angle) {
+    const wrapped = finiteNumber(angle, 0) % TAU;
+    const normalized = wrapped < 0 ? wrapped + TAU : wrapped;
+    return Math.abs(normalized) < 1e-12 || Math.abs(normalized - TAU) < 1e-12
+      ? 0
+      : normalized;
+  }
+
+  function normalizeIdentityPoint(entry, index) {
+    if (!entry || typeof entry !== "object") {
+      return null;
+    }
+
+    const suppliedAngle = finiteNumber(entry.angle, NaN);
+    let pointX = finiteNumber(entry.point?.x, NaN);
+    let pointY = finiteNumber(entry.point?.y, NaN);
+    let pointLength = Math.hypot(pointX, pointY);
+
+    if (!Number.isFinite(pointLength) || pointLength < 1e-9) {
+      if (!Number.isFinite(suppliedAngle)) {
+        return null;
+      }
+      pointX = Math.cos(suppliedAngle);
+      pointY = Math.sin(suppliedAngle);
+      pointLength = 1;
+    }
+
+    const unitX = pointX / pointLength;
+    const unitY = pointY / pointLength;
+    const geometricAngle = Math.atan2(unitY, unitX);
+    const angle = Number.isFinite(suppliedAngle) ? suppliedAngle : geometricAngle;
+    const normalizedAngle = finiteNumber(
+      entry.normalizedAngle,
+      identityNormalizedAngle(angle),
+    );
+    const role = textOr(entry.role, `point-${index + 1}`);
+    const tone = entry.tone === "reference" ? "reference" : "derived";
+
+    return {
+      source: entry,
+      role,
+      angle,
+      normalizedAngle,
+      pointX,
+      pointY,
+      unitX,
+      unitY,
+      label: textOr(entry.label, role),
+      tone,
+      synthetic: entry.synthetic === true,
+    };
+  }
+
+  function syntheticIdentityPoint(role, angle, label, tone = "derived", point = null) {
+    const safeAngle = finiteNumber(angle, 0);
+    return normalizeIdentityPoint(
+      {
+        role,
+        angle: safeAngle,
+        normalizedAngle: identityNormalizedAngle(safeAngle),
+        point: point ?? { x: Math.cos(safeAngle), y: Math.sin(safeAngle) },
+        label,
+        tone,
+        synthetic: true,
+      },
+      0,
+    );
+  }
+
+  function identityPointSummary(point) {
+    return {
+      role: point.role,
+      angle: point.angle,
+      normalizedAngle: point.normalizedAngle,
+      point: { x: point.pointX, y: point.pointY },
+      label: point.label,
+      tone: point.tone,
+    };
+  }
+
+  function identityPointScreen(point) {
+    return {
+      x: CENTER + point.unitX * UNIT_RADIUS,
+      y: CENTER - point.unitY * UNIT_RADIUS,
+    };
+  }
+
+  function positionIdentityLabel(label, directionX, directionY, radius, tangentOffset = 0) {
+    const x = CENTER + directionX * radius - directionY * tangentOffset;
+    const y = CENTER - directionY * radius - directionX * tangentOffset;
+    setAttributes(label, {
+      x: svgCoordinate(x),
+      y: svgCoordinate(y),
+      "text-anchor": directionX > 0.2 ? "start" : directionX < -0.2 ? "end" : "middle",
+    });
+  }
+
+  function hideIdentityPointSlots(slots) {
+    for (const slot of slots) {
+      setAttributes(slot.group, {
+        visibility: "hidden",
+        "data-role": null,
+        "data-tone": null,
+        "data-angle": null,
+        "data-normalized-angle": null,
+        "data-point-x": null,
+        "data-point-y": null,
+        "data-rendered-point-x": null,
+        "data-rendered-point-y": null,
+        "data-label": null,
+        "data-synthetic": null,
+      });
+      slot.label.textContent = "";
+    }
+  }
+
+  function renderIdentityPointSlot(slot, point, options = {}) {
+    if (!point) {
+      slot.group.setAttribute("visibility", "hidden");
+      return;
+    }
+
+    const naturalScreenPoint = identityPointScreen(point);
+    const screenX = finiteNumber(options.screenX, naturalScreenPoint.x);
+    const screenY = finiteNumber(options.screenY, naturalScreenPoint.y);
+    const directionX = finiteNumber(options.directionX, point.unitX);
+    const directionY = finiteNumber(options.directionY, point.unitY);
+    const tone = options.tone === "reference" ? "reference" : options.tone === "derived"
+      ? "derived"
+      : point.tone;
+    const reference = tone === "reference";
+    const labelText = textOr(options.label, point.label);
+
+    setAttributes(slot.group, {
+      class:
+        `vt-identity-${slot.mode}-point vt-identity-point ` +
+        `vt-identity-point-${tone}`,
+      visibility: "visible",
+      "data-role": point.role,
+      "data-tone": tone,
+      "data-angle": svgCoordinate(point.angle),
+      "data-normalized-angle": svgCoordinate(point.normalizedAngle),
+      "data-point-x": svgCoordinate(point.pointX),
+      "data-point-y": svgCoordinate(point.pointY),
+      "data-rendered-point-x": svgCoordinate(directionX),
+      "data-rendered-point-y": svgCoordinate(directionY),
+      "data-label": point.label,
+      "data-synthetic": point.synthetic ? "true" : "false",
+    });
+    setLine(slot.ray, CENTER, CENTER, screenX, screenY);
+    setAttributes(slot.ray, {
+      stroke: reference ? COLORS.reference : COLORS.derived,
+      "stroke-width": reference ? 1.65 : 2.75,
+      "stroke-dasharray": reference ? "7 6" : null,
+      opacity: reference ? 0.72 : 0.86,
+    });
+    setAttributes(slot.ring, {
+      cx: svgCoordinate(screenX),
+      cy: svgCoordinate(screenY),
+      r: reference ? 10.5 : 13,
+      stroke: reference ? COLORS.reference : COLORS.derived,
+      "stroke-width": reference ? 1.4 : 1.9,
+      "stroke-dasharray": reference ? "3 3" : null,
+      opacity: reference ? 0.72 : 0.76,
+    });
+    setAttributes(slot.marker, {
+      cx: svgCoordinate(screenX),
+      cy: svgCoordinate(screenY),
+      r: reference ? 6 : 7.5,
+      fill: reference ? COLORS.reference : COLORS.derived,
+      opacity: reference ? 0.82 : 0.95,
+    });
+    positionIdentityLabel(
+      slot.label,
+      directionX,
+      directionY,
+      finiteNumber(options.labelRadius, UNIT_RADIUS + (reference ? 21 : 27)),
+      finiteNumber(options.tangentOffset, 0),
+    );
+    setAttributes(slot.label, {
+      fill: reference ? COLORS.reference : COLORS.derived,
+      opacity: reference ? 0.92 : 1,
+    });
+    slot.label.textContent = labelText;
+  }
+
+  function identityPointMatches(point, tokens) {
+    const searchable = `${point.role} ${point.label}`.toLowerCase();
+    return tokens.some((token) => searchable.includes(token));
+  }
+
+  function takeIdentityPoint(points, used, tokens = [], tone = null) {
+    const available = points.filter((point) => !used.has(point) && (!tone || point.tone === tone));
+    const point = tokens.length
+      ? available.find((candidate) => identityPointMatches(candidate, tokens))
+      : available[0];
+
+    if (point) {
+      used.add(point);
+    }
+    return point ?? null;
+  }
+
+  function renderRemainingIdentityPoints(slots, startIndex, points, used) {
+    let slotIndex = startIndex;
+    for (const point of points) {
+      if (used.has(point) || slotIndex >= slots.length) {
+        continue;
+      }
+      used.add(point);
+      renderIdentityPointSlot(slots[slotIndex], point, {
+        tangentOffset: (slotIndex - startIndex) * 9,
+      });
+      slotIndex += 1;
+    }
+  }
+
+  function renderNormIdentity(identity, geometry) {
+    const { origin, unitPoint, projectionFoot } = geometry;
+    const horizontalLength = Math.abs(projectionFoot.x - origin.x);
+    const verticalLength = Math.abs(unitPoint.y - projectionFoot.y);
+    const horizontalOutwardY = Math.abs(unitPoint.y - origin.y) < 1e-6
+      ? 1
+      : unitPoint.y < origin.y
+        ? 1
+        : -1;
+    const verticalOutwardX = Math.abs(projectionFoot.x - origin.x) < 1e-6
+      ? 1
+      : projectionFoot.x > origin.x
+        ? 1
+        : -1;
+    const horizontalOffset = horizontalOutwardY * horizontalLength;
+    const verticalOffset = verticalOutwardX * verticalLength;
+
+    identityNormTriangle.setAttribute(
+      "d",
+      [
+        `M ${svgCoordinate(origin.x)} ${svgCoordinate(origin.y)}`,
+        `L ${svgCoordinate(projectionFoot.x)} ${svgCoordinate(projectionFoot.y)}`,
+        `L ${svgCoordinate(unitPoint.x)} ${svgCoordinate(unitPoint.y)}`,
+        "Z",
+      ].join(" "),
+    );
+    setLine(identityNormHypotenuse, origin.x, origin.y, unitPoint.x, unitPoint.y);
+
+    setAttributes(identityNormHorizontalSquare, {
+      points: polygonPoints([
+        origin,
+        projectionFoot,
+        { x: projectionFoot.x, y: projectionFoot.y + horizontalOffset },
+        { x: origin.x, y: origin.y + horizontalOffset },
+      ]),
+      visibility: horizontalLength > 1 ? "visible" : "hidden",
+      "data-leg": "cosine",
+      "data-side-length": svgCoordinate(horizontalLength / UNIT_RADIUS),
+    });
+    setAttributes(identityNormVerticalSquare, {
+      points: polygonPoints([
+        projectionFoot,
+        unitPoint,
+        { x: unitPoint.x + verticalOffset, y: unitPoint.y },
+        { x: projectionFoot.x + verticalOffset, y: projectionFoot.y },
+      ]),
+      visibility: verticalLength > 1 ? "visible" : "hidden",
+      "data-leg": "sine",
+      "data-side-length": svgCoordinate(verticalLength / UNIT_RADIUS),
+    });
+
+    setAttributes(identityNormCosineLabel, {
+      x: svgCoordinate((origin.x + projectionFoot.x) / 2),
+      y: svgCoordinate(origin.y + horizontalOutwardY * (horizontalLength + 20)),
+      visibility: horizontalLength >= 22 ? "visible" : "hidden",
+      "data-expression": "cos^2(theta)",
+      "data-value": svgCoordinate(
+        finiteNumber(identity.values?.cosTheta, geometry.cosine) ** 2,
+      ),
+    });
+    setAttributes(identityNormSineLabel, {
+      x: svgCoordinate(projectionFoot.x + verticalOutwardX * (verticalLength + 20)),
+      y: svgCoordinate((projectionFoot.y + unitPoint.y) / 2),
+      visibility: verticalLength >= 22 ? "visible" : "hidden",
+      "data-expression": "sin^2(theta)",
+      "data-value": svgCoordinate(
+        finiteNumber(identity.values?.sinTheta, geometry.sine) ** 2,
+      ),
+    });
+
+    const modulusPosition = outsideSegmentLabel(origin, unitPoint, projectionFoot, 0.36, 29);
+    setAttributes(identityNormModulusLabel, {
+      x: svgCoordinate(modulusPosition.x),
+      y: svgCoordinate(modulusPosition.y),
+      visibility: "visible",
+      "data-expression": "abs(u)=1",
+      "data-value": svgCoordinate(finiteNumber(identity.values?.unitNorm, 1)),
+    });
+    setAttributes(identityNorm, {
+      "data-horizontal-leg": svgCoordinate(horizontalLength / UNIT_RADIUS),
+      "data-vertical-leg": svgCoordinate(verticalLength / UNIT_RADIUS),
+      "data-construction": jsonAttribute(identity.construction),
+    });
+  }
+
+  function renderAdditionIdentity(identity, points, geometry) {
+    hideIdentityPointSlots(identityAdditionPointSlots);
+    const used = new Set();
+    const parameters = identity.parameters && typeof identity.parameters === "object"
+      ? identity.parameters
+      : {};
+    const construction = identity.construction && typeof identity.construction === "object"
+      ? identity.construction
+      : {};
+    const rotation = construction.rotation && typeof construction.rotation === "object"
+      ? construction.rotation
+      : construction;
+    const arc = construction.arc && typeof construction.arc === "object"
+      ? construction.arc
+      : {};
+
+    let alphaPoint = takeIdentityPoint(points, used, ["alpha", "α"], "reference");
+    alphaPoint ??= takeIdentityPoint(points, used, [], "reference");
+    let betaPoint = takeIdentityPoint(points, used, ["beta", "β"], "reference");
+    betaPoint ??= takeIdentityPoint(points, used, [], "reference");
+    let resultPoint = takeIdentityPoint(
+      points,
+      used,
+      ["sum", "result", "product", "alpha+beta", "α+β", "derived"],
+      "derived",
+    );
+    resultPoint ??= takeIdentityPoint(points, used, [], "derived");
+
+    const alphaFallback = firstFiniteNumber(
+      parameters.alpha,
+      alphaPoint?.angle,
+      geometry.unwrappedTheta,
+    );
+    const betaFallback = firstFiniteNumber(parameters.beta, betaPoint?.angle, 0);
+    alphaPoint ??= syntheticIdentityPoint("alpha", alphaFallback, "α", "reference");
+    betaPoint ??= syntheticIdentityPoint("beta", betaFallback, "β", "reference");
+    resultPoint ??= syntheticIdentityPoint(
+      "sum",
+      geometry.unwrappedTheta,
+      "α+β",
+      "derived",
+      { x: geometry.unitX, y: geometry.unitY },
+    );
+
+    renderIdentityPointSlot(identityAdditionPointSlots[0], alphaPoint, {
+      tone: "reference",
+      label: "α",
+      tangentOffset: -8,
+    });
+    renderIdentityPointSlot(identityAdditionPointSlots[1], betaPoint, {
+      tone: "reference",
+      label: "β",
+      tangentOffset: 8,
+    });
+    renderIdentityPointSlot(identityAdditionPointSlots[2], resultPoint, {
+      tone: "derived",
+      label: "α+β",
+      screenX: geometry.unitPoint.x,
+      screenY: geometry.unitPoint.y,
+      directionX: geometry.unitX,
+      directionY: geometry.unitY,
+      labelRadius: UNIT_RADIUS + 31,
+    });
+    renderRemainingIdentityPoints(identityAdditionPointSlots, 3, points, used);
+
+    const startAngle = firstFiniteNumber(
+      rotation.startAngle,
+      rotation.fromAngle,
+      arc.startAngle,
+      construction.startAngle,
+      parameters.alpha,
+      alphaPoint.angle,
+    );
+    const deltaAngle = firstFiniteNumber(
+      rotation.deltaAngle,
+      rotation.byAngle,
+      arc.deltaAngle,
+      arc.sweepAngle,
+      construction.deltaAngle,
+      parameters.beta,
+      betaPoint.angle,
+      construction.rotationAngle,
+      rotation.angle,
+    );
+    const boundedDelta = arcAngle(deltaAngle);
+    const arcPath = identityArcPath(startAngle, deltaAngle, 86);
+    setAttributes(identityAdditionArc, {
+      d: arcPath,
+      visibility: arcPath ? "visible" : "hidden",
+      "data-start-angle": svgCoordinate(startAngle),
+      "data-delta-angle": svgCoordinate(deltaAngle),
+      "data-end-angle": svgCoordinate(startAngle + deltaAngle),
+    });
+    const arcLabelAngle = startAngle + boundedDelta / 2;
+    setAttributes(identityAdditionArcLabel, {
+      x: svgCoordinate(CENTER + 105 * Math.cos(arcLabelAngle)),
+      y: svgCoordinate(CENTER - 105 * Math.sin(arcLabelAngle)),
+      visibility: arcPath && Math.abs(boundedDelta) > 0.12 ? "visible" : "hidden",
+    });
+    setAttributes(identityAddition, {
+      "data-alpha": svgCoordinate(alphaFallback),
+      "data-beta": svgCoordinate(betaFallback),
+      "data-result-angle": svgCoordinate(
+        firstFiniteNumber(construction.resultAngle, resultPoint.angle),
+      ),
+      "data-result-aligned-with-primary": "true",
+      "data-construction": jsonAttribute(identity.construction),
+    });
+  }
+
+  function renderPowersIdentity(identity, points, geometry) {
+    hideIdentityPointSlots(identityPowersPointSlots);
+    const used = new Set();
+    const parameters = identity.parameters && typeof identity.parameters === "object"
+      ? identity.parameters
+      : {};
+    const construction = identity.construction && typeof identity.construction === "object"
+      ? identity.construction
+      : {};
+    const rawPower = firstFiniteNumber(
+      parameters.power,
+      construction.power,
+      construction.exponent,
+      2,
+    );
+    const power = Math.trunc(rawPower);
+    const requestedSteps = Math.abs(power);
+    let powerPoint = takeIdentityPoint(
+      points,
+      used,
+      ["power", "result", "u^", "uⁿ", "derived"],
+      "derived",
+    );
+    powerPoint ??= takeIdentityPoint(points, used, [], "derived");
+    powerPoint ??= syntheticIdentityPoint(
+      "power",
+      power * geometry.unwrappedTheta,
+      "uⁿ",
+      "derived",
+    );
+
+    renderIdentityPointSlot(identityPowersPointSlots[0], powerPoint, {
+      tone: "derived",
+      label: "uⁿ",
+      labelRadius: UNIT_RADIUS + 28,
+    });
+    renderRemainingIdentityPoints(identityPowersPointSlots, 1, points, used);
+
+    const configuredStep = firstFiniteNumber(
+      construction.stepAngle,
+      construction.factorAngle,
+      construction.baseAngle,
+    );
+    const inferredStep = requestedSteps > 0
+      ? powerPoint.angle / requestedSteps
+      : geometry.unwrappedTheta;
+    const stepAngle = Number.isFinite(configuredStep) ? configuredStep : inferredStep;
+    const totalAdvance = firstFiniteNumber(
+      construction.totalAngle,
+      construction.resultAngle,
+      powerPoint.angle,
+      power * geometry.unwrappedTheta,
+    );
+    const renderedSteps = Math.min(requestedSteps, MAX_POWER_TRAIL_STEPS);
+
+    for (let index = 0; index < MAX_POWER_TRAIL_STEPS; index += 1) {
+      const segment = identityPowersTrailSegments[index];
+      const tick = identityPowersTicks[index];
+      const visible = index < renderedSteps;
+      if (!visible) {
+        setAttributes(segment, { d: "", visibility: "hidden", "marker-end": null });
+        setAttributes(tick, { visibility: "hidden" });
+        continue;
+      }
+
+      const segmentStart = index * stepAngle;
+      const segmentRadius = 57 + index * 6;
+      const segmentPath = identityArcPath(segmentStart, stepAngle, segmentRadius);
+      const finalStep = index === renderedSteps - 1;
+      setAttributes(segment, {
+        d: segmentPath,
+        visibility: segmentPath ? "visible" : "hidden",
+        stroke: finalStep ? COLORS.derived : COLORS.identityAngle,
+        "stroke-width": finalStep ? 2.8 : 2.1,
+        opacity: finalStep ? 0.82 : Math.min(0.84, 0.68 + index * 0.04),
+        "marker-end": finalStep && segmentPath ? `url(#${identityArrowId})` : null,
+        "data-start-angle": svgCoordinate(segmentStart),
+        "data-delta-angle": svgCoordinate(stepAngle),
+      });
+
+      const tickAngle = (index + 1) * stepAngle;
+      const innerRadius = UNIT_RADIUS - 6;
+      const outerRadius = UNIT_RADIUS + (finalStep ? 10 : 6);
+      setLine(
+        tick,
+        CENTER + innerRadius * Math.cos(tickAngle),
+        CENTER - innerRadius * Math.sin(tickAngle),
+        CENTER + outerRadius * Math.cos(tickAngle),
+        CENTER - outerRadius * Math.sin(tickAngle),
+      );
+      setAttributes(tick, {
+        visibility: "visible",
+        stroke: finalStep ? COLORS.derived : COLORS.reference,
+        "stroke-width": finalStep ? 3.25 : 1.75,
+        opacity: finalStep ? 0.9 : 0.68,
+        "data-angle": svgCoordinate(tickAngle),
+      });
+    }
+
+    const boundedTotal = arcAngle(totalAdvance);
+    const trailLabelAngle = boundedTotal / 2;
+    setAttributes(identityPowersAngleLabel, {
+      x: svgCoordinate(CENTER + 112 * Math.cos(trailLabelAngle)),
+      y: svgCoordinate(CENTER - 112 * Math.sin(trailLabelAngle)),
+      visibility: power === 0 ? "hidden" : "visible",
+      "data-angle": svgCoordinate(totalAdvance),
+    });
+    setAttributes(identityPowersTrail, {
+      "data-power": power,
+      "data-requested-steps": requestedSteps,
+      "data-rendered-steps": renderedSteps,
+      "data-truncated": requestedSteps > renderedSteps ? "true" : "false",
+      "data-wrap-count": Math.floor((Math.abs(totalAdvance) + 1e-10) / TAU),
+      "data-total-advance": svgCoordinate(totalAdvance),
+      "data-step-angle": svgCoordinate(stepAngle),
+    });
+    setAttributes(identityPowers, {
+      "data-power": power,
+      "data-base-angle": svgCoordinate(stepAngle),
+      "data-result-angle": svgCoordinate(totalAdvance),
+      "data-construction": jsonAttribute(identity.construction),
+    });
+  }
+
+  function renderConjugateIdentity(identity, points, geometry) {
+    hideIdentityPointSlots(identityConjugatePointSlots);
+    const used = new Set();
+    let conjugatePoint = takeIdentityPoint(
+      points,
+      used,
+      ["conjugate", "reflection", "reflected", "mirror", "derived"],
+      "derived",
+    );
+    conjugatePoint ??= takeIdentityPoint(points, used, [], "derived");
+    conjugatePoint ??= syntheticIdentityPoint(
+      "conjugate",
+      -geometry.unwrappedTheta,
+      "ū = e⁻ⁱᶿ",
+      "derived",
+      { x: geometry.unitX, y: -geometry.unitY },
+    );
+
+    renderIdentityPointSlot(identityConjugatePointSlots[0], conjugatePoint, {
+      tone: "derived",
+      label: "ū = e⁻ⁱᶿ",
+      labelRadius: UNIT_RADIUS + 30,
+    });
+    renderRemainingIdentityPoints(identityConjugatePointSlots, 1, points, used);
+
+    const reflectedPoint = identityPointScreen(conjugatePoint);
+    const reflectionFoot = {
+      x: (geometry.unitPoint.x + reflectedPoint.x) / 2,
+      y: CENTER,
+    };
+    setLine(
+      identityConjugateConnector,
+      geometry.unitPoint.x,
+      geometry.unitPoint.y,
+      reflectedPoint.x,
+      reflectedPoint.y,
+    );
+
+    const connectorLength = Math.hypot(
+      reflectedPoint.x - geometry.unitPoint.x,
+      reflectedPoint.y - geometry.unitPoint.y,
+    );
+    const connectorDirection = unitVector(geometry.unitPoint, reflectedPoint);
+    const tickNormal = { x: -connectorDirection.y, y: connectorDirection.x };
+    const tickCenters = [
+      midpoint(geometry.unitPoint, reflectionFoot),
+      midpoint(reflectionFoot, reflectedPoint),
+    ];
+    for (let index = 0; index < identityConjugateEqualTicks.length; index += 1) {
+      const tick = identityConjugateEqualTicks[index];
+      const center = tickCenters[index];
+      setLine(
+        tick,
+        center.x - tickNormal.x * 5,
+        center.y - tickNormal.y * 5,
+        center.x + tickNormal.x * 5,
+        center.y + tickNormal.y * 5,
+      );
+      tick.setAttribute("visibility", connectorLength > 8 ? "visible" : "hidden");
+    }
+
+    identityConjugateAxisCue.setAttribute(
+      "d",
+      [
+        `M ${svgCoordinate(reflectionFoot.x - 5)} ${svgCoordinate(reflectionFoot.y - 12)}`,
+        `L ${svgCoordinate(reflectionFoot.x)} ${svgCoordinate(reflectionFoot.y - 5)}`,
+        `L ${svgCoordinate(reflectionFoot.x + 5)} ${svgCoordinate(reflectionFoot.y - 12)}`,
+        `M ${svgCoordinate(reflectionFoot.x - 5)} ${svgCoordinate(reflectionFoot.y + 12)}`,
+        `L ${svgCoordinate(reflectionFoot.x)} ${svgCoordinate(reflectionFoot.y + 5)}`,
+        `L ${svgCoordinate(reflectionFoot.x + 5)} ${svgCoordinate(reflectionFoot.y + 12)}`,
+      ].join(" "),
+    );
+    setAttributes(identityConjugate, {
+      "data-reflection-axis": "real",
+      "data-source-angle": svgCoordinate(
+        firstFiniteNumber(identity.construction?.sourceAngle, geometry.unwrappedTheta),
+      ),
+      "data-result-angle": svgCoordinate(
+        firstFiniteNumber(identity.construction?.resultAngle, conjugatePoint.angle),
+      ),
+      "data-reflection-foot-x": svgCoordinate(reflectionFoot.x),
+      "data-base-distance": svgCoordinate(
+        Math.hypot(
+          geometry.unitPoint.x - reflectionFoot.x,
+          geometry.unitPoint.y - reflectionFoot.y,
+        ) / UNIT_RADIUS,
+      ),
+      "data-derived-distance": svgCoordinate(
+        Math.hypot(reflectedPoint.x - reflectionFoot.x, reflectedPoint.y - reflectionFoot.y) /
+          UNIT_RADIUS,
+      ),
+      "data-construction": jsonAttribute(identity.construction),
+    });
+  }
+
+  function renderQuarterTurnIdentity(identity, points, geometry) {
+    hideIdentityPointSlots(identityQuarterTurnPointSlots);
+    const used = new Set();
+    let quarterTurnPoint = takeIdentityPoint(
+      points,
+      used,
+      ["quarter", "rotated", "i-times", "product", "result", "derived"],
+      "derived",
+    );
+    quarterTurnPoint ??= takeIdentityPoint(points, used, [], "derived");
+    quarterTurnPoint ??= syntheticIdentityPoint(
+      "quarter-turn",
+      geometry.unwrappedTheta + Math.PI / 2,
+      "iu",
+      "derived",
+      { x: -geometry.unitY, y: geometry.unitX },
+    );
+
+    renderIdentityPointSlot(identityQuarterTurnPointSlots[0], quarterTurnPoint, {
+      tone: "derived",
+      label: "iu",
+      labelRadius: UNIT_RADIUS + 28,
+    });
+    renderRemainingIdentityPoints(identityQuarterTurnPointSlots, 1, points, used);
+
+    const construction = identity.construction && typeof identity.construction === "object"
+      ? identity.construction
+      : {};
+    const baseAngle = firstFiniteNumber(
+      construction.startAngle,
+      Math.atan2(geometry.unitY, geometry.unitX),
+    );
+    const quarterTurn = firstFiniteNumber(
+      construction.rotationAngle,
+      identity.values?.phaseShift,
+      Math.PI / 2,
+    );
+    const arcPath = identityArcPath(baseAngle, quarterTurn, 84);
+    setAttributes(identityQuarterTurnArc, {
+      d: arcPath,
+      visibility: arcPath ? "visible" : "hidden",
+      "data-start-angle": svgCoordinate(baseAngle),
+      "data-delta-angle": svgCoordinate(quarterTurn),
+      "data-end-angle": svgCoordinate(baseAngle + quarterTurn),
+    });
+    const arcLabelAngle = baseAngle + quarterTurn / 2;
+    setAttributes(identityQuarterTurnArcLabel, {
+      x: svgCoordinate(CENTER + 106 * Math.cos(arcLabelAngle)),
+      y: svgCoordinate(CENTER - 106 * Math.sin(arcLabelAngle)),
+      visibility: "visible",
+    });
+    const derivedScreenPoint = identityPointScreen(quarterTurnPoint);
+    identityQuarterTurnRightAngle.setAttribute(
+      "d",
+      rightAnglePathAt(geometry.origin, geometry.unitPoint, derivedScreenPoint, 18),
+    );
+    setAttributes(identityQuarterTurn, {
+      "data-quarter-turn": svgCoordinate(quarterTurn),
+      "data-result-angle": svgCoordinate(
+        firstFiniteNumber(construction.resultAngle, quarterTurnPoint.angle),
+      ),
+      "data-direction": textOr(construction.direction, "counterclockwise"),
+      "data-construction": jsonAttribute(identity.construction),
+    });
+  }
+
+  function renderIdentityOverlay(identity, geometry) {
+    const source = identity && typeof identity === "object" ? identity : null;
+    const mode = source && IDENTITY_MODES.includes(source.mode) ? source.mode : null;
+    const active = mode !== null;
+    const points = source && Array.isArray(source.derivedPoints)
+      ? source.derivedPoints
+          .map((point, index) => normalizeIdentityPoint(point, index))
+          .filter(Boolean)
+      : [];
+    const pointSummaries = points.map(identityPointSummary);
+    const pointsAttribute = jsonAttribute(pointSummaries);
+    const titleText = active ? textOr(source.title, mode) : "";
+    const geometryText = active ? textOr(source.geometryText, "") : "";
+    const basePoint = source?.base?.point;
+    const basePointAttribute = basePoint && typeof basePoint === "object"
+      ? jsonAttribute({
+          x: finiteNumber(basePoint.x, 0),
+          y: finiteNumber(basePoint.y, 0),
+        })
+      : null;
+
+    for (const [groupMode, group] of Object.entries(identityModeGroups)) {
+      const modeActive = active && groupMode === mode;
+      setAttributes(group, {
+        display: modeActive ? "inline" : "none",
+        visibility: modeActive ? "visible" : "hidden",
+        "data-active": modeActive ? "true" : "false",
+        "data-derived-count": modeActive ? points.length : null,
+        "data-derived-points": modeActive ? pointsAttribute : null,
+      });
+    }
+
+    setAttributes(identityOverlay, {
+      class: active
+        ? `vt-identity-overlay vt-identity-overlay-${mode}`
+        : "vt-identity-overlay",
+      display: active ? "inline" : "none",
+      visibility: active ? "visible" : "hidden",
+      "data-active": active ? "true" : "false",
+      "data-identity-active": active ? "true" : "false",
+      "data-active-identity": mode,
+      "data-mode": mode,
+      "data-identity-mode": mode,
+      "data-title": active ? titleText : null,
+      "data-geometry-text": active ? geometryText : null,
+      "data-base-point": basePointAttribute,
+      "data-derived-count": active ? points.length : 0,
+      "data-derived-points": active ? pointsAttribute : null,
+      "data-construction": active ? jsonAttribute(source.construction) : null,
+      "data-parameters": active ? jsonAttribute(source.parameters) : null,
+      "data-values": active ? jsonAttribute(source.values) : null,
+      "data-checks": active ? jsonAttribute(source.checks) : null,
+    });
+
+    if (active) {
+      if (mode === "norm") {
+        renderNormIdentity(source, geometry);
+      } else if (mode === "addition") {
+        renderAdditionIdentity(source, points, geometry);
+      } else if (mode === "powers") {
+        renderPowersIdentity(source, points, geometry);
+      } else if (mode === "conjugate") {
+        renderConjugateIdentity(source, points, geometry);
+      } else if (mode === "quarter-turn") {
+        renderQuarterTurnIdentity(source, points, geometry);
+      }
+    }
+
+    const identityPointDescription = points.length
+      ? ` Identity derived points: ${points
+          .map(
+            (point) =>
+              `${point.label} (${formatNumber(point.pointX, 3, false)}, ` +
+              `${formatNumber(point.pointY, 3, false)})`,
+          )
+          .join("; ")}.`
+      : "";
+    const identityDescription = active
+      ? ` Identity lens ${titleText} (${mode}).` +
+        `${geometryText ? ` ${geometryText.replace(/[.!?]+$/, "")}.` : ""}` +
+        identityPointDescription
+      : "";
+
+    return {
+      active,
+      mode,
+      title: titleText,
+      geometryText,
+      derivedCount: points.length,
+      derivedPointsAttribute: pointsAttribute,
+      description: identityDescription,
+    };
+  }
+
   function render(model, options = {}) {
     if (destroyed) {
       return;
@@ -1362,6 +2530,10 @@ export function createCircleView(container, callbacks = {}) {
       data.exactAngle && typeof data.exactAngle === "object" ? data.exactAngle : null;
     const snapEnabled = renderOptions.snapEnabled === true;
     const theta = finiteNumber(data.normalizedTheta, 0);
+    const unwrappedTheta = finiteNumber(
+      data.theta,
+      finiteNumber(data.unwrappedTheta, theta),
+    );
     const currentPrincipalAngle = finiteNumber(data.displayTheta, principalAngle(theta));
     const cosine = clamp(finiteNumber(data.cosTheta, Math.cos(theta)), -1, 1);
     const sine = clamp(finiteNumber(data.sinTheta, Math.sin(theta)), -1, 1);
@@ -1429,13 +2601,19 @@ export function createCircleView(container, callbacks = {}) {
       rightAngle.setAttribute("visibility", "hidden");
     }
 
-    renderExactConstruction(exactAngle, {
+    const circleGeometry = {
       origin: { x: CENTER, y: CENTER },
       unitPoint: { x: unitScreenX, y: unitScreenY },
       projectionFoot: { x: projectionScreenX, y: CENTER },
+      theta,
+      unwrappedTheta,
+      unitX,
+      unitY,
       cosine,
       sine,
-    });
+    };
+    const identityMetadata = renderIdentityOverlay(data.identity, circleGeometry);
+    renderExactConstruction(exactAngle, circleGeometry);
 
     const displayedArcAngle = arcAngle(theta);
     const arcPath = angleArcPath(displayedArcAngle);
@@ -1555,6 +2733,9 @@ export function createCircleView(container, callbacks = {}) {
     const exactValueText = exactAngle
       ? `; active exact angle ${exactAnglePlain}; construction: ${exactConstructionTitle}`
       : "";
+    const identityValueText = identityMetadata.active
+      ? `; identity lens ${identityMetadata.title}`
+      : "";
 
     setAttributes(unitHandle, {
       "aria-valuemin": -Math.PI,
@@ -1562,8 +2743,10 @@ export function createCircleView(container, callbacks = {}) {
       "aria-valuenow": currentPrincipalAngle,
       "aria-valuetext":
         `${accessibleAngle}; cos theta ${accessibleCosine}; sin theta ${accessibleSine}` +
-        exactValueText,
+        exactValueText +
+        identityValueText,
       "data-exact-angle": exactAnglePlain,
+      "data-identity-mode": identityMetadata.mode,
     });
 
     const polarDescription = showPolarPoint
@@ -1589,7 +2772,8 @@ export function createCircleView(container, callbacks = {}) {
       : "";
     description.textContent =
       `Complex plane and unit circle. Angle ${accessibleAngle}. ` +
-      `The unit point u is (${cosineText}, ${sineText}).${exactDescription}${polarDescription} ` +
+      `The unit point u is (${cosineText}, ${sineText}).` +
+      `${exactDescription}${identityMetadata.description}${polarDescription} ` +
       "Drag u around the circle; with u focused, use arrow keys, Home, or Space.";
 
     setAttributes(svg, {
@@ -1598,6 +2782,16 @@ export function createCircleView(container, callbacks = {}) {
       "data-exact-angle": exactAnglePlain,
       "data-exact-angle-degrees": exactAngle?.angle?.degrees ?? null,
       "data-exact-construction": exactConstructionType || null,
+      "data-identity-active": identityMetadata.active ? "true" : "false",
+      "data-identity": identityMetadata.mode,
+      "data-active-identity": identityMetadata.mode,
+      "data-identity-mode": identityMetadata.mode,
+      "data-identity-title": identityMetadata.active ? identityMetadata.title : null,
+      "data-identity-geometry": identityMetadata.active ? identityMetadata.geometryText : null,
+      "data-identity-derived-count": identityMetadata.derivedCount,
+      "data-identity-derived-points": identityMetadata.active
+        ? identityMetadata.derivedPointsAttribute
+        : null,
     });
     lastRenderedPrincipalAngle = currentPrincipalAngle;
   }

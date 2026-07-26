@@ -1,4 +1,5 @@
 import { recognizeExactAngle } from "./exact-values.js";
+import { computeIdentityModel } from "./identity-model.js";
 
 export const TAU = 2 * Math.PI;
 
@@ -158,6 +159,14 @@ export function computeTrigModel(state) {
   const polarRadiusResidual = cleanZero(Math.hypot(polarPoint.x, polarPoint.y) - radius);
   const revolutions = completedRevolutions(unwrappedTheta);
   const exactAngle = recognizeExactAngle(unwrappedTheta);
+  const identity = computeIdentityModel({
+    mode: source.identityMode,
+    theta: unwrappedTheta,
+    radius,
+    alpha: source.alpha,
+    beta: source.beta,
+    power: source.power
+  });
 
   return deepFreeze({
     theta: unwrappedTheta,
@@ -173,6 +182,8 @@ export function computeTrigModel(state) {
     exactAngle,
     exactCos: exactAngle?.cos ?? null,
     exactSin: exactAngle?.sin ?? null,
+    identity,
+    identityConstruction: identity,
     degrees: unwrappedTheta * (180 / Math.PI),
     unitPoint,
     polarPoint,

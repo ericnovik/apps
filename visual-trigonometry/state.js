@@ -2,6 +2,15 @@ import { normalizeAngle, TAU, unwrapAngle } from "./model.js";
 
 export const BASE_ANGULAR_SPEED = TAU / 8;
 
+const IDENTITY_MODE_IDS = new Set([
+  "coordinates",
+  "norm",
+  "addition",
+  "powers",
+  "conjugate",
+  "quarter-turn"
+]);
+
 function finiteOr(value, fallback) {
   return Number.isFinite(value) ? value : fallback;
 }
@@ -15,6 +24,10 @@ export function createState({ reducedMotion = false } = {}) {
     direction: 1,
     angleUnit: "radians",
     snapToExactAngles: false,
+    identityMode: "coordinates",
+    alpha: Math.PI / 6,
+    beta: Math.PI / 12,
+    power: 2,
     plotEndpoint: null,
     principalEndpoint: null,
     dragging: false,
@@ -22,6 +35,20 @@ export function createState({ reducedMotion = false } = {}) {
     reducedMotion: Boolean(reducedMotion),
     revision: 0
   };
+}
+
+function syncAdditionComponents(state) {
+  if (state.identityMode !== "addition") return;
+  state.beta = unwrapAngle(state.beta, state.unwrappedTheta - state.alpha);
+}
+
+function syncAdditionResult(state) {
+  state.unwrappedTheta = unwrapAngle(
+    state.unwrappedTheta,
+    state.alpha + state.beta
+  );
+  state.plotEndpoint = null;
+  state.principalEndpoint = null;
 }
 
 export function setPrincipalAngle(state, nextAngle) {
@@ -33,6 +60,7 @@ export function setPrincipalAngle(state, nextAngle) {
     : Math.abs(nextAngle + Math.PI) <= 1e-10
       ? "negative"
       : null;
+  syncAdditionComponents(state);
   state.revision += 1;
 }
 
@@ -45,6 +73,7 @@ export function setWaveAngle(state, phaseAngle) {
   state.unwrappedTheta = cycleStart + phase;
   state.plotEndpoint = phase === TAU ? "end" : null;
   state.principalEndpoint = Math.abs(phase - Math.PI) <= 1e-10 ? "positive" : null;
+  syncAdditionComponents(state);
   state.revision += 1;
 }
 
@@ -66,6 +95,7 @@ export function selectExactAngle(state, angle) {
     state.principalEndpoint = Math.abs(angle - Math.PI) <= 1e-10 ? "positive" : null;
   }
 
+  syncAdditionComponents(state);
   state.revision += 1;
 }
 
@@ -74,6 +104,7 @@ export function stepAngle(state, delta) {
   state.unwrappedTheta += delta;
   state.plotEndpoint = null;
   state.principalEndpoint = null;
+  syncAdditionComponents(state);
   state.revision += 1;
 }
 
@@ -81,6 +112,7 @@ export function homeAngle(state) {
   state.unwrappedTheta = unwrapAngle(state.unwrappedTheta, 0);
   state.plotEndpoint = null;
   state.principalEndpoint = null;
+  syncAdditionComponents(state);
   state.revision += 1;
 }
 
@@ -116,6 +148,32 @@ export function setSnapToExactAngles(state, enabled) {
   state.revision += 1;
 }
 
+export function setIdentityMode(state, mode) {
+  state.identityMode = IDENTITY_MODE_IDS.has(mode) ? mode : "coordinates";
+  syncAdditionComponents(state);
+  state.revision += 1;
+}
+
+export function setIdentityAlpha(state, alpha) {
+  if (!Number.isFinite(alpha)) return;
+  state.alpha = alpha;
+  if (state.identityMode === "addition") syncAdditionResult(state);
+  state.revision += 1;
+}
+
+export function setIdentityBeta(state, beta) {
+  if (!Number.isFinite(beta)) return;
+  state.beta = beta;
+  if (state.identityMode === "addition") syncAdditionResult(state);
+  state.revision += 1;
+}
+
+export function setIdentityPower(state, power) {
+  if (!Number.isFinite(power)) return;
+  state.power = Math.min(6, Math.max(2, Math.round(power)));
+  state.revision += 1;
+}
+
 export function beginAngleInteraction(state) {
   if (state.dragging) return;
   state.resumeAfterDrag = state.playing;
@@ -141,6 +199,7 @@ export function advanceAnimation(state, elapsedSeconds) {
   state.unwrappedTheta += state.direction * BASE_ANGULAR_SPEED * state.speedMultiplier * boundedElapsed;
   state.plotEndpoint = null;
   state.principalEndpoint = null;
+  syncAdditionComponents(state);
   state.revision += 1;
   return true;
 }
