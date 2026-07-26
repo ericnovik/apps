@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3eee5">
+    <meta
+      name="description"
+      content="A synchronized visual instrument connecting the unit circle, sine and cosine waves, coordinates, and complex numbers."
+    >
+    <title>Visual Trigonometry</title>
+    <link rel="icon" href="data:,">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+    >
+    <link rel="stylesheet" href="visual-trigonometry.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#visualStage">Skip to the synchronized views</a>
+
+    <div class="instrument-shell">
+      <header class="toolbar" aria-label="Visual Trigonometry controls">
+        <div class="brand-lockup">
+          <span class="brand-rule" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">Synchronized instrument</p>
+            <h1>Visual Trigonometry</h1>
+          </div>
+        </div>
+
+        <div class="toolbar-controls">
+          <div class="playback-controls" role="group" aria-label="Playback controls">
+            <button
+              class="button button--primary"
+              id="playButton"
+              type="button"
+              aria-label="Play rotation"
+              aria-keyshortcuts="Space"
+              aria-controls="circleView cosineView sineView"
+            >
+              <span class="button-icon" aria-hidden="true">▶</span>
+              <span>Play</span>
+            </button>
+            <button
+              class="button button--quiet direction-button"
+              id="directionButton"
+              type="button"
+              aria-label="Direction: counterclockwise"
+              aria-pressed="false"
+              title="Change rotation direction"
+            >
+              <span class="button-icon direction-glyph" aria-hidden="true">↺</span>
+              <span>CCW</span>
+            </button>
+          </div>
+
+          <label class="control-field speed-control" for="speedSelect">
+            <span class="control-label">Speed</span>
+            <select id="speedSelect" name="speed">
+              <option value="0.25">¼×</option>
+              <option value="0.5">½×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+            </select>
+          </label>
+
+          <div class="control-field range-control angle-control">
+            <label class="control-label" id="angleControlLabel" for="angleRange">
+              Angle <span class="math-symbol">θ</span>
+            </label>
+            <div class="range-input-pair">
+              <input
+                id="angleRange"
+                name="angleRange"
+                type="range"
+                min="-6.283185"
+                max="6.283185"
+                step="0.001"
+                value="0.785398"
+                aria-labelledby="angleControlLabel"
+              >
+              <label class="sr-only" for="angleInput">Angle numeric value</label>
+              <input
+                id="angleInput"
+                name="angleInput"
+                class="number-input"
+                type="number"
+                min="-6.283185"
+                max="6.283185"
+                step="0.001"
+                value="0.785"
+                inputmode="decimal"
+              >
+            </div>
+          </div>
+
+          <div class="control-field range-control radius-control">
+            <label class="control-label" id="radiusControlLabel" for="radiusRange">
+              Radius <span class="math-symbol">r</span>
+            </label>
+            <div class="range-input-pair range-input-pair--radius">
+              <input
+                id="radiusRange"
+                name="radiusRange"
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                value="1"
+                aria-labelledby="radiusControlLabel"
+              >
+              <label class="sr-only" for="radiusInput">Radius numeric value</label>
+              <input
+                id="radiusInput"
+                name="radiusInput"
+                class="number-input"
+                type="number"
+                min="0"
+                max="2"
+                step="0.01"
+                value="1.00"
+                inputmode="decimal"
+              >
+            </div>
+          </div>
+
+          <fieldset class="control-field unit-controls">
+            <legend class="control-label">Angle unit</legend>
+            <div class="segmented-control" role="group" aria-label="Angle unit">
+              <button
+                class="segment-button is-active"
+                id="radianButton"
+                type="button"
+                aria-pressed="true"
+              >
+                rad
+              </button>
+              <button
+                class="segment-button"
+                id="degreeButton"
+                type="button"
+                aria-pressed="false"
+              >
+                deg
+              </button>
+            </div>
+          </fieldset>
+        </div>
+      </header>
+
+      <main class="instrument-main">
+        <section class="coordinate-strip" aria-labelledby="coordinateHeading">
+          <div class="coordinate-strip__core">
+            <div class="strip-heading">
+              <p class="eyebrow">Live equivalence</p>
+              <h2 id="coordinateHeading">One point, four readings</h2>
+            </div>
+
+            <div class="equivalence-chain" aria-label="Equivalent coordinate representations">
+              <div class="coordinate-reading">
+                <span class="coordinate-label">Polar</span>
+                <output id="polarMath" class="math-expression" for="radiusInput angleInput">
+                  (<var>r</var>, <var>θ</var>) = (1, π/4)
+                </output>
+              </div>
+              <span class="coordinate-arrow" aria-hidden="true">↔</span>
+              <div class="coordinate-reading">
+                <span class="coordinate-label">Cartesian</span>
+                <output id="cartesianMath" class="math-expression">
+                  (<var>x</var>, <var>y</var>) = (0.707, 0.707)
+                </output>
+              </div>
+              <span class="coordinate-arrow" aria-hidden="true">↔</span>
+              <div class="coordinate-reading">
+                <span class="coordinate-label">Complex</span>
+                <output id="complexMath" class="math-expression">
+                  <var>z</var> = 0.707 + 0.707<var>i</var>
+                </output>
+              </div>
+              <span class="coordinate-arrow" aria-hidden="true">↔</span>
+              <div class="coordinate-reading">
+                <span class="coordinate-label">Exponential</span>
+                <output id="exponentialMath" class="math-expression">
+                  <var>z</var> = <var>r</var>e<sup>iθ</sup>
+                </output>
+              </div>
+            </div>
+          </div>
+
+          <dl class="readout-grid" aria-label="Current trigonometric values">
+            <div class="readout readout--angle">
+              <dt>θ</dt>
+              <dd><output id="thetaReadout" for="angleRange angleInput">π/4</output></dd>
+            </div>
+            <div class="readout readout--cosine">
+              <dt>cos θ</dt>
+              <dd><output id="cosReadout" for="angleRange angleInput">0.707</output></dd>
+            </div>
+            <div class="readout readout--sine">
+              <dt>sin θ</dt>
+              <dd><output id="sinReadout" for="angleRange angleInput">0.707</output></dd>
+            </div>
+            <div class="readout readout--revolution">
+              <dt>turns</dt>
+              <dd><output id="revolutionReadout">0</output></dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="visual-stage" id="visualStage" aria-labelledby="visualStageHeading">
+          <h2 class="sr-only" id="visualStageHeading">Synchronized circle and waveform views</h2>
+
+          <figure class="view-card circle-card" aria-labelledby="circleTitle">
+            <figcaption class="view-card__header">
+              <div class="view-heading">
+                <p class="view-kicker">Direction becomes position</p>
+                <h3 id="circleTitle">Circle / complex plane</h3>
+              </div>
+              <div class="view-header-meta">
+                <ul class="quantity-key" aria-label="Point color key">
+                  <li><span class="key-dot key-dot--unit" aria-hidden="true"></span><var>u</var></li>
+                  <li><span class="key-dot key-dot--radius" aria-hidden="true"></span><var>z</var></li>
+                </ul>
+                <p class="drag-instruction" id="circleInstruction">
+                  <span aria-hidden="true">↻</span> Drag the point <var>u</var> around the circle
+                </p>
+              </div>
+            </figcaption>
+            <div class="view-frame circle-frame">
+              <div
+                class="view-surface circle-surface"
+                id="circleView"
+                role="group"
+                aria-label="Interactive unit circle and complex plane"
+                aria-describedby="circleInstruction circleSummary"
+              ></div>
+            </div>
+            <p class="sr-only" id="circleSummary">
+              At theta pi over four, the unit point and radius-one polar point coincide at approximately x 0.707 and y 0.707.
+            </p>
+          </figure>
+
+          <div class="wave-stack">
+            <figure class="view-card wave-card cosine-card" aria-labelledby="cosineTitle">
+              <figcaption class="view-card__header wave-card__header">
+                <div class="view-heading">
+                  <p class="view-kicker">Horizontal coordinate</p>
+                  <h3 id="cosineTitle">Cosine</h3>
+                </div>
+                <p class="drag-instruction" id="cosineInstruction">
+                  <span aria-hidden="true">↔</span> Drag the wave cursor
+                </p>
+              </figcaption>
+              <div class="view-frame wave-frame">
+                <div
+                  class="view-surface wave-surface"
+                  id="cosineView"
+                  role="group"
+                  aria-label="Interactive cosine plot"
+                  aria-describedby="cosineInstruction cosineSummary"
+                ></div>
+              </div>
+              <p class="sr-only" id="cosineSummary">
+                The cosine plot marks the current point at theta pi over four with value approximately 0.707.
+              </p>
+            </figure>
+
+            <figure class="view-card wave-card sine-card" aria-labelledby="sineTitle">
+              <figcaption class="view-card__header wave-card__header">
+                <div class="view-heading">
+                  <p class="view-kicker">Vertical coordinate</p>
+                  <h3 id="sineTitle">Sine</h3>
+                </div>
+                <p class="drag-instruction" id="sineInstruction">
+                  <span aria-hidden="true">↔</span> Drag the wave cursor
+                </p>
+              </figcaption>
+              <div class="view-frame wave-frame">
+                <div
+                  class="view-surface wave-surface"
+                  id="sineView"
+                  role="group"
+                  aria-label="Interactive sine plot"
+                  aria-describedby="sineInstruction sineSummary"
+                ></div>
+              </div>
+              <p class="sr-only" id="sineSummary">
+                The sine plot marks the current point at theta pi over four with value approximately 0.707.
+              </p>
+            </figure>
+          </div>
+        </section>
+
+        <section class="relationship-dock" aria-labelledby="relationshipHeading">
+          <header class="dock-intro">
+            <p class="eyebrow">Relationship dock</p>
+            <h2 id="relationshipHeading">The notation changes. The point does not.</h2>
+            <p>
+              The same point is polar, Cartesian, and complex; each notation keeps a different part of its geometry in view.
+            </p>
+          </header>
+
+          <ol class="notation-flow" aria-label="Three descriptions of the same point">
+            <li>
+              <span>Polar</span>
+              <strong>(<var>r</var>, <var>θ</var>)</strong>
+              <small>scale + direction</small>
+            </li>
+            <li>
+              <span>Cartesian</span>
+              <strong>(<var>x</var>, <var>y</var>)</strong>
+              <small>horizontal + vertical</small>
+            </li>
+            <li>
+              <span>Complex</span>
+              <strong><var>z</var> = <var>x</var> + <var>iy</var></strong>
+              <small>one number, one point</small>
+            </li>
+          </ol>
+
+          <article class="euler-card" aria-labelledby="eulerHeading">
+            <div>
+              <p class="eyebrow">Euler bridge</p>
+              <h3 id="eulerHeading">Coordinates in one expression</h3>
+            </div>
+            <div class="euler-equation math-expression" id="eulerMath">
+              e<sup>iθ</sup> = cos <var>θ</var> + <var>i</var> sin <var>θ</var>
+            </div>
+            <p>Scale the same direction by <var>r</var>: <var>z</var> = <var>r</var>e<sup>iθ</sup>.</p>
+          </article>
+
+          <details class="values-details">
+            <summary>
+              <span>
+                <span class="summary-title">Numerical table</span>
+                <span class="summary-meta">current state · 7 columns</span>
+              </span>
+            </summary>
+            <div class="table-popover">
+              <div class="table-scroll">
+                <table>
+                  <caption class="sr-only">Current angle, radius, trigonometric values, coordinates, and complex number</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">θ</th>
+                      <th scope="col">r</th>
+                      <th scope="col">cos θ</th>
+                      <th scope="col">sin θ</th>
+                      <th scope="col">x</th>
+                      <th scope="col">y</th>
+                      <th scope="col">z</th>
+                    </tr>
+                  </thead>
+                  <tbody id="valuesTableBody">
+                    <tr>
+                      <th scope="row">π/4</th>
+                      <td>1.000</td>
+                      <td>0.707</td>
+                      <td>0.707</td>
+                      <td>0.707</td>
+                      <td>0.707</td>
+                      <td>0.707 + 0.707i</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+        </section>
+      </main>
+    </div>
+
+    <div class="sr-only" id="liveRegion" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
