@@ -79,7 +79,6 @@ const elements = {
   cosineSummary: byId("cosineSummary"),
   sineView: byId("sineView"),
   sineSummary: byId("sineSummary"),
-  valuesTableBody: byId("valuesTableBody"),
   liveRegion: byId("liveRegion")
 };
 

@@ -14,7 +14,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
     >
-    <link rel="stylesheet" href="visual-trigonometry.css">
+    <link rel="stylesheet" href="visual-trigonometry.css?v=phase4-layout">
   </head>
   <body>
     <a class="skip-link" href="#visualStage">Skip to the synchronized views</a>
@@ -244,6 +244,107 @@
           </dl>
         </section>
 
+        <section class="relationship-dock" aria-labelledby="relationshipHeading">
+          <header class="dock-intro identity-lens-dock">
+            <p class="eyebrow" id="relationshipHeading">Identity lenses</p>
+            <div class="identity-lens-selector" role="group" aria-label="Choose an identity lens">
+              <button class="identity-lens-button is-active" type="button" data-identity-mode="coordinates" aria-pressed="true" aria-controls="identityPanel circleView cosineView sineView">Coordinates</button>
+              <button class="identity-lens-button" type="button" data-identity-mode="norm" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">Norm</button>
+              <button class="identity-lens-button" type="button" data-identity-mode="addition" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">Addition</button>
+              <button class="identity-lens-button" type="button" data-identity-mode="powers" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">Powers</button>
+              <button class="identity-lens-button" type="button" data-identity-mode="conjugate" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">Conjugate</button>
+              <button class="identity-lens-button" type="button" data-identity-mode="quarter-turn" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">+π/2</button>
+            </div>
+          </header>
+
+          <article
+            class="identity-panel"
+            id="identityPanel"
+            data-identity-mode="coordinates"
+            data-has-algebra="true"
+            aria-labelledby="identityTitle"
+            aria-describedby="identitySummary"
+          >
+            <header class="identity-panel__header">
+              <div class="identity-panel__title">
+                <p class="eyebrow">Selected lens</p>
+                <h3 id="identityTitle">Coordinates / Euler</h3>
+              </div>
+              <span class="identity-badge" id="identityBadge">foundation</span>
+
+              <div class="identity-algebra" id="identityAlgebra">
+                <span class="identity-algebra__label">Algebra</span>
+                <div class="identity-algebra-expression math-expression" id="identityDetailMath">
+                  z = re<sup>iθ</sup> = x + iy
+                </div>
+              </div>
+
+              <div
+                class="identity-exact-companion"
+                id="exactDerivation"
+                data-exact="true"
+                aria-labelledby="exactConstructionTitle"
+                aria-describedby="exactConstructionExplanation"
+              >
+                <span class="identity-exact-label">Exact geometry</span>
+                <strong id="exactConstructionTitle">45° isosceles-right triangle</strong>
+                <span class="quadrant-badge" id="exactQuadrantBadge">Quadrant I · signs (+, +)</span>
+                <span class="math-expression" id="exactEquationMath">a² + a² = 1 → a = √2/2</span>
+                <span class="math-expression" id="exactValuesMath">cos θ = √2/2 · sin θ = √2/2</span>
+                <small id="exactApproximation">≈ (0.707, 0.707)</small>
+                <p class="sr-only" id="exactConstructionExplanation">
+                  Equal legs in a right triangle with unit hypotenuse have length square root of two over two.
+                </p>
+              </div>
+
+              <div class="identity-parameters">
+                <fieldset class="addition-parameters" id="additionParameters" hidden>
+                  <legend class="sr-only">Angle addition parameters</legend>
+                  <label for="alphaInput">
+                    <span>α</span>
+                    <input id="alphaInput" class="identity-number-input" type="number" min="-3.142" max="3.142" step="0.001" value="0.524" inputmode="decimal">
+                  </label>
+                  <span class="parameter-operator" aria-hidden="true">+</span>
+                  <label for="betaInput">
+                    <span>β</span>
+                    <input id="betaInput" class="identity-number-input" type="number" min="-3.142" max="3.142" step="0.001" value="0.262" inputmode="decimal">
+                  </label>
+                </fieldset>
+
+                <label class="power-parameters" id="powerParameters" for="powerSelect" hidden>
+                  <span>Power <var>n</var></span>
+                  <select id="powerSelect" name="power">
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                  </select>
+                </label>
+              </div>
+            </header>
+
+            <div class="identity-layers">
+              <section class="identity-layer identity-layer--geometry" aria-labelledby="identityGeometryLabel">
+                <span class="identity-layer__label" id="identityGeometryLabel">Geometry</span>
+                <p id="identityGeometryText">The projections are the real and imaginary coordinates.</p>
+              </section>
+              <section class="identity-layer identity-layer--complex" aria-labelledby="identityComplexLabel">
+                <span class="identity-layer__label" id="identityComplexLabel">Complex form</span>
+                <div class="math-expression" id="identityComplexMath">e<sup>iθ</sup> = cos θ + i sin θ</div>
+              </section>
+              <section class="identity-layer identity-layer--trig" aria-labelledby="identityTrigLabel">
+                <span class="identity-layer__label" id="identityTrigLabel">Trigonometric result</span>
+                <div class="math-expression" id="identityTrigMath">x = r cos θ, y = r sin θ</div>
+              </section>
+            </div>
+
+            <p class="sr-only" id="identitySummary">
+              The geometry, complex form, and trigonometric result use the same shared point.
+            </p>
+          </article>
+        </section>
+
         <section class="visual-stage" id="visualStage" aria-labelledby="visualStageHeading">
           <h2 class="sr-only" id="visualStageHeading">Synchronized circle and waveform views</h2>
 
@@ -328,144 +429,6 @@
           </div>
         </section>
 
-        <section class="relationship-dock" aria-labelledby="relationshipHeading">
-          <header class="dock-intro identity-lens-dock">
-            <p class="eyebrow">Identity lenses</p>
-            <h2 id="relationshipHeading">One point, six complex operations</h2>
-            <div class="identity-lens-selector" role="group" aria-label="Choose an identity lens">
-              <button class="identity-lens-button is-active" type="button" data-identity-mode="coordinates" aria-pressed="true" aria-controls="identityPanel circleView cosineView sineView">Coordinates</button>
-              <button class="identity-lens-button" type="button" data-identity-mode="norm" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">Norm</button>
-              <button class="identity-lens-button" type="button" data-identity-mode="addition" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">Addition</button>
-              <button class="identity-lens-button" type="button" data-identity-mode="powers" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">Powers</button>
-              <button class="identity-lens-button" type="button" data-identity-mode="conjugate" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">Conjugate</button>
-              <button class="identity-lens-button" type="button" data-identity-mode="quarter-turn" aria-pressed="false" aria-controls="identityPanel circleView cosineView sineView">+π/2</button>
-            </div>
-          </header>
-
-          <article
-            class="identity-panel"
-            id="identityPanel"
-            data-identity-mode="coordinates"
-            aria-labelledby="identityTitle"
-            aria-describedby="identitySummary"
-          >
-            <header class="identity-panel__header">
-              <div class="identity-panel__title">
-                <p class="eyebrow">Selected lens</p>
-                <h3 id="identityTitle">Coordinates / Euler</h3>
-              </div>
-              <span class="identity-badge" id="identityBadge">foundation</span>
-
-              <div class="identity-parameters">
-                <fieldset class="addition-parameters" id="additionParameters" hidden>
-                  <legend class="sr-only">Angle addition parameters</legend>
-                  <label for="alphaInput">
-                    <span>α</span>
-                    <input id="alphaInput" class="identity-number-input" type="number" min="-3.142" max="3.142" step="0.001" value="0.524" inputmode="decimal">
-                  </label>
-                  <span class="parameter-operator" aria-hidden="true">+</span>
-                  <label for="betaInput">
-                    <span>β</span>
-                    <input id="betaInput" class="identity-number-input" type="number" min="-3.142" max="3.142" step="0.001" value="0.262" inputmode="decimal">
-                  </label>
-                </fieldset>
-
-                <label class="power-parameters" id="powerParameters" for="powerSelect" hidden>
-                  <span>Power <var>n</var></span>
-                  <select id="powerSelect" name="power">
-                    <option value="2" selected>2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                  </select>
-                </label>
-              </div>
-            </header>
-
-            <div class="identity-layers">
-              <section class="identity-layer identity-layer--geometry" aria-labelledby="identityGeometryLabel">
-                <span class="identity-layer__label" id="identityGeometryLabel">Geometry</span>
-                <p id="identityGeometryText">The projections are the real and imaginary coordinates.</p>
-              </section>
-              <section class="identity-layer identity-layer--complex" aria-labelledby="identityComplexLabel">
-                <span class="identity-layer__label" id="identityComplexLabel">Complex form</span>
-                <div class="math-expression" id="identityComplexMath">e<sup>iθ</sup> = cos θ + i sin θ</div>
-              </section>
-              <section class="identity-layer identity-layer--trig" aria-labelledby="identityTrigLabel">
-                <span class="identity-layer__label" id="identityTrigLabel">Trigonometric result</span>
-                <div class="math-expression" id="identityTrigMath">x = r cos θ, y = r sin θ</div>
-              </section>
-            </div>
-
-            <details class="identity-algebra" id="identityAlgebra">
-              <summary>Show algebra</summary>
-              <div class="identity-algebra-popover math-expression" id="identityDetailMath">
-                z = re<sup>iθ</sup> = x + iy
-              </div>
-            </details>
-
-            <div
-              class="identity-exact-companion"
-              id="exactDerivation"
-              data-exact="true"
-              aria-labelledby="exactConstructionTitle"
-              aria-describedby="exactConstructionExplanation"
-            >
-              <span class="identity-exact-label">Exact geometry</span>
-              <strong id="exactConstructionTitle">45° isosceles-right triangle</strong>
-              <span class="quadrant-badge" id="exactQuadrantBadge">Quadrant I · signs (+, +)</span>
-              <span class="math-expression" id="exactEquationMath">a² + a² = 1 → a = √2/2</span>
-              <span class="math-expression" id="exactValuesMath">cos θ = √2/2 · sin θ = √2/2</span>
-              <small id="exactApproximation">≈ (0.707, 0.707)</small>
-              <p class="sr-only" id="exactConstructionExplanation">
-                Equal legs in a right triangle with unit hypotenuse have length square root of two over two.
-              </p>
-            </div>
-
-            <p class="sr-only" id="identitySummary">
-              The geometry, complex form, and trigonometric result use the same shared point.
-            </p>
-          </article>
-
-          <details class="values-details">
-            <summary>
-              <span>
-                <span class="summary-title">Numerical table</span>
-                <span class="summary-meta">current state · 7 columns</span>
-              </span>
-            </summary>
-            <div class="table-popover">
-              <div class="table-scroll">
-                <table>
-                  <caption class="sr-only">Current angle, radius, trigonometric values, coordinates, and complex number</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">θ</th>
-                      <th scope="col">r</th>
-                      <th scope="col">cos θ</th>
-                      <th scope="col">sin θ</th>
-                      <th scope="col">x</th>
-                      <th scope="col">y</th>
-                      <th scope="col">z</th>
-                    </tr>
-                  </thead>
-                  <tbody id="valuesTableBody">
-                    <tr>
-                      <th scope="row">π/4</th>
-                      <td>1.000</td>
-                      <td>0.707</td>
-                      <td>0.707</td>
-                      <td>0.707</td>
-                      <td>0.707</td>
-                      <td>0.707 + 0.707i</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </details>
-        </section>
       </main>
     </div>
 

@@ -108,30 +108,7 @@ function identityBadge(identity) {
   return "foundation";
 }
 
-function replaceTableRow(model, angle) {
-  const document = window.document;
-  const row = document.createElement("tr");
-  const angleHeader = document.createElement("th");
-  angleHeader.scope = "row";
-  angleHeader.textContent = angle.plain;
-  row.appendChild(angleHeader);
 
-  const complexText = `${formatNumber(model.complex.real, 3)} ${model.complex.imaginary < 0 ? "−" : "+"} ${formatNumber(Math.abs(model.complex.imaginary), 3)}i`;
-  [
-    formatNumber(model.radius, 3),
-    formatNumber(model.cosTheta, 3),
-    formatNumber(model.sinTheta, 3),
-    formatNumber(model.polarPoint.x, 3),
-    formatNumber(model.polarPoint.y, 3),
-    complexText
-  ].forEach((text) => {
-    const cell = document.createElement("td");
-    cell.textContent = text;
-    row.appendChild(cell);
-  });
-
-  return row;
-}
 
 export function formatAngleLabel(model, angleUnit) {
   return angleParts(model, angleUnit).plain;
@@ -160,8 +137,8 @@ export function renderMathPanel(model, state, elements) {
   renderMath(elements.identityComplexMath, identity.complexTex);
   renderMath(elements.identityTrigMath, identity.trigTex);
   const hasDetail = Boolean(identity.detailTex);
+  elements.identityPanel.dataset.hasAlgebra = String(hasDetail);
   elements.identityAlgebra.hidden = !hasDetail;
-  if (!hasDetail) elements.identityAlgebra.open = false;
   if (hasDetail) renderMath(elements.identityDetailMath, identity.detailTex);
   elements.identitySummary.textContent =
     "The geometry, complex form, and trigonometric result use the same shared point.";
@@ -203,7 +180,6 @@ export function renderMathPanel(model, state, elements) {
   elements.circleSummary.textContent = `At angle ${angle.plain}, the unit point u has horizontal coordinate cosine ${exactAngle?.cos.plain ?? cosine} and vertical coordinate sine ${exactAngle?.sin.plain ?? sine}. The polar point z has radius ${r} and Cartesian coordinates ${x}, ${y}. Active identity: ${identity.geometryText}.${exactSummary}`;
   elements.cosineSummary.textContent = `The cosine graph marks angle ${angle.plain} at value ${exactAngle?.cos.plain ?? cosine}, matching the horizontal coordinate of the unit-circle point. Active identity lens: ${identity.title}.`;
   elements.sineSummary.textContent = `The sine graph marks angle ${angle.plain} at value ${exactAngle?.sin.plain ?? sine}, matching the vertical coordinate of the unit-circle point. Active identity lens: ${identity.title}.`;
-  elements.valuesTableBody.replaceChildren(replaceTableRow(model, angle));
 
   return angle;
 }

@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Visual Trigonometry — Design Proposal</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Visual Trigonometry — Design Proposal</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#visual-trigonometry-design-proposal"
+id="toc-visual-trigonometry-design-proposal">Visual Trigonometry —
+Design Proposal</a>
+<ul>
+<li><a href="#product-idea" id="toc-product-idea">1. Product
+idea</a></li>
+<li><a href="#core-design-decision" id="toc-core-design-decision">2.
+Core design decision</a></li>
+<li><a href="#learning-goals" id="toc-learning-goals">3. Learning
+goals</a></li>
+<li><a href="#one-screen-experience" id="toc-one-screen-experience">4.
+One-screen experience</a>
+<ul>
+<li><a href="#desktop-proportions" id="toc-desktop-proportions">Desktop
+proportions</a></li>
+<li><a href="#mobile" id="toc-mobile">Mobile</a></li>
+</ul></li>
+<li><a href="#shared-mathematical-state"
+id="toc-shared-mathematical-state">5. Shared mathematical state</a></li>
+<li><a href="#primary-interaction" id="toc-primary-interaction">6.
+Primary interaction</a>
+<ul>
+<li><a href="#drag-the-unit-circle-point"
+id="toc-drag-the-unit-circle-point">Drag the unit-circle point</a></li>
+<li><a href="#drag-either-waveform-cursor"
+id="toc-drag-either-waveform-cursor">Drag either waveform
+cursor</a></li>
+<li><a href="#radius" id="toc-radius">Radius</a></li>
+<li><a href="#keyboard" id="toc-keyboard">Keyboard</a></li>
+</ul></li>
+<li><a href="#animation" id="toc-animation">7. Animation</a></li>
+<li><a href="#complex-plane-and-circle-view"
+id="toc-complex-plane-and-circle-view">8. Complex-plane and circle
+view</a></li>
+<li><a href="#sine-and-cosine-plots" id="toc-sine-and-cosine-plots">9.
+Sine and cosine plots</a>
+<ul>
+<li><a href="#cross-view-connectors"
+id="toc-cross-view-connectors">Cross-view connectors</a></li>
+</ul></li>
+<li><a href="#exact-angle-geometry" id="toc-exact-angle-geometry">10.
+Exact-angle geometry</a>
+<ul>
+<li><a href="#quadrantal-angles" id="toc-quadrantal-angles">Quadrantal
+angles</a></li>
+<li><a href="#circ" id="toc-circ"><span
+class="math inline">\(45^\circ\)</span></a></li>
+<li><a href="#circ-and-60circ" id="toc-circ-and-60circ"><span
+class="math inline">\(30^\circ\)</span> and <span
+class="math inline">\(60^\circ\)</span></a></li>
+<li><a href="#exact-value-display"
+id="toc-exact-value-display">Exact-value display</a></li>
+</ul></li>
+<li><a href="#identity-lenses" id="toc-identity-lenses">11. Identity
+lenses</a>
+<ul>
+<li><a href="#a.-coordinates-euler" id="toc-a.-coordinates-euler">A.
+Coordinates / Euler</a></li>
+<li><a href="#b.-norm-pythagorean-identity"
+id="toc-b.-norm-pythagorean-identity">B. Norm / Pythagorean
+identity</a></li>
+<li><a href="#c.-angle-addition-complex-multiplication"
+id="toc-c.-angle-addition-complex-multiplication">C. Angle addition /
+complex multiplication</a></li>
+<li><a href="#d.-powers-double-angle-de-moivre"
+id="toc-d.-powers-double-angle-de-moivre">D. Powers / double angle / De
+Moivre</a></li>
+<li><a href="#e.-conjugate-even-and-odd-symmetry"
+id="toc-e.-conjugate-even-and-odd-symmetry">E. Conjugate / even and odd
+symmetry</a></li>
+<li><a href="#f.-quarter-turn-phase-shift"
+id="toc-f.-quarter-turn-phase-shift">F. Quarter turn / phase
+shift</a></li>
+</ul></li>
+<li><a href="#live-coordinate-strip" id="toc-live-coordinate-strip">12.
+Live coordinate strip</a></li>
+<li><a href="#identity-dock" id="toc-identity-dock">13. Identity
+dock</a></li>
+<li><a href="#visual-language" id="toc-visual-language">14. Visual
+language</a></li>
+<li><a href="#mathematical-invariants"
+id="toc-mathematical-invariants">15. Mathematical invariants</a></li>
+<li><a href="#technical-architecture"
+id="toc-technical-architecture">16. Technical architecture</a>
+<ul>
+<li><a href="#rendering" id="toc-rendering">Rendering</a></li>
+<li><a href="#suggested-file-split"
+id="toc-suggested-file-split">Suggested file split</a></li>
+<li><a href="#numerical-model" id="toc-numerical-model">Numerical
+model</a></li>
+</ul></li>
+<li><a href="#accessibility" id="toc-accessibility">17.
+Accessibility</a></li>
+<li><a href="#first-version-scope" id="toc-first-version-scope">18.
+First-version scope</a>
+<ul>
+<li><a href="#include" id="toc-include">Include</a></li>
+<li><a href="#defer" id="toc-defer">Defer</a></li>
+</ul></li>
+<li><a href="#implementation-phases" id="toc-implementation-phases">19.
+Implementation phases</a>
+<ul>
+<li><a href="#phase-1-shared-model-and-static-synchronized-views"
+id="toc-phase-1-shared-model-and-static-synchronized-views">Phase 1 —
+Shared model and static synchronized views</a></li>
+<li><a href="#phase-2-direct-manipulation-and-animation"
+id="toc-phase-2-direct-manipulation-and-animation">Phase 2 — Direct
+manipulation and animation</a></li>
+<li><a href="#phase-3-exact-values-and-triangle-constructions"
+id="toc-phase-3-exact-values-and-triangle-constructions">Phase 3 — Exact
+values and triangle constructions</a></li>
+<li><a href="#phase-4-complex-identity-lenses"
+id="toc-phase-4-complex-identity-lenses">Phase 4 — Complex identity
+lenses</a></li>
+<li><a href="#phase-5-responsive-layout-accessibility-and-polish"
+id="toc-phase-5-responsive-layout-accessibility-and-polish">Phase 5 —
+Responsive layout, accessibility, and polish</a></li>
+</ul></li>
+<li><a href="#validation-plan" id="toc-validation-plan">20. Validation
+plan</a>
+<ul>
+<li><a href="#pure-model-tests" id="toc-pure-model-tests">Pure model
+tests</a></li>
+<li><a href="#interaction-tests" id="toc-interaction-tests">Interaction
+tests</a></li>
+<li><a href="#visual-checks" id="toc-visual-checks">Visual
+checks</a></li>
+</ul></li>
+<li><a href="#success-criteria" id="toc-success-criteria">21. Success
+criteria</a></li>
+<li><a href="#main-design-risks" id="toc-main-design-risks">22. Main
+design risks</a>
+<ul>
+<li><a href="#risk-too-many-overlays-obscure-the-core-circle"
+id="toc-risk-too-many-overlays-obscure-the-core-circle">Risk: too many
+overlays obscure the core circle</a></li>
+<li><a href="#risk-adjustable-radius-confuses-sine-and-cosine-values"
+id="toc-risk-adjustable-radius-confuses-sine-and-cosine-values">Risk:
+adjustable radius confuses sine and cosine values</a></li>
+<li><a href="#risk-connector-lines-create-visual-noise"
+id="toc-risk-connector-lines-create-visual-noise">Risk: connector lines
+create visual noise</a></li>
+<li><a href="#risk-exact-angle-snapping-feels-unpredictable"
+id="toc-risk-exact-angle-snapping-feels-unpredictable">Risk: exact-angle
+snapping feels unpredictable</a></li>
+<li><a href="#risk-animation-becomes-decorative-rather-than-explanatory"
+id="toc-risk-animation-becomes-decorative-rather-than-explanatory">Risk:
+animation becomes decorative rather than explanatory</a></li>
+<li><a
+href="#risk-addition-formulas-still-feel-like-unexplained-algebra"
+id="toc-risk-addition-formulas-still-feel-like-unexplained-algebra">Risk:
+addition formulas still feel like unexplained algebra</a></li>
+</ul></li>
+<li><a href="#product-position" id="toc-product-position">23. Product
+position</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="visual-trigonometry-design-proposal">Visual Trigonometry —
+Design Proposal</h1>
+<h2 id="product-idea">1. Product idea</h2>
+<p><strong>Visual Trigonometry</strong> is a single-screen interactive
+instrument connecting four descriptions of the same rotating point:</p>
+<ol type="1">
+<li>Polar coordinates <span
+class="math inline">\((r,\theta)\)</span>.</li>
+<li>Cartesian coordinates <span
+class="math inline">\((x,y)\)</span>.</li>
+<li>A point <span class="math inline">\(z=x+iy\)</span> in the complex
+plane.</li>
+<li>The two coordinate functions <span
+class="math inline">\(\cos\theta\)</span> and <span
+class="math inline">\(\sin\theta\)</span>.</li>
+</ol>
+<p>The central promise is:</p>
+<blockquote>
+<p>One moving point should explain the circle, Cartesian coordinates,
+sine and cosine waves, Euler’s formula, and the main trigonometric
+identities.</p>
+</blockquote>
+<p>There should be no chapter sequence or locked progression. Every view
+remains visible and synchronized, following the Fourier app’s “one
+instrument, many representations” model.</p>
+<p>A learner can:</p>
+<ul>
+<li>drag an angle point around the unit circle;</li>
+<li>drag the phase cursor on either wave plot;</li>
+<li>play or pause continuous rotation;</li>
+<li>switch between radians and degrees;</li>
+<li>snap to important angles and see exact values;</li>
+<li>choose an identity lens that adds geometric constructions to the
+same persistent views.</li>
+</ul>
+<p>The app should feel exploratory rather than instructional:
+explanations appear where the current geometry makes them
+meaningful.</p>
+<hr />
+<h2 id="core-design-decision">2. Core design decision</h2>
+<p>The unit circle and complex plane should not be separate panels. The
+unit circle already lives in the complex plane:</p>
+<p><span class="math display">\[
+u=e^{i\theta}=\cos\theta+i\sin\theta.
+\]</span></p>
+<p>The point <span class="math inline">\(u\)</span> on the unit circle
+supplies the trigonometric values:</p>
+<p><span class="math display">\[
+\operatorname{Re}(u)=\cos\theta,
+\qquad
+\operatorname{Im}(u)=\sin\theta.
+\]</span></p>
+<p>A polar point with arbitrary radius lies on the same ray:</p>
+<p><span class="math display">\[
+z=ru=r e^{i\theta}
+=r\cos\theta+i\,r\sin\theta.
+\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[
+x=r\cos\theta,
+\qquad
+y=r\sin\theta,
+\]</span></p>
+<p>and, when <span class="math inline">\(r\ne0\)</span>:</p>
+<p><span class="math display">\[
+\cos\theta=\frac{x}{r},
+\qquad
+\sin\theta=\frac{y}{r}.
+\]</span></p>
+<p>The scene should always distinguish:</p>
+<ul>
+<li>the <strong>unit direction point</strong> <span
+class="math inline">\(u=e^{i\theta}\)</span>, which drives sine and
+cosine;</li>
+<li>the optional <strong>polar point</strong> <span
+class="math inline">\(z=ru\)</span>, which explains radius and Cartesian
+scaling.</li>
+</ul>
+<p>At the default <span class="math inline">\(r=1\)</span>, the two
+points coincide. If the learner changes <span
+class="math inline">\(r\)</span>, <span class="math inline">\(u\)</span>
+remains on the unit circle while <span class="math inline">\(z\)</span>
+moves along the same ray. This prevents an adjustable radius from
+confusing the meaning of the unit sine and cosine functions.</p>
+<hr />
+<h2 id="learning-goals">3. Learning goals</h2>
+<p>After using the app, a learner should understand that:</p>
+<ul>
+<li>Polar and Cartesian coordinates describe the same point.</li>
+<li>On the unit circle, the horizontal coordinate is <span
+class="math inline">\(\cos\theta\)</span> and the vertical coordinate is
+<span class="math inline">\(\sin\theta\)</span>.</li>
+<li>The sine and cosine graphs are records of those coordinates as the
+angle rotates.</li>
+<li>A point <span class="math inline">\((x,y)\)</span> can also be read
+as the complex number <span class="math inline">\(x+iy\)</span>.</li>
+<li>Euler’s formula packages the two coordinate functions into one
+complex exponential.</li>
+<li>Exact values at <span class="math inline">\(30^\circ\)</span>, <span
+class="math inline">\(45^\circ\)</span>, and <span
+class="math inline">\(60^\circ\)</span> come from simple right-triangle
+constructions, not from a lookup table.</li>
+<li><span class="math inline">\(\cos^2\theta+\sin^2\theta=1\)</span> is
+the unit-circle equation and the squared modulus of <span
+class="math inline">\(e^{i\theta}\)</span>.</li>
+<li>Multiplying complex numbers adds their angles, which produces the
+sine and cosine addition identities.</li>
+<li>Complex conjugation reflects across the real axis, explaining why
+cosine is even and sine is odd.</li>
+<li>Multiplication by <span class="math inline">\(i\)</span> is a
+quarter turn, explaining the phase relationship between sine and
+cosine.</li>
+<li>Powers of <span class="math inline">\(e^{i\theta}\)</span> multiply
+angles, giving double-angle identities and De Moivre’s theorem.</li>
+</ul>
+<hr />
+<h2 id="one-screen-experience">4. One-screen experience</h2>
+<p>The interface should have no lesson navigation and no separate
+explainer page. Use four persistent regions.</p>
+<pre class="text"><code>┌──────────────────────────────────────────────────────────────────────────────┐
+│ Play  speed  direction  θ input  r input  radians/degrees  exact-angle snap │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ (r, θ)  ↔  (x, y)  ↔  z = x + iy  ↔  z = r eⁱᶿ                       │
+│ Identity: Coordinates · Norm · Addition · Powers · Conjugate · Quarter turn │
+├──────────────────────────────────┬───────────────────────────────────────────┤
+│ Complex plane + unit circle      │ cosine                                   │
+│                                  │       • (θ, cos θ)                        │
+│          Im                      ├───────────────────────────────────────────┤
+│           │  z                   │ sine                                     │
+│       sin │ /                    │       • (θ, sin θ)                        │
+│    ───────┼──── Re               │                                           │
+│          cos                     │                                           │
+├──────────────────────────────────┴───────────────────────────────────────────┤
+│ Live identity dock: geometry first, complex multiplication, trig identity   │
+└──────────────────────────────────────────────────────────────────────────────┘</code></pre>
+<h3 id="desktop-proportions">Desktop proportions</h3>
+<ul>
+<li>Compact toolbar: approximately 52 px.</li>
+<li>Coordinate and identity strip: approximately 72 px.</li>
+<li>Main visual stage: approximately 55–62% of viewport height.</li>
+<li>Identity dock: remaining height, with a target of 150–190 px.</li>
+<li>Main stage split: roughly 42% complex plane and 58% stacked wave
+plots.</li>
+</ul>
+<p>The complex-plane view should remain approximately square. The sine
+and cosine plots should share the same angle scale and vertical
+cursor.</p>
+<h3 id="mobile">Mobile</h3>
+<p>Stack in this order:</p>
+<ol type="1">
+<li>Playback and angle controls.</li>
+<li>Coordinate equivalence strip.</li>
+<li>Complex-plane circle.</li>
+<li>Cosine plot.</li>
+<li>Sine plot.</li>
+<li>Identity selector and identity dock.</li>
+</ol>
+<p>The views remain synchronized; mobile is not converted into a
+step-by-step carousel.</p>
+<hr />
+<h2 id="shared-mathematical-state">5. Shared mathematical state</h2>
+<p>Use one state object as the source of truth:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode js"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  theta<span class="op">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  unwrappedTheta<span class="op">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  radius<span class="op">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  playing<span class="op">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  angularSpeed<span class="op">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  direction<span class="op">,</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  angleUnit<span class="op">,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  snapToExactAngles<span class="op">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  identityMode<span class="op">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  alpha<span class="op">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  beta<span class="op">,</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  power<span class="op">,</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  dragging<span class="op">,</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  reducedMotion</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>The computed model should include:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode js"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  theta<span class="op">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  normalizedTheta<span class="op">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  revolutions<span class="op">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  radius<span class="op">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">unitPoint</span><span class="op">:</span> { <span class="dt">x</span><span class="op">:</span> cosTheta<span class="op">,</span> <span class="dt">y</span><span class="op">:</span> sinTheta }<span class="op">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">polarPoint</span><span class="op">:</span> { x<span class="op">,</span> y }<span class="op">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">complex</span><span class="op">:</span> { <span class="dt">real</span><span class="op">:</span> x<span class="op">,</span> <span class="dt">imaginary</span><span class="op">:</span> y<span class="op">,</span> <span class="dt">modulus</span><span class="op">:</span> radius<span class="op">,</span> <span class="dt">argument</span><span class="op">:</span> theta }<span class="op">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  cosTheta<span class="op">,</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  sinTheta<span class="op">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  exactAngle<span class="op">,</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  exactCos<span class="op">,</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  exactSin<span class="op">,</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  identityConstruction<span class="op">,</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  invariantChecks</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>All SVGs, equations, readouts, and accessibility descriptions must
+consume the same computed result.</p>
+<hr />
+<h2 id="primary-interaction">6. Primary interaction</h2>
+<h3 id="drag-the-unit-circle-point">Drag the unit-circle point</h3>
+<p>The primary handle lies on the unit circle. Pointer position
+determines:</p>
+<p><span class="math display">\[
+\theta=\operatorname{atan2}(y,x).
+\]</span></p>
+<p>Dragging should:</p>
+<ul>
+<li>update the point and angle arc;</li>
+<li>update the horizontal and vertical projections;</li>
+<li>move the cursor and points on both wave plots;</li>
+<li>update polar, Cartesian, and complex readouts;</li>
+<li>update the selected identity construction.</li>
+</ul>
+<p>The implementation must unwrap angle changes around the <span
+class="math inline">\(-\pi/\pi\)</span> branch cut so dragging through
+the negative real axis does not visibly jump backward.</p>
+<h3 id="drag-either-waveform-cursor">Drag either waveform cursor</h3>
+<p>Dragging horizontally on the sine or cosine plot should update <span
+class="math inline">\(\theta\)</span> and move the point around the
+circle. This makes the synchronization bidirectional rather than
+treating the plots as output-only diagrams.</p>
+<h3 id="radius">Radius</h3>
+<p>Use a compact radius slider and numeric input in the first version.
+Changing <span class="math inline">\(r\)</span> moves <span
+class="math inline">\(z=ru\)</span> along the current ray while leaving
+<span class="math inline">\(u=e^{i\theta}\)</span> on the unit
+circle.</p>
+<p>A later version may add a separate radial drag handle. Do not make
+one ambiguous handle simultaneously change both radius and angle.</p>
+<h3 id="keyboard">Keyboard</h3>
+<ul>
+<li>Left/right arrows: move by a small angular increment.</li>
+<li>Shift + left/right: move by a larger increment.</li>
+<li>Up/down on the radius control: change <span
+class="math inline">\(r\)</span>.</li>
+<li>Space: play or pause when focus is not in a text field.</li>
+<li>Home: move to angle <span class="math inline">\(0\)</span>.</li>
+</ul>
+<p>Every drag operation must have a keyboard and numeric
+alternative.</p>
+<hr />
+<h2 id="animation">7. Animation</h2>
+<p>Use <code>requestAnimationFrame</code> with elapsed time, not frame
+count:</p>
+<p><span class="math display">\[
+\theta(t+\Delta t)=\theta(t)+d\,\omega\,\Delta t,
+\]</span></p>
+<p>where <span class="math inline">\(d\in\{-1,1\}\)</span> is direction
+and <span class="math inline">\(\omega\)</span> is angular speed.</p>
+<p>Controls:</p>
+<ul>
+<li>Play/pause.</li>
+<li>Direction: clockwise/counterclockwise.</li>
+<li>Speed presets such as <span
+class="math inline">\(\tfrac14\times\)</span>, <span
+class="math inline">\(\tfrac12\times\)</span>, <span
+class="math inline">\(1\times\)</span>, and <span
+class="math inline">\(2\times\)</span>.</li>
+<li>Optional trail toggle.</li>
+</ul>
+<p>Behavior:</p>
+<ul>
+<li>Pointer dragging temporarily pauses animation.</li>
+<li>Releasing the pointer resumes only if animation was playing before
+the drag.</li>
+<li>The waveform cursor loops smoothly while <code>unwrappedTheta</code>
+retains revolution count for continuity.</li>
+<li>Reduced-motion mode starts paused and uses no automatic animation
+unless explicitly started.</li>
+<li>Background tabs should not accumulate a large time jump; reset the
+animation timestamp after visibility changes.</li>
+</ul>
+<hr />
+<h2 id="complex-plane-and-circle-view">8. Complex-plane and circle
+view</h2>
+<p>The main left visualization should contain:</p>
+<ul>
+<li>Real/<span class="math inline">\(x\)</span> axis and imaginary/<span
+class="math inline">\(y\)</span> axis.</li>
+<li>Unit circle.</li>
+<li>Optional faint concentric polar-radius rings.</li>
+<li>Angle ray from the origin.</li>
+<li>Angle arc labeled <span class="math inline">\(\theta\)</span>.</li>
+<li>Unit point <span class="math inline">\(u=e^{i\theta}\)</span>.</li>
+<li>Polar point <span class="math inline">\(z=ru\)</span> when <span
+class="math inline">\(r\ne1\)</span>.</li>
+<li>Horizontal projection labeled <span
+class="math inline">\(\cos\theta\)</span>.</li>
+<li>Vertical projection labeled <span
+class="math inline">\(\sin\theta\)</span>.</li>
+<li>Right-angle marker.</li>
+<li>Current Cartesian coordinates.</li>
+<li>Standard-angle rays when exact-angle guides are enabled.</li>
+</ul>
+<p>Use the same colors everywhere:</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(\cos\theta\)</span> / real /
+horizontal</td>
+<td>Blue</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\sin\theta\)</span> / imaginary /
+vertical</td>
+<td>Coral</td>
+</tr>
+<tr>
+<td><span class="math inline">\(u=e^{i\theta}\)</span></td>
+<td>Violet</td>
+</tr>
+<tr>
+<td><span class="math inline">\(z=ru\)</span> / radius</td>
+<td>Teal</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\theta\)</span> / arcs / rotation</td>
+<td>Amber</td>
+</tr>
+<tr>
+<td>Derived or comparison point</td>
+<td>Green</td>
+</tr>
+</tbody>
+</table>
+<p>The angle ray itself should be thin. Projection lines should be
+dashed. Points and handles should be visually stronger than construction
+lines.</p>
+<hr />
+<h2 id="sine-and-cosine-plots">9. Sine and cosine plots</h2>
+<p>Use two separate but aligned plots:</p>
+<p><span class="math display">\[
+C(t)=\cos t,
+\qquad
+S(t)=\sin t.
+\]</span></p>
+<p>Each plot should show:</p>
+<ul>
+<li>horizontal angle axis from <span
+class="math inline">\(-2\pi\)</span> to <span
+class="math inline">\(2\pi\)</span> or a configurable two-period
+window;</li>
+<li>exact tick labels at multiples of <span
+class="math inline">\(\pi/2\)</span>;</li>
+<li>vertical values <span class="math inline">\(-1,0,1\)</span>;</li>
+<li>the full function curve;</li>
+<li>a shared vertical cursor at <span
+class="math inline">\(t=\theta\)</span>;</li>
+<li>the current point <span
+class="math inline">\((\theta,\cos\theta)\)</span> or <span
+class="math inline">\((\theta,\sin\theta)\)</span>;</li>
+<li>a faint trace showing the current revolution if animation is
+running.</li>
+</ul>
+<p>The plots should remain separate so the learner can see each
+coordinate function independently. They should nevertheless share:</p>
+<ul>
+<li>the same horizontal scale;</li>
+<li>one cursor position;</li>
+<li>coordinated hover and focus states;</li>
+<li>aligned zero axes and exact-angle guides.</li>
+</ul>
+<h3 id="cross-view-connectors">Cross-view connectors</h3>
+<p>An overlay SVG may draw two very thin, low-opacity leaders:</p>
+<ul>
+<li>horizontal unit-circle projection <span
+class="math inline">\(\to\)</span> current cosine point;</li>
+<li>vertical unit-circle projection <span
+class="math inline">\(\to\)</span> current sine point.</li>
+</ul>
+<p>Show these strongly while dragging or focusing a quantity and faintly
+otherwise. Color alone is insufficient; use dashed versus solid line
+styles as well.</p>
+<hr />
+<h2 id="exact-angle-geometry">10. Exact-angle geometry</h2>
+<p>The app should explain exact values rather than merely display
+them.</p>
+<p>Provide selectable angle chips and optional snapping for:</p>
+<p><span class="math display">\[
+0,
+\frac{\pi}{6},
+\frac{\pi}{4},
+\frac{\pi}{3},
+\frac{\pi}{2},
+\pi,
+\frac{3\pi}{2},
+2\pi.
+\]</span></p>
+<p>Use symmetry to derive the remaining standard angles.</p>
+<h3 id="quadrantal-angles">Quadrantal angles</h3>
+<p>At <span class="math inline">\(0\)</span>, <span
+class="math inline">\(\pi/2\)</span>, <span
+class="math inline">\(\pi\)</span>, and <span
+class="math inline">\(3\pi/2\)</span>, emphasize that one coordinate
+lies on an axis and the other is zero.</p>
+<h3 id="circ"><span class="math inline">\(45^\circ\)</span></h3>
+<p>Show an isosceles right triangle inside the unit circle:</p>
+<p><span class="math display">\[
+a^2+a^2=1
+\quad\Longrightarrow\quad
+a=\frac{\sqrt2}{2}.
+\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[
+\cos\frac\pi4=\sin\frac\pi4=\frac{\sqrt2}{2}.
+\]</span></p>
+<h3 id="circ-and-60circ"><span class="math inline">\(30^\circ\)</span>
+and <span class="math inline">\(60^\circ\)</span></h3>
+<p>Show half of an equilateral triangle with hypotenuse <span
+class="math inline">\(1\)</span> and short leg <span
+class="math inline">\(1/2\)</span>:</p>
+<p><span class="math display">\[
+x^2+\left(\frac12\right)^2=1
+\quad\Longrightarrow\quad
+x=\frac{\sqrt3}{2}.
+\]</span></p>
+<p>Use the orientation of the triangle to distinguish which coordinate
+is <span class="math inline">\(1/2\)</span> and which is <span
+class="math inline">\(\sqrt3/2\)</span>.</p>
+<h3 id="exact-value-display">Exact-value display</h3>
+<p>When the current angle is exact or snapped:</p>
+<ul>
+<li>show symbolic values such as <span
+class="math inline">\(\sqrt3/2\)</span>;</li>
+<li>also show a quiet decimal approximation;</li>
+<li>highlight the corresponding point on both wave plots;</li>
+<li>identify the quadrant signs separately from the reference
+triangle.</li>
+</ul>
+<p>When the angle is arbitrary, show rounded decimals without pretending
+they are exact.</p>
+<hr />
+<h2 id="identity-lenses">11. Identity lenses</h2>
+<p>Identity lenses are freely selectable overlays, not lesson steps.
+Switching lenses must not reset <span
+class="math inline">\(\theta\)</span>, radius, animation, or camera/view
+state.</p>
+<p>The circle and both function plots remain visible in every lens.</p>
+<h3 id="a.-coordinates-euler">A. Coordinates / Euler</h3>
+<p>Persistent foundation:</p>
+<p><span class="math display">\[
+e^{i\theta}=\cos\theta+i\sin\theta.
+\]</span></p>
+<p>For arbitrary radius:</p>
+<p><span class="math display">\[
+z=r e^{i\theta}=r\cos\theta+i\,r\sin\theta=x+iy.
+\]</span></p>
+<p>Visual emphasis:</p>
+<ul>
+<li>one point, four coordinate descriptions;</li>
+<li>real and imaginary parts mapped to cosine and sine plots.</li>
+</ul>
+<h3 id="b.-norm-pythagorean-identity">B. Norm / Pythagorean
+identity</h3>
+<p>Visual emphasis:</p>
+<ul>
+<li>right triangle formed by the coordinate projections;</li>
+<li>optional subtle squares on the two legs and hypotenuse;</li>
+<li>unit modulus.</li>
+</ul>
+<p>Complex derivation:</p>
+<p><span class="math display">\[
+|e^{i\theta}|^2
+=e^{i\theta}e^{-i\theta}
+=1.
+\]</span></p>
+<p>Coordinate result:</p>
+<p><span class="math display">\[
+\cos^2\theta+\sin^2\theta=1.
+\]</span></p>
+<p>For arbitrary radius, also show:</p>
+<p><span class="math display">\[
+x^2+y^2=r^2.
+\]</span></p>
+<h3 id="c.-angle-addition-complex-multiplication">C. Angle addition /
+complex multiplication</h3>
+<p>Introduce two editable angles <span
+class="math inline">\(\alpha\)</span> and <span
+class="math inline">\(\beta\)</span> plus their product direction <span
+class="math inline">\(\alpha+\beta\)</span>.</p>
+<p>Visual emphasis:</p>
+<ul>
+<li>vectors <span class="math inline">\(e^{i\alpha}\)</span> and <span
+class="math inline">\(e^{i\beta}\)</span>;</li>
+<li>multiplication by <span class="math inline">\(e^{i\beta}\)</span>
+shown as rotation through <span
+class="math inline">\(\beta\)</span>;</li>
+<li>result <span
+class="math inline">\(e^{i(\alpha+\beta)}\)</span>;</li>
+<li>wave cursor follows the resulting angle while ghost markers retain
+the component angles.</li>
+</ul>
+<p>Complex equation:</p>
+<p><span class="math display">\[
+e^{i(\alpha+\beta)}
+=e^{i\alpha}e^{i\beta}.
+\]</span></p>
+<p>Expansion:</p>
+<p><span class="math display">\[
+(\cos\alpha+i\sin\alpha)
+(\cos\beta+i\sin\beta).
+\]</span></p>
+<p>Real and imaginary parts reveal:</p>
+<p><span class="math display">\[
+\cos(\alpha+\beta)
+=\cos\alpha\cos\beta-\sin\alpha\sin\beta,
+\]</span></p>
+<p><span class="math display">\[
+\sin(\alpha+\beta)
+=\sin\alpha\cos\beta+\cos\alpha\sin\beta.
+\]</span></p>
+<h3 id="d.-powers-double-angle-de-moivre">D. Powers / double angle / De
+Moivre</h3>
+<p>Add a small integer control <span
+class="math inline">\(n\in\{2,3,4,5,6\}\)</span>.</p>
+<p>Show the base point <span
+class="math inline">\(u=e^{i\theta}\)</span> and derived point <span
+class="math inline">\(u^n=e^{in\theta}\)</span>.</p>
+<p><span class="math display">\[
+(e^{i\theta})^n=e^{in\theta}.
+\]</span></p>
+<p>Equivalent form:</p>
+<p><span class="math display">\[
+(\cos\theta+i\sin\theta)^n
+=\cos(n\theta)+i\sin(n\theta).
+\]</span></p>
+<p>For <span class="math inline">\(n=2\)</span>, reveal the familiar
+identities:</p>
+<p><span class="math display">\[
+\cos2\theta=\cos^2\theta-\sin^2\theta,
+\]</span></p>
+<p><span class="math display">\[
+\sin2\theta=2\sin\theta\cos\theta.
+\]</span></p>
+<p>The visual should show the derived angle wrapping around the circle
+twice as fast, not merely display the algebra.</p>
+<h3 id="e.-conjugate-even-and-odd-symmetry">E. Conjugate / even and odd
+symmetry</h3>
+<p>Show <span class="math inline">\(u=e^{i\theta}\)</span> and its
+reflection across the real axis:</p>
+<p><span class="math display">\[
+\bar u=e^{-i\theta}=\cos\theta-i\sin\theta.
+\]</span></p>
+<p>Then:</p>
+<p><span class="math display">\[
+\cos(-\theta)=\cos\theta,
+\]</span></p>
+<p><span class="math display">\[
+\sin(-\theta)=-\sin\theta.
+\]</span></p>
+<p>Coordinate this with mirrored cursors at <span
+class="math inline">\(\theta\)</span> and <span
+class="math inline">\(-\theta\)</span> on both function plots.</p>
+<h3 id="f.-quarter-turn-phase-shift">F. Quarter turn / phase shift</h3>
+<p>Show multiplication by <span class="math inline">\(i\)</span> as a
+<span class="math inline">\(90^\circ\)</span> rotation:</p>
+<p><span class="math display">\[
+i e^{i\theta}=e^{i(\theta+\pi/2)}.
+\]</span></p>
+<p>Use this to connect the functions:</p>
+<p><span class="math display">\[
+\sin\left(\theta+\frac\pi2\right)=\cos\theta,
+\]</span></p>
+<p><span class="math display">\[
+\cos\left(\theta+\frac\pi2\right)=-\sin\theta.
+\]</span></p>
+<p>Overlay a faint shifted comparison curve on the sine and cosine
+plots. Keep the primary curves visually dominant.</p>
+<hr />
+<h2 id="live-coordinate-strip">12. Live coordinate strip</h2>
+<p>The strip above the visual stage should continuously show equivalent
+forms:</p>
+<p><span class="math display">\[
+(r,\theta)
+\quad\longleftrightarrow\quad
+(x,y)
+\quad\longleftrightarrow\quad
+z=x+iy
+\quad\longleftrightarrow\quad
+z=r e^{i\theta}.
+\]</span></p>
+<p>For <span class="math inline">\(r=1\)</span>, add:</p>
+<p><span class="math display">\[
+u=e^{i\theta}=\cos\theta+i\sin\theta.
+\]</span></p>
+<p>The currently focused quantity should highlight across the strip and
+all plots:</p>
+<table>
+<thead>
+<tr>
+<th>Focus</th>
+<th>Coordinated emphasis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(\theta\)</span></td>
+<td>angle arc, wave cursor, exponential phase</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\cos\theta\)</span></td>
+<td>horizontal leg, real coordinate, cosine point</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\sin\theta\)</span></td>
+<td>vertical leg, imaginary coordinate, sine point</td>
+</tr>
+<tr>
+<td><span class="math inline">\(r\)</span></td>
+<td>radius ray, modulus, polar point</td>
+</tr>
+<tr>
+<td><span class="math inline">\(z\)</span></td>
+<td>complex point and all coordinate representations</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="identity-dock">13. Identity dock</h2>
+<p>The dock should present each selected identity in three aligned
+layers:</p>
+<ol type="1">
+<li><strong>Geometry:</strong> a short sentence describing what changed
+in the picture.</li>
+<li><strong>Complex form:</strong> multiplication, conjugation, modulus,
+or power.</li>
+<li><strong>Trigonometric form:</strong> the resulting identity.</li>
+</ol>
+<p>Example for angle addition:</p>
+<pre class="text"><code>GEOMETRY              COMPLEX NUMBERS                 REAL + IMAGINARY PARTS
+rotate by β            eⁱ⁽ᵅ⁺ᵝ⁾ = eⁱᵅeⁱᵝ              cos(α+β) = …
+                                                     sin(α+β) = …</code></pre>
+<p>Do not show a long derivation by default. A disclosure control may
+reveal one intermediate algebra line.</p>
+<p>The dock should also automatically show exact-angle triangle geometry
+when the current angle is a recognized standard angle, without changing
+the selected identity lens.</p>
+<hr />
+<h2 id="visual-language">14. Visual language</h2>
+<p>Use a restrained palette with stable semantic roles:</p>
+<ul>
+<li>Cosine / real / horizontal: deep blue.</li>
+<li>Sine / imaginary / vertical: coral.</li>
+<li>Unit complex point: violet.</li>
+<li>Radius / arbitrary polar point: teal.</li>
+<li>Angle / rotation: amber.</li>
+<li>Derived identity point: emerald.</li>
+<li>Reference geometry: slate.</li>
+<li>Background: warm off-white.</li>
+</ul>
+<p>Rules:</p>
+<ul>
+<li>Keep curve strokes stronger than grid lines.</li>
+<li>Keep active points stronger than curves.</li>
+<li>Keep construction lines thin and partially transparent.</li>
+<li>Do not place large pills over the geometry.</li>
+<li>Use compact labels near endpoints and place detailed values in the
+coordinate strip.</li>
+<li>Use exact mathematical symbols in labels rather than prose where
+possible.</li>
+<li>Do not distinguish sine and cosine by color alone; use solid versus
+dashed projection styles and visible <span
+class="math inline">\(x/y\)</span> or Re/Im labels.</li>
+</ul>
+<p>Motion should explain causality:</p>
+<ul>
+<li>rotation moves the coordinate projections;</li>
+<li>those projections move the two waveform markers;</li>
+<li>complex multiplication rotates a vector;</li>
+<li>powers accelerate angular motion;</li>
+<li>conjugation reflects the point.</li>
+</ul>
+<p>Avoid ambient animation when playback is paused.</p>
+<hr />
+<h2 id="mathematical-invariants">15. Mathematical invariants</h2>
+<p>The implementation must preserve:</p>
+<ul>
+<li><span class="math inline">\(u=(\cos\theta,\sin\theta)\)</span>.</li>
+<li><span class="math inline">\(\lVert u\rVert=1\)</span>.</li>
+<li><span class="math inline">\(z=ru\)</span>.</li>
+<li><span class="math inline">\(x=r\cos\theta\)</span> and <span
+class="math inline">\(y=r\sin\theta\)</span>.</li>
+<li><span class="math inline">\(z=x+iy=r e^{i\theta}\)</span>.</li>
+<li><span
+class="math inline">\(\cos^2\theta+\sin^2\theta=1\)</span>.</li>
+<li>The current cosine graph point is exactly <span
+class="math inline">\((\theta,\cos\theta)\)</span>.</li>
+<li>The current sine graph point is exactly <span
+class="math inline">\((\theta,\sin\theta)\)</span>.</li>
+<li><span
+class="math inline">\(e^{i\alpha}e^{i\beta}=e^{i(\alpha+\beta)}\)</span>.</li>
+<li><span
+class="math inline">\(\overline{e^{i\theta}}=e^{-i\theta}\)</span>.</li>
+<li><span class="math inline">\((e^{i\theta})^n=e^{in\theta}\)</span>
+for integer <span class="math inline">\(n\)</span>.</li>
+<li>Exact-angle labels agree with the quadrant and reference-angle
+construction.</li>
+<li>Angle normalization used for display must not destroy the unwrapped
+phase needed for animation continuity.</li>
+</ul>
+<p>Use tolerances only for recognizing and displaying near-exact angles.
+Do not silently snap unless exact-angle snapping is enabled.</p>
+<hr />
+<h2 id="technical-architecture">16. Technical architecture</h2>
+<p>Use a no-build, GitHub Pages-compatible vanilla JavaScript
+architecture.</p>
+<h3 id="rendering">Rendering</h3>
+<p>Use SVG rather than a 3D/WebGL scene:</p>
+<ul>
+<li>one SVG for the complex plane and circle;</li>
+<li>one SVG each for cosine and sine;</li>
+<li>one transparent overlay SVG for cross-panel connector lines;</li>
+<li>KaTeX for equations.</li>
+</ul>
+<p>SVG is preferable here because:</p>
+<ul>
+<li>the geometry is two-dimensional;</li>
+<li>lines, arcs, labels, and focus targets remain crisp;</li>
+<li>pointer interaction is straightforward;</li>
+<li>semantic descriptions and keyboard focus are easier than with
+canvas;</li>
+<li>only a few dynamic attributes change each frame.</li>
+</ul>
+<p>Precompute static sine and cosine paths. During animation, update
+only:</p>
+<ul>
+<li>circle points and rays;</li>
+<li>projection segments;</li>
+<li>wave cursors and current markers;</li>
+<li>identity overlay geometry;</li>
+<li>numeric readouts.</li>
+</ul>
+<h3 id="suggested-file-split">Suggested file split</h3>
+<pre class="text"><code>visual-trigonometry/
+├── DESIGN.md
+├── index.html
+├── visual-trigonometry.css
+├── app.js
+├── state.js
+├── model.js
+├── exact-values.js
+├── circle-view.js
+├── wave-view.js
+├── connector-view.js
+├── identity-view.js
+├── math-panel.js
+├── interaction.js
+├── model.test.mjs
+└── preview.png</code></pre>
+<p>Responsibilities:</p>
+<ul>
+<li><code>model.js</code>: pure polar/Cartesian/complex calculations and
+identity models.</li>
+<li><code>exact-values.js</code>: canonical angles, symbolic values,
+quadrant reduction, and construction metadata.</li>
+<li><code>state.js</code>: interaction state and animation
+transitions.</li>
+<li><code>circle-view.js</code>: complex plane, unit circle, triangles,
+points, and identity overlays.</li>
+<li><code>wave-view.js</code>: reusable sine/cosine SVG plot.</li>
+<li><code>connector-view.js</code>: cross-panel leaders.</li>
+<li><code>identity-view.js</code>: identity-specific geometry and dock
+content.</li>
+<li><code>math-panel.js</code>: KaTeX rendering from the shared
+model.</li>
+<li><code>interaction.js</code>: pointer-to-angle conversion,
+unwrapping, dragging, and keyboard controls.</li>
+<li><code>app.js</code>: initialization, animation loop, state changes,
+and coordinated rendering.</li>
+</ul>
+<h3 id="numerical-model">Numerical model</h3>
+<p>The model should be dependency-free. Required operations are simple
+scalar trigonometry and complex multiplication:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode js"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">multiplyComplex</span>(a<span class="op">,</span> b)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">conjugateComplex</span>(z)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">complexPower</span>(z<span class="op">,</span> n)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">normalizeAngle</span>(theta)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">unwrapAngle</span>(previous<span class="op">,</span> nextPrincipal)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="fu">recognizeExactAngle</span>(theta<span class="op">,</span> tolerance)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="fu">computeTrigModel</span>(state)</span></code></pre></div>
+<p>Do not introduce a general complex-number or matrix library for this
+scope.</p>
+<hr />
+<h2 id="accessibility">17. Accessibility</h2>
+<ul>
+<li>The unit-circle handle must be focusable and keyboard movable.</li>
+<li>Angle and radius must have range and numeric inputs.</li>
+<li>Play/pause must expose <code>aria-pressed</code> and a clear
+accessible name.</li>
+<li>Each SVG needs a concise current-state description.</li>
+<li>Provide a textual table containing <span
+class="math inline">\(\theta\)</span>, <span
+class="math inline">\(r\)</span>, <span
+class="math inline">\(x\)</span>, <span
+class="math inline">\(y\)</span>, <span
+class="math inline">\(\sin\theta\)</span>, <span
+class="math inline">\(\cos\theta\)</span>, and <span
+class="math inline">\(z\)</span>.</li>
+<li>Announce snapped exact angles and identity changes, but do not
+announce every animation frame.</li>
+<li>While animation runs, throttle optional live updates heavily or keep
+them silent until paused.</li>
+<li>Honor <code>prefers-reduced-motion</code>; begin paused and avoid
+animated identity transitions.</li>
+<li>Preserve readable equations at 200% zoom.</li>
+<li>Use line style, labels, and marker shapes in addition to color.</li>
+<li>Make all identity lenses operable without pointer dragging.</li>
+</ul>
+<hr />
+<h2 id="first-version-scope">18. First-version scope</h2>
+<h3 id="include">Include</h3>
+<ul>
+<li>One synchronized screen with no guided steps.</li>
+<li>Unit circle inside the complex plane.</li>
+<li>Polar, Cartesian, and complex coordinate forms.</li>
+<li>Adjustable angle and radius.</li>
+<li>Draggable unit-circle point.</li>
+<li>Draggable shared waveform cursor.</li>
+<li>Play/pause, direction, and speed.</li>
+<li>Separate sine and cosine plots.</li>
+<li>Radian and degree display.</li>
+<li>Exact-angle chips and optional snapping.</li>
+<li>Geometric derivations for <span
+class="math inline">\(30^\circ\)</span>, <span
+class="math inline">\(45^\circ\)</span>, and <span
+class="math inline">\(60^\circ\)</span>.</li>
+<li>Coordinate/Euler, Pythagorean, addition, powers, conjugate, and
+quarter-turn lenses.</li>
+<li>Responsive layout and reduced-motion support.</li>
+<li>Pure model tests.</li>
+</ul>
+<h3 id="defer">Defer</h3>
+<ul>
+<li>Tangent, secant, cosecant, and cotangent plots.</li>
+<li>Inverse trigonometric functions and branch cuts.</li>
+<li>Hyperbolic functions.</li>
+<li>Arbitrary complex-number arithmetic beyond the selected
+identities.</li>
+<li>Fourier sums and multiple simultaneous frequencies.</li>
+<li>3D spherical coordinates.</li>
+<li>Formal epsilon-style proofs.</li>
+<li>User-authored symbolic identities.</li>
+</ul>
+<p>Tangent is intentionally deferred because its asymptotes would add a
+third plot and distract from the core real/imaginary-coordinate
+story.</p>
+<hr />
+<h2 id="implementation-phases">19. Implementation phases</h2>
+<h3 id="phase-1-shared-model-and-static-synchronized-views">Phase 1 —
+Shared model and static synchronized views</h3>
+<ul>
+<li>Implement angle normalization and unwrapping.</li>
+<li>Implement polar, Cartesian, and complex conversions.</li>
+<li>Render unit circle/complex plane.</li>
+<li>Render separate sine and cosine paths.</li>
+<li>Add shared cursor and coordinate strip.</li>
+<li>Add pure model tests.</li>
+</ul>
+<p><strong>Exit criterion:</strong> setting one angle produces the same
+cosine and sine values in every view.</p>
+<h3 id="phase-2-direct-manipulation-and-animation">Phase 2 — Direct
+manipulation and animation</h3>
+<ul>
+<li>Drag the unit-circle handle.</li>
+<li>Drag either waveform cursor.</li>
+<li>Add keyboard alternatives.</li>
+<li>Add play/pause, direction, and speed.</li>
+<li>Handle visibility changes and reduced motion.</li>
+</ul>
+<p><strong>Exit criterion:</strong> all three views can drive the same
+angle state without jumps at <span
+class="math inline">\(\pm\pi\)</span>.</p>
+<h3 id="phase-3-exact-values-and-triangle-constructions">Phase 3 — Exact
+values and triangle constructions</h3>
+<ul>
+<li>Add standard-angle guides and chips.</li>
+<li>Add snapping toggle.</li>
+<li>Implement symbolic exact-value metadata.</li>
+<li>Render <span class="math inline">\(45^\circ\)</span> and <span
+class="math inline">\(30^\circ/60^\circ\)</span> constructions.</li>
+<li>Add quadrant sign reduction.</li>
+</ul>
+<p><strong>Exit criterion:</strong> exact sine and cosine values are
+visibly derived from triangle side lengths.</p>
+<h3 id="phase-4-complex-identity-lenses">Phase 4 — Complex identity
+lenses</h3>
+<ul>
+<li>Euler/coordinate lens.</li>
+<li>Norm/Pythagorean lens.</li>
+<li>Addition lens with <span class="math inline">\(\alpha\)</span> and
+<span class="math inline">\(\beta\)</span>.</li>
+<li>Powers/De Moivre lens with integer <span
+class="math inline">\(n\)</span>.</li>
+<li>Conjugate symmetry lens.</li>
+<li>Quarter-turn phase-shift lens.</li>
+</ul>
+<p><strong>Exit criterion:</strong> each trigonometric identity is tied
+to a visible complex-plane operation.</p>
+<h3 id="phase-5-responsive-layout-accessibility-and-polish">Phase 5 —
+Responsive layout, accessibility, and polish</h3>
+<ul>
+<li>Add semantic summaries and numerical table.</li>
+<li>Tune labels and connector opacity.</li>
+<li>Validate 200% zoom and mobile stacking.</li>
+<li>Add preview image and library card.</li>
+</ul>
+<hr />
+<h2 id="validation-plan">20. Validation plan</h2>
+<h3 id="pure-model-tests">Pure model tests</h3>
+<p>Test:</p>
+<ul>
+<li>polar-to-Cartesian conversions;</li>
+<li>Cartesian-to-polar conversions, including origin behavior;</li>
+<li>unit-circle norm over representative and random angles;</li>
+<li>periodicity of sine and cosine;</li>
+<li>angle normalization and branch-cut unwrapping;</li>
+<li>exact-angle recognition and symbolic values;</li>
+<li>quadrant sign reduction;</li>
+<li>complex multiplication and angle addition;</li>
+<li>conjugation;</li>
+<li>integer powers and De Moivre;</li>
+<li>quarter-turn multiplication by <span
+class="math inline">\(i\)</span>;</li>
+<li>all displayed identity residuals within numerical tolerance.</li>
+</ul>
+<h3 id="interaction-tests">Interaction tests</h3>
+<ul>
+<li>Drag continuously through <span class="math inline">\(\pi\)</span>
+and <span class="math inline">\(-\pi\)</span> without a backward
+jump.</li>
+<li>Drag on either wave plot and verify the circle follows.</li>
+<li>Pause during drag and restore prior playback state on release.</li>
+<li>Switch radians/degrees without changing the underlying angle.</li>
+<li>Enable and disable snapping without silently altering arbitrary
+angles.</li>
+<li>Switch identity lenses without resetting angle, radius, or
+playback.</li>
+</ul>
+<h3 id="visual-checks">Visual checks</h3>
+<ul>
+<li>Projection colors match their wave plots.</li>
+<li>Current markers agree at standard and arbitrary angles.</li>
+<li>Exact labels do not overlap the active point.</li>
+<li>Addition and power overlays remain distinguishable from the primary
+point.</li>
+<li>Connector lines remain secondary and do not obscure curves.</li>
+<li>All panels remain visible on a typical 1440×900 viewport.</li>
+</ul>
+<hr />
+<h2 id="success-criteria">21. Success criteria</h2>
+<p>The app succeeds if a learner can answer:</p>
+<ol type="1">
+<li>Why is <span class="math inline">\(\cos\theta\)</span> the
+horizontal coordinate?</li>
+<li>Why is <span class="math inline">\(\sin\theta\)</span> the vertical
+coordinate?</li>
+<li>How does a rotating point produce sine and cosine waves?</li>
+<li>How do <span class="math inline">\((r,\theta)\)</span>, <span
+class="math inline">\((x,y)\)</span>, <span
+class="math inline">\(x+iy\)</span>, and <span class="math inline">\(r
+e^{i\theta}\)</span> describe the same point?</li>
+<li>Where do <span class="math inline">\(\sqrt2/2\)</span>, <span
+class="math inline">\(1/2\)</span>, and <span
+class="math inline">\(\sqrt3/2\)</span> come from?</li>
+<li>Why does <span
+class="math inline">\(\cos^2\theta+\sin^2\theta=1\)</span>?</li>
+<li>Why does complex multiplication add angles?</li>
+<li>How do the addition formulas follow from complex
+multiplication?</li>
+<li>Why is cosine even and sine odd?</li>
+<li>Why is cosine a quarter-period shift of sine?</li>
+<li>Why do powers of a complex unit rotate through multiples of the
+angle?</li>
+</ol>
+<p>Each answer should be visible in the synchronized geometry before it
+is stated algebraically.</p>
+<hr />
+<h2 id="main-design-risks">22. Main design risks</h2>
+<h3 id="risk-too-many-overlays-obscure-the-core-circle">Risk: too many
+overlays obscure the core circle</h3>
+<p><strong>Mitigation:</strong> identity lenses add only the geometry
+needed for one identity at a time. The base point, coordinate
+projections, and wave cursor remain stable.</p>
+<h3 id="risk-adjustable-radius-confuses-sine-and-cosine-values">Risk:
+adjustable radius confuses sine and cosine values</h3>
+<p><strong>Mitigation:</strong> keep the unit point <span
+class="math inline">\(u=e^{i\theta}\)</span> visible and distinct from
+the polar point <span class="math inline">\(z=ru\)</span>. The wave
+plots always map the unit coordinates.</p>
+<h3 id="risk-connector-lines-create-visual-noise">Risk: connector lines
+create visual noise</h3>
+<p><strong>Mitigation:</strong> use thin, low-opacity leaders and
+strengthen them only during drag, hover, or keyboard focus.</p>
+<h3 id="risk-exact-angle-snapping-feels-unpredictable">Risk: exact-angle
+snapping feels unpredictable</h3>
+<p><strong>Mitigation:</strong> snapping is explicit, optional, and
+visually indicated. Without it, nearby values may be recognized
+approximately but the point is not moved.</p>
+<h3 id="risk-animation-becomes-decorative-rather-than-explanatory">Risk:
+animation becomes decorative rather than explanatory</h3>
+<p><strong>Mitigation:</strong> every animated quantity is a direct
+consequence of the shared angle. No ambient motion occurs while playback
+is paused.</p>
+<h3
+id="risk-addition-formulas-still-feel-like-unexplained-algebra">Risk:
+addition formulas still feel like unexplained algebra</h3>
+<p><strong>Mitigation:</strong> show multiplication as a visible
+rotation first, then expand the two complex numbers, then identify real
+and imaginary parts.</p>
+<hr />
+<h2 id="product-position">23. Product position</h2>
+<p>Visual Trigonometry should sit conceptually before the Fourier
+explorer:</p>
+<ul>
+<li><strong>Visual Trigonometry:</strong> one rotating complex number
+produces sine and cosine.</li>
+<li><strong>Fourier Series Explorer:</strong> many rotating complex
+numbers combine to produce general periodic waves.</li>
+</ul>
+<p>The app itself should not require a prominent handoff card. The
+relationship can be expressed in the library description and, if useful
+later, through a quiet contextual link rather than a large in-app
+promotion.</p>
+</body>
+</html>

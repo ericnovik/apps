@@ -193,7 +193,7 @@ sup {
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -954,27 +954,13 @@ input[type="range"]::-moz-range-thumb {
   min-width: 0;
   padding: 10px 11px;
   display: grid;
-  grid-template-columns: minmax(230px, 0.9fr) minmax(0, 3.25fr) minmax(146px, 0.55fr);
+  grid-template-columns: minmax(230px, 0.9fr) minmax(0, 4fr);
   align-items: stretch;
   gap: 10px;
   border-radius: var(--card-radius);
 }
 
-.dock-intro h2 {
-  margin-top: 3px;
-  font-family: var(--font-editorial);
-  font-size: 1rem;
-  font-weight: 650;
-  line-height: 1.08;
-  letter-spacing: -0.01em;
-}
 
-.dock-intro > p:last-child {
-  margin-top: 5px;
-  color: var(--muted);
-  font-size: 0.7rem;
-  line-height: 1.3;
-}
 
 .identity-lens-dock {
   min-width: 0;
@@ -1187,13 +1173,22 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .identity-exact-companion {
+  flex: 1 1 460px;
   min-width: 0;
-  padding: 4px 52px 0 0;
+  min-height: 0;
+  height: 25px;
+  padding: 0 5px;
   display: grid;
-  grid-template-columns: auto minmax(110px, 1fr) auto minmax(130px, 1.25fr) minmax(150px, 1.4fr) auto;
+  grid-template-columns: minmax(105px, 1fr) auto minmax(100px, 1.1fr) minmax(116px, 1.2fr);
   align-items: center;
-  gap: 6px;
-  border-top: 1px dashed rgba(188, 122, 30, 0.34);
+  gap: 5px;
+  overflow: hidden;
+  border-left: 1px dashed rgba(188, 122, 30, 0.34);
+}
+
+.identity-exact-companion .identity-exact-label,
+.identity-exact-companion small {
+  display: none;
 }
 
 .identity-exact-companion strong {
@@ -1217,37 +1212,45 @@ input[type="range"]::-moz-range-thumb {
   white-space: nowrap;
 }
 
+.identity-panel[data-has-algebra="true"] .identity-exact-companion {
+  display: none;
+}
+
 .identity-algebra {
-  position: absolute;
-  z-index: 22;
-  right: 8px;
-  bottom: 5px;
+  flex: 1 1 360px;
+  min-width: 0;
+  height: 25px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  border-left: 1px dashed rgba(114, 86, 164, 0.3);
 }
 
-.identity-algebra summary {
-  padding: 2px 5px;
+.identity-algebra__label {
+  flex: 0 0 auto;
   color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--paper-strong);
-  font-size: 0.52rem;
-  font-weight: 700;
+  font-size: 0.5rem;
+  font-weight: 780;
   line-height: 1;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
 }
 
-.identity-algebra-popover {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 6px);
-  width: min(720px, calc(100vw - 48px));
-  padding: 9px;
+.identity-algebra-expression {
+  min-width: 0;
+  margin: 0;
+  overflow-x: auto;
   color: var(--ink-soft);
-  border: 1px solid var(--line-strong);
-  border-radius: 9px;
-  background: var(--paper-strong);
-  box-shadow: var(--shadow-raised);
-  font-size: 0.72rem;
-  white-space: normal;
+  font-size: 0.6rem;
+  font-weight: 650;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.identity-algebra-expression::-webkit-scrollbar {
+  display: none;
 }
 
 .exact-derivation-card {
@@ -1432,104 +1435,6 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1.25;
 }
 
-.values-details {
-  position: relative;
-  min-width: 0;
-}
-
-.values-details summary {
-  min-height: 42px;
-  padding: 7px 9px;
-  display: flex;
-  align-items: center;
-  border: 1px solid var(--line-strong);
-  border-radius: 9px;
-  background: var(--paper-warm);
-  user-select: none;
-}
-
-.values-details[open] summary {
-  border-color: var(--focus-ring);
-  background: var(--paper-strong);
-}
-
-.summary-title,
-.summary-meta {
-  display: block;
-}
-
-.summary-title {
-  font-family: var(--font-editorial);
-  font-size: 0.76rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.summary-meta {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 0.58rem;
-  line-height: 1.1;
-}
-
-.table-popover {
-  position: absolute;
-  z-index: 20;
-  right: 0;
-  bottom: calc(100% + 9px);
-  width: min(720px, calc(100vw - 48px));
-  padding: 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 11px;
-  background: var(--paper-strong);
-  box-shadow: var(--shadow-raised);
-}
-
-.table-scroll {
-  overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-table {
-  width: 100%;
-  min-width: 610px;
-  border-collapse: collapse;
-  font-size: 0.72rem;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-th,
-td {
-  padding: 7px 9px;
-  border-left: 1px solid var(--line);
-  white-space: nowrap;
-}
-
-th:first-child,
-td:first-child {
-  border-left: 0;
-}
-
-thead {
-  color: var(--muted);
-  background: var(--paper-warm);
-  font-size: 0.63rem;
-  letter-spacing: 0.035em;
-}
-
-thead th {
-  border-bottom: 1px solid var(--line);
-  font-weight: 750;
-}
-
-tbody th {
-  color: var(--angle-amber);
-  font-family: var(--font-math);
-  font-weight: 650;
-}
-
 /* Shared SVG vocabulary used by the circle and waveform views. */
 .axis,
 .grid-line,
@@ -1688,12 +1593,30 @@ tbody th {
   font-family: var(--font-ui);
 }
 
+.visual-trigonometry-circle-view[data-identity-active="true"]:not([data-identity-mode="coordinates"]) .vt-coordinate-construction {
+  opacity: 0.62;
+}
+
+.visual-trigonometry-circle-view[data-identity-active="true"]:not([data-identity-mode="coordinates"]) .vt-angle-ray {
+  stroke-width: 1.4;
+  opacity: 0.55;
+}
+
+.visual-trigonometry-circle-view[data-identity-active="true"]:not([data-identity-mode="coordinates"]) .vt-angle-arc {
+  stroke-width: 2.2;
+  opacity: 0.62;
+}
+
+.visual-trigonometry-circle-view[data-identity-active="true"]:not([data-identity-mode="coordinates"]) .vt-exact-construction text {
+  display: none;
+}
+
 .visual-trigonometry-circle-view[data-identity-mode="norm"] .vt-exact-construction,
 .visual-trigonometry-circle-view[data-identity-mode="addition"] .vt-exact-construction,
 .visual-trigonometry-circle-view[data-identity-mode="powers"] .vt-exact-construction,
 .visual-trigonometry-circle-view[data-identity-mode="conjugate"] .vt-exact-construction,
 .visual-trigonometry-circle-view[data-identity-mode="quarter-turn"] .vt-exact-construction {
-  opacity: 0.42;
+  opacity: 0.26;
 }
 
 .wave-exact-point-halo-active {
@@ -1768,10 +1691,6 @@ tbody th {
     filter: drop-shadow(0 2px 5px rgba(46, 35, 61, 0.3));
   }
 
-  .values-details summary:hover {
-    border-color: var(--ink-soft);
-    background: var(--paper-strong);
-  }
 }
 
 @media (min-width: 1101px) and (min-height: 720px) {
@@ -1783,6 +1702,26 @@ tbody th {
     height: 100vh;
     height: 100svh;
     min-height: 0;
+  }
+
+  .coordinate-strip {
+    height: 67px;
+  }
+
+  .identity-layers {
+    min-height: 60px;
+  }
+
+}
+
+@media (min-width: 1101px) and (max-width: 1199px) {
+  .identity-exact-companion {
+    flex-basis: 300px;
+    grid-template-columns: auto minmax(82px, 1fr) minmax(96px, 1.15fr);
+  }
+
+  .identity-exact-companion strong {
+    display: none;
   }
 }
 
@@ -1829,7 +1768,7 @@ tbody th {
   }
 
   .relationship-dock {
-    grid-template-columns: minmax(215px, 0.85fr) minmax(0, 3fr) minmax(138px, 0.55fr);
+    grid-template-columns: minmax(215px, 0.85fr) minmax(0, 3.75fr);
     gap: 8px;
   }
 
@@ -1921,9 +1860,6 @@ tbody th {
     align-content: center;
   }
 
-  .values-details {
-    align-self: center;
-  }
 }
 
 @media (max-width: 760px) {
@@ -2045,6 +1981,7 @@ tbody th {
   }
 
   .identity-parameters {
+    order: 4;
     width: 100%;
     margin-left: 0;
   }
@@ -2064,38 +2001,32 @@ tbody th {
   }
 
   .identity-exact-companion {
-    padding-right: 0;
+    order: 3;
+    flex: 1 0 100%;
+    width: 100%;
+    height: auto;
+    min-height: 25px;
+    padding: 4px 0 0;
     grid-template-columns: auto minmax(0, 1fr) auto;
+    border-top: 1px dashed rgba(188, 122, 30, 0.34);
+    border-left: 0;
   }
 
   .identity-algebra {
-    position: relative;
-    right: auto;
-    bottom: auto;
-    justify-self: end;
-  }
-
-  .identity-algebra-popover {
-    position: static;
+    order: 3;
+    flex: 1 0 100%;
     width: 100%;
-    margin-top: 5px;
-    box-shadow: none;
-  }
-
-  .dock-intro > p:last-child {
-    max-width: 58ch;
+    height: auto;
+    min-height: 25px;
+    padding: 4px 0 0;
+    border-top: 1px dashed rgba(114, 86, 164, 0.3);
+    border-left: 0;
   }
 
   .euler-card {
     min-height: 72px;
   }
 
-  .table-popover {
-    position: static;
-    width: 100%;
-    margin-top: 8px;
-    box-shadow: none;
-  }
 }
 
 @media (max-width: 520px) {

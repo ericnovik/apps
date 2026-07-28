@@ -660,12 +660,12 @@ export function createCircleView(container, callbacks = {}) {
     "stroke-linejoin": "miter",
   });
 
-  function addIdentityLabel(parent, className, fill = COLORS.ink, fontSize = 15) {
+  function addIdentityLabel(parent, className, fill = COLORS.ink, fontSize = 14) {
     return add(parent, "text", {
       class: className,
       fill,
       stroke: COLORS.handleOutline,
-      "stroke-width": 4.5,
+      "stroke-width": 3.5,
       "stroke-linejoin": "round",
       "paint-order": "stroke fill",
       "font-size": fontSize,
@@ -751,21 +751,21 @@ export function createCircleView(container, callbacks = {}) {
   const identityNormHorizontalSquare = add(identityNorm, "polygon", {
     class: "vt-identity-norm-square vt-identity-norm-cosine-square",
     fill: COLORS.cosine,
-    "fill-opacity": 0.055,
+    "fill-opacity": 0.035,
     stroke: COLORS.cosine,
-    "stroke-width": 1.4,
+    "stroke-width": 1.1,
     "stroke-linejoin": "round",
-    opacity: 0.86,
+    opacity: 0.65,
     "vector-effect": "non-scaling-stroke",
   });
   const identityNormVerticalSquare = add(identityNorm, "polygon", {
     class: "vt-identity-norm-square vt-identity-norm-sine-square",
     fill: COLORS.sine,
-    "fill-opacity": 0.055,
-    stroke: COLORS.sine,
-    "stroke-width": 1.4,
+    "fill-opacity": 0.035,
+    stroke: COLORS.sineInk,
+    "stroke-width": 1.1,
     "stroke-linejoin": "round",
-    opacity: 0.86,
+    opacity: 0.65,
     "vector-effect": "non-scaling-stroke",
   });
   const identityNormTriangle = add(identityNorm, "path", {
@@ -773,18 +773,18 @@ export function createCircleView(container, callbacks = {}) {
     fill: COLORS.derived,
     "fill-opacity": 0.025,
     stroke: COLORS.reference,
-    "stroke-width": 2,
+    "stroke-width": 1.4,
     "stroke-linecap": "round",
     "stroke-linejoin": "round",
-    opacity: 0.74,
+    opacity: 0.65,
     "vector-effect": "non-scaling-stroke",
   });
   const identityNormHypotenuse = add(identityNorm, "line", {
     class: "vt-identity-norm-hypotenuse",
     stroke: COLORS.derived,
-    "stroke-width": 7,
+    "stroke-width": 4,
     "stroke-linecap": "round",
-    opacity: 0.14,
+    opacity: 0.1,
     "vector-effect": "non-scaling-stroke",
   });
   const identityNormCosineLabel = addIdentityLabel(
@@ -811,9 +811,9 @@ export function createCircleView(container, callbacks = {}) {
     class: "vt-identity-addition-rotation-arc",
     fill: "none",
     stroke: COLORS.identityAngle,
-    "stroke-width": 3.5,
+    "stroke-width": 2.4,
     "stroke-linecap": "round",
-    opacity: 0.88,
+    opacity: 0.72,
     "marker-end": `url(#${identityArrowId})`,
     "vector-effect": "non-scaling-stroke",
   });
@@ -821,7 +821,7 @@ export function createCircleView(container, callbacks = {}) {
     identityAddition,
     "vt-identity-addition-rotation-label",
     COLORS.identityAngle,
-    14,
+    13,
   );
   identityAdditionArcLabel.textContent = "+β";
   const identityAdditionPointSlots = Array.from({ length: 5 }, (_, index) =>
@@ -840,9 +840,9 @@ export function createCircleView(container, callbacks = {}) {
         "data-step": index + 1,
         fill: "none",
         stroke: COLORS.identityAngle,
-        "stroke-width": 2.25,
+        "stroke-width": 1.35,
         "stroke-linecap": "round",
-        opacity: 0.72,
+        opacity: 0.68,
         visibility: "hidden",
         "vector-effect": "non-scaling-stroke",
       }),
@@ -852,9 +852,9 @@ export function createCircleView(container, callbacks = {}) {
       class: "vt-identity-powers-step-tick",
       "data-step": index + 1,
       stroke: COLORS.reference,
-      "stroke-width": 2,
+      "stroke-width": 1.25,
       "stroke-linecap": "round",
-      opacity: 0.72,
+      opacity: 0.65,
       visibility: "hidden",
       "vector-effect": "non-scaling-stroke",
     }),
@@ -863,7 +863,7 @@ export function createCircleView(container, callbacks = {}) {
     identityPowers,
     "vt-identity-powers-angle-label",
     COLORS.identityAngle,
-    14,
+    13,
   );
   identityPowersAngleLabel.textContent = "nθ";
   const identityPowersPointSlots = Array.from({ length: 4 }, (_, index) =>
@@ -874,10 +874,10 @@ export function createCircleView(container, callbacks = {}) {
   const identityConjugateConnector = add(identityConjugate, "line", {
     class: "vt-identity-conjugate-reflection-guide",
     stroke: COLORS.reference,
-    "stroke-width": 1.75,
+    "stroke-width": 1.35,
     "stroke-dasharray": "6 5",
     "stroke-linecap": "round",
-    opacity: 0.72,
+    opacity: 0.65,
     "vector-effect": "non-scaling-stroke",
   });
   const identityConjugateEqualTicks = Array.from({ length: 2 }, (_, index) =>
@@ -885,9 +885,9 @@ export function createCircleView(container, callbacks = {}) {
       class: "vt-identity-conjugate-equal-distance-tick",
       "data-side": index === 0 ? "base" : "reflected",
       stroke: COLORS.reference,
-      "stroke-width": 2.5,
+      "stroke-width": 2,
       "stroke-linecap": "round",
-      opacity: 0.84,
+      opacity: 0.72,
       "vector-effect": "non-scaling-stroke",
     }),
   );
@@ -895,10 +895,10 @@ export function createCircleView(container, callbacks = {}) {
     class: "vt-identity-conjugate-axis-cue",
     fill: "none",
     stroke: COLORS.reference,
-    "stroke-width": 1.75,
+    "stroke-width": 1.4,
     "stroke-linecap": "round",
     "stroke-linejoin": "round",
-    opacity: 0.82,
+    opacity: 0.7,
     "vector-effect": "non-scaling-stroke",
   });
   const identityConjugatePointSlots = Array.from({ length: 3 }, (_, index) =>
@@ -910,9 +910,9 @@ export function createCircleView(container, callbacks = {}) {
     class: "vt-identity-quarter-turn-rotation-arc",
     fill: "none",
     stroke: COLORS.identityAngle,
-    "stroke-width": 3.5,
+    "stroke-width": 2.4,
     "stroke-linecap": "round",
-    opacity: 0.9,
+    opacity: 0.72,
     "marker-end": `url(#${identityArrowId})`,
     "vector-effect": "non-scaling-stroke",
   });
@@ -920,22 +920,48 @@ export function createCircleView(container, callbacks = {}) {
     class: "vt-identity-quarter-turn-right-angle",
     fill: "none",
     stroke: COLORS.reference,
-    "stroke-width": 2,
+    "stroke-width": 1.4,
     "stroke-linecap": "square",
     "stroke-linejoin": "miter",
-    opacity: 0.86,
+    opacity: 0.68,
     "vector-effect": "non-scaling-stroke",
   });
   const identityQuarterTurnArcLabel = addIdentityLabel(
     identityQuarterTurn,
     "vt-identity-quarter-turn-rotation-label",
     COLORS.identityAngle,
-    14,
+    13,
   );
   identityQuarterTurnArcLabel.textContent = "+π/2";
   const identityQuarterTurnPointSlots = Array.from({ length: 3 }, (_, index) =>
     addIdentityPointSlot(identityQuarterTurn, "quarter-turn", index + 1),
   );
+
+  function raiseIdentityLabels(group, labels) {
+    for (const label of labels) group.appendChild(label);
+  }
+
+  raiseIdentityLabels(identityNorm, [
+    identityNormCosineLabel,
+    identityNormSineLabel,
+    identityNormModulusLabel,
+  ]);
+  raiseIdentityLabels(identityAddition, [
+    ...identityAdditionPointSlots.map((slot) => slot.label),
+    identityAdditionArcLabel,
+  ]);
+  raiseIdentityLabels(identityPowers, [
+    ...identityPowersPointSlots.map((slot) => slot.label),
+    identityPowersAngleLabel,
+  ]);
+  raiseIdentityLabels(
+    identityConjugate,
+    identityConjugatePointSlots.map((slot) => slot.label),
+  );
+  raiseIdentityLabels(identityQuarterTurn, [
+    ...identityQuarterTurnPointSlots.map((slot) => slot.label),
+    identityQuarterTurnArcLabel,
+  ]);
 
   const identityModeGroups = {
     coordinates: identityCoordinates,
@@ -1108,8 +1134,14 @@ export function createCircleView(container, callbacks = {}) {
     "aria-hidden": "true",
   });
 
+  svg.appendChild(identityOverlay);
+
   const dynamicLabels = add(svg, "g", {
     class: "vt-circle-dynamic-labels",
+    stroke: COLORS.handleOutline,
+    "stroke-width": 3.5,
+    "stroke-linejoin": "round",
+    "paint-order": "stroke fill",
     "font-size": 16,
     "pointer-events": "none",
     "user-select": "none",
@@ -1840,6 +1872,11 @@ export function createCircleView(container, callbacks = {}) {
         "data-label": null,
         "data-synthetic": null,
       });
+      setAttributes(slot.label, {
+        visibility: "hidden",
+        "data-role": null,
+        "data-tone": null,
+      });
       slot.label.textContent = "";
     }
   }
@@ -1847,6 +1884,7 @@ export function createCircleView(container, callbacks = {}) {
   function renderIdentityPointSlot(slot, point, options = {}) {
     if (!point) {
       slot.group.setAttribute("visibility", "hidden");
+      slot.label.setAttribute("visibility", "hidden");
       return;
     }
 
@@ -1860,6 +1898,10 @@ export function createCircleView(container, callbacks = {}) {
       : point.tone;
     const reference = tone === "reference";
     const labelText = textOr(options.label, point.label);
+    const showGeometry = options.showGeometry !== false;
+    const showRay = showGeometry && options.showRay !== false;
+    const showRing = showGeometry && options.showRing !== false;
+    const showMarker = showGeometry && options.showMarker !== false;
 
     setAttributes(slot.group, {
       class:
@@ -1880,25 +1922,28 @@ export function createCircleView(container, callbacks = {}) {
     setLine(slot.ray, CENTER, CENTER, screenX, screenY);
     setAttributes(slot.ray, {
       stroke: reference ? COLORS.reference : COLORS.derived,
-      "stroke-width": reference ? 1.65 : 2.75,
+      "stroke-width": finiteNumber(options.rayWidth, reference ? 1.25 : 2.1),
       "stroke-dasharray": reference ? "7 6" : null,
-      opacity: reference ? 0.72 : 0.86,
+      opacity: finiteNumber(options.rayOpacity, reference ? 0.65 : 0.74),
+      visibility: showRay ? "visible" : "hidden",
     });
     setAttributes(slot.ring, {
       cx: svgCoordinate(screenX),
       cy: svgCoordinate(screenY),
       r: reference ? 10.5 : 13,
       stroke: reference ? COLORS.reference : COLORS.derived,
-      "stroke-width": reference ? 1.4 : 1.9,
+      "stroke-width": reference ? 1.15 : 1.55,
       "stroke-dasharray": reference ? "3 3" : null,
-      opacity: reference ? 0.72 : 0.76,
+      opacity: reference ? 0.65 : 0.7,
+      visibility: showRing ? "visible" : "hidden",
     });
     setAttributes(slot.marker, {
       cx: svgCoordinate(screenX),
       cy: svgCoordinate(screenY),
-      r: reference ? 6 : 7.5,
+      r: reference ? 5.5 : 7,
       fill: reference ? COLORS.reference : COLORS.derived,
-      opacity: reference ? 0.82 : 0.95,
+      opacity: reference ? 0.78 : 0.92,
+      visibility: showMarker ? "visible" : "hidden",
     });
     positionIdentityLabel(
       slot.label,
@@ -1909,7 +1954,11 @@ export function createCircleView(container, callbacks = {}) {
     );
     setAttributes(slot.label, {
       fill: reference ? COLORS.reference : COLORS.derived,
-      opacity: reference ? 0.92 : 1,
+      opacity: reference ? 0.95 : 1,
+      visibility: options.showLabel === false ? "hidden" : "visible",
+      "data-role": point.role,
+      "data-tone": tone,
+      "data-mode": slot.mode,
     });
     slot.label.textContent = labelText;
   }
@@ -1998,16 +2047,20 @@ export function createCircleView(container, callbacks = {}) {
 
     setAttributes(identityNormCosineLabel, {
       x: svgCoordinate((origin.x + projectionFoot.x) / 2),
-      y: svgCoordinate(origin.y + horizontalOutwardY * (horizontalLength + 20)),
+      y: svgCoordinate(origin.y + horizontalOutwardY * (horizontalLength + 32)),
+      display: horizontalLength >= 22 ? "inline" : "none",
       visibility: horizontalLength >= 22 ? "visible" : "hidden",
       "data-expression": "cos^2(theta)",
       "data-value": svgCoordinate(
         finiteNumber(identity.values?.cosTheta, geometry.cosine) ** 2,
       ),
     });
+    const verticalScreenDirection = unitPoint.y >= projectionFoot.y ? 1 : -1;
+    const verticalLabelOffset = verticalScreenDirection > 0 ? 40 : 18;
     setAttributes(identityNormSineLabel, {
-      x: svgCoordinate(projectionFoot.x + verticalOutwardX * (verticalLength + 20)),
-      y: svgCoordinate((projectionFoot.y + unitPoint.y) / 2),
+      x: svgCoordinate(projectionFoot.x + verticalOutwardX * (verticalLength + 32)),
+      y: svgCoordinate(projectionFoot.y - verticalScreenDirection * verticalLabelOffset),
+      display: verticalLength >= 22 ? "inline" : "none",
       visibility: verticalLength >= 22 ? "visible" : "hidden",
       "data-expression": "sin^2(theta)",
       "data-value": svgCoordinate(
@@ -2015,7 +2068,14 @@ export function createCircleView(container, callbacks = {}) {
       ),
     });
 
-    const modulusPosition = outsideSegmentLabel(origin, unitPoint, projectionFoot, 0.36, 29);
+    const modulusBase = midpoint(origin, unitPoint, 0.54);
+    const horizontalSign = geometry.cosine >= 0 ? 1 : -1;
+    const verticalSign = geometry.sine >= 0 ? 1 : -1;
+    const modulusSide = -horizontalSign * verticalSign;
+    const modulusPosition = {
+      x: modulusBase.x + geometry.unitY * modulusSide * 34,
+      y: modulusBase.y + geometry.unitX * modulusSide * 34,
+    };
     setAttributes(identityNormModulusLabel, {
       x: svgCoordinate(modulusPosition.x),
       y: svgCoordinate(modulusPosition.y),
@@ -2074,15 +2134,20 @@ export function createCircleView(container, callbacks = {}) {
       { x: geometry.unitX, y: geometry.unitY },
     );
 
+    const componentsCoincide =
+      Math.abs(principalAngle(alphaPoint.angle - betaPoint.angle)) < 0.025;
     renderIdentityPointSlot(identityAdditionPointSlots[0], alphaPoint, {
       tone: "reference",
       label: "α",
-      tangentOffset: -8,
+      labelRadius: UNIT_RADIUS + 24,
+      tangentOffset: 28,
     });
     renderIdentityPointSlot(identityAdditionPointSlots[1], betaPoint, {
       tone: "reference",
       label: "β",
-      tangentOffset: 8,
+      labelRadius: UNIT_RADIUS + 24,
+      tangentOffset: -28,
+      showGeometry: !componentsCoincide,
     });
     renderIdentityPointSlot(identityAdditionPointSlots[2], resultPoint, {
       tone: "derived",
@@ -2092,6 +2157,7 @@ export function createCircleView(container, callbacks = {}) {
       directionX: geometry.unitX,
       directionY: geometry.unitY,
       labelRadius: UNIT_RADIUS + 31,
+      tangentOffset: 48,
     });
     renderRemainingIdentityPoints(identityAdditionPointSlots, 3, points, used);
 
@@ -2124,9 +2190,14 @@ export function createCircleView(container, callbacks = {}) {
       "data-end-angle": svgCoordinate(startAngle + deltaAngle),
     });
     const arcLabelAngle = startAngle + boundedDelta / 2;
+    positionIdentityLabel(
+      identityAdditionArcLabel,
+      Math.cos(arcLabelAngle),
+      Math.sin(arcLabelAngle),
+      100,
+      24,
+    );
     setAttributes(identityAdditionArcLabel, {
-      x: svgCoordinate(CENTER + 105 * Math.cos(arcLabelAngle)),
-      y: svgCoordinate(CENTER - 105 * Math.sin(arcLabelAngle)),
       visibility: arcPath && Math.abs(boundedDelta) > 0.12 ? "visible" : "hidden",
     });
     setAttributes(identityAddition, {
@@ -2136,6 +2207,7 @@ export function createCircleView(container, callbacks = {}) {
         firstFiniteNumber(construction.resultAngle, resultPoint.angle),
       ),
       "data-result-aligned-with-primary": "true",
+      "data-components-coincident": componentsCoincide ? "true" : "false",
       "data-construction": jsonAttribute(identity.construction),
     });
   }
@@ -2175,6 +2247,7 @@ export function createCircleView(container, callbacks = {}) {
       tone: "derived",
       label: "uⁿ",
       labelRadius: UNIT_RADIUS + 28,
+      tangentOffset: 82,
     });
     renderRemainingIdentityPoints(identityPowersPointSlots, 1, points, used);
 
@@ -2194,6 +2267,7 @@ export function createCircleView(container, callbacks = {}) {
       power * geometry.unwrappedTheta,
     );
     const renderedSteps = Math.min(requestedSteps, MAX_POWER_TRAIL_STEPS);
+    const renderedTickAngles = new Map();
 
     for (let index = 0; index < MAX_POWER_TRAIL_STEPS; index += 1) {
       const segment = identityPowersTrailSegments[index];
@@ -2213,14 +2287,27 @@ export function createCircleView(container, callbacks = {}) {
         d: segmentPath,
         visibility: segmentPath ? "visible" : "hidden",
         stroke: finalStep ? COLORS.derived : COLORS.identityAngle,
-        "stroke-width": finalStep ? 2.8 : 2.1,
-        opacity: finalStep ? 0.82 : Math.min(0.84, 0.68 + index * 0.04),
+        "stroke-width": finalStep ? 2.3 : 1.35,
+        opacity: finalStep ? 0.78 : 0.68,
         "marker-end": finalStep && segmentPath ? `url(#${identityArrowId})` : null,
         "data-start-angle": svgCoordinate(segmentStart),
         "data-delta-angle": svgCoordinate(stepAngle),
       });
 
       const tickAngle = (index + 1) * stepAngle;
+      const normalizedTickAngle = identityNormalizedAngle(tickAngle);
+      const tickKey = normalizedTickAngle.toFixed(6);
+      const previousTickIndex = renderedTickAngles.get(tickKey);
+      let tickVisible = Boolean(segmentPath);
+      if (tickVisible && previousTickIndex !== undefined) {
+        if (finalStep) {
+          identityPowersTicks[previousTickIndex].setAttribute("visibility", "hidden");
+        } else {
+          tickVisible = false;
+        }
+      }
+      if (tickVisible) renderedTickAngles.set(tickKey, index);
+
       const innerRadius = UNIT_RADIUS - 6;
       const outerRadius = UNIT_RADIUS + (finalStep ? 10 : 6);
       setLine(
@@ -2231,19 +2318,26 @@ export function createCircleView(container, callbacks = {}) {
         CENTER - outerRadius * Math.sin(tickAngle),
       );
       setAttributes(tick, {
-        visibility: "visible",
+        visibility: tickVisible ? "visible" : "hidden",
         stroke: finalStep ? COLORS.derived : COLORS.reference,
-        "stroke-width": finalStep ? 3.25 : 1.75,
-        opacity: finalStep ? 0.9 : 0.68,
+        "stroke-width": finalStep ? 2.5 : 1.2,
+        opacity: finalStep ? 0.84 : 0.65,
         "data-angle": svgCoordinate(tickAngle),
+        "data-normalized-angle": svgCoordinate(normalizedTickAngle),
       });
     }
 
     const boundedTotal = arcAngle(totalAdvance);
     const trailLabelAngle = boundedTotal / 2;
+    const trailLabelTangent = Math.cos(trailLabelAngle) >= 0 ? 24 : -24;
+    positionIdentityLabel(
+      identityPowersAngleLabel,
+      Math.cos(trailLabelAngle),
+      Math.sin(trailLabelAngle),
+      108,
+      trailLabelTangent,
+    );
     setAttributes(identityPowersAngleLabel, {
-      x: svgCoordinate(CENTER + 112 * Math.cos(trailLabelAngle)),
-      y: svgCoordinate(CENTER - 112 * Math.sin(trailLabelAngle)),
       visibility: power === 0 ? "hidden" : "visible",
       "data-angle": svgCoordinate(totalAdvance),
     });
@@ -2282,14 +2376,20 @@ export function createCircleView(container, callbacks = {}) {
       { x: geometry.unitX, y: -geometry.unitY },
     );
 
+    const reflectedPoint = identityPointScreen(conjugatePoint);
+    const connectorLength = Math.hypot(
+      reflectedPoint.x - geometry.unitPoint.x,
+      reflectedPoint.y - geometry.unitPoint.y,
+    );
+    const coincident = connectorLength <= 8;
     renderIdentityPointSlot(identityConjugatePointSlots[0], conjugatePoint, {
       tone: "derived",
-      label: "ū = e⁻ⁱᶿ",
+      label: coincident ? "ū = u" : "ū = e⁻ⁱᶿ",
       labelRadius: UNIT_RADIUS + 30,
+      tangentOffset: coincident ? 40 : 28,
+      showGeometry: !coincident,
     });
     renderRemainingIdentityPoints(identityConjugatePointSlots, 1, points, used);
-
-    const reflectedPoint = identityPointScreen(conjugatePoint);
     const reflectionFoot = {
       x: (geometry.unitPoint.x + reflectedPoint.x) / 2,
       y: CENTER,
@@ -2301,11 +2401,11 @@ export function createCircleView(container, callbacks = {}) {
       reflectedPoint.x,
       reflectedPoint.y,
     );
-
-    const connectorLength = Math.hypot(
-      reflectedPoint.x - geometry.unitPoint.x,
-      reflectedPoint.y - geometry.unitPoint.y,
+    identityConjugateConnector.setAttribute(
+      "visibility",
+      connectorLength > 8 ? "visible" : "hidden",
     );
+
     const connectorDirection = unitVector(geometry.unitPoint, reflectedPoint);
     const tickNormal = { x: -connectorDirection.y, y: connectorDirection.x };
     const tickCenters = [
@@ -2325,9 +2425,8 @@ export function createCircleView(container, callbacks = {}) {
       tick.setAttribute("visibility", connectorLength > 8 ? "visible" : "hidden");
     }
 
-    identityConjugateAxisCue.setAttribute(
-      "d",
-      [
+    setAttributes(identityConjugateAxisCue, {
+      d: [
         `M ${svgCoordinate(reflectionFoot.x - 5)} ${svgCoordinate(reflectionFoot.y - 12)}`,
         `L ${svgCoordinate(reflectionFoot.x)} ${svgCoordinate(reflectionFoot.y - 5)}`,
         `L ${svgCoordinate(reflectionFoot.x + 5)} ${svgCoordinate(reflectionFoot.y - 12)}`,
@@ -2335,9 +2434,11 @@ export function createCircleView(container, callbacks = {}) {
         `L ${svgCoordinate(reflectionFoot.x)} ${svgCoordinate(reflectionFoot.y + 5)}`,
         `L ${svgCoordinate(reflectionFoot.x + 5)} ${svgCoordinate(reflectionFoot.y + 12)}`,
       ].join(" "),
-    );
+      visibility: connectorLength > 8 ? "visible" : "hidden",
+    });
     setAttributes(identityConjugate, {
       "data-reflection-axis": "real",
+      "data-coincident": coincident ? "true" : "false",
       "data-source-angle": svgCoordinate(
         firstFiniteNumber(identity.construction?.sourceAngle, geometry.unwrappedTheta),
       ),
@@ -2381,6 +2482,7 @@ export function createCircleView(container, callbacks = {}) {
       tone: "derived",
       label: "iu",
       labelRadius: UNIT_RADIUS + 28,
+      tangentOffset: 28,
     });
     renderRemainingIdentityPoints(identityQuarterTurnPointSlots, 1, points, used);
 
@@ -2406,8 +2508,8 @@ export function createCircleView(container, callbacks = {}) {
     });
     const arcLabelAngle = baseAngle + quarterTurn / 2;
     setAttributes(identityQuarterTurnArcLabel, {
-      x: svgCoordinate(CENTER + 106 * Math.cos(arcLabelAngle)),
-      y: svgCoordinate(CENTER - 106 * Math.sin(arcLabelAngle)),
+      x: svgCoordinate(CENTER + 128 * Math.cos(arcLabelAngle)),
+      y: svgCoordinate(CENTER - 128 * Math.sin(arcLabelAngle)),
       visibility: "visible",
     });
     const derivedScreenPoint = identityPointScreen(quarterTurnPoint);
@@ -2647,14 +2749,20 @@ export function createCircleView(container, callbacks = {}) {
     const exactSinePlain = exactAngle
       ? textOr(exactAngle.sin?.plain, formatNumber(sine, precision))
       : null;
-    cosineLabel.textContent = exactAngle ? `cos θ = ${exactCosinePlain}` : "cos θ";
-    sineLabel.textContent = exactAngle ? `sin θ = ${exactSinePlain}` : "sin θ";
+    const identityFocused =
+      identityMetadata.active && identityMetadata.mode !== "coordinates";
+    const fullCosineLabel = exactAngle ? `cos θ = ${exactCosinePlain}` : "cos θ";
+    const fullSineLabel = exactAngle ? `sin θ = ${exactSinePlain}` : "sin θ";
+    cosineLabel.textContent = identityFocused ? "cos θ" : fullCosineLabel;
+    sineLabel.textContent = identityFocused ? "sin θ" : fullSineLabel;
     setAttributes(cosineLabel, {
       "data-exact-value": exactCosinePlain,
+      "data-full-label": fullCosineLabel,
       "data-sign": exactAngle?.cos?.sign ?? null,
     });
     setAttributes(sineLabel, {
       "data-exact-value": exactSinePlain,
+      "data-full-label": fullSineLabel,
       "data-sign": exactAngle?.sin?.sign ?? null,
     });
 
@@ -2665,9 +2773,11 @@ export function createCircleView(container, callbacks = {}) {
       y: svgCoordinate(unitScreenY + unitLabelYOffset),
       "text-anchor": unitX >= 0 ? "start" : "end",
     });
-    unitLabel.textContent = exactAngle
+    const fullUnitLabel = exactAngle
       ? `u = (${exactCosinePlain}, ${exactSinePlain})`
       : `u = (${formatNumber(cosine, precision)}, ${formatNumber(sine, precision)})`;
+    unitLabel.textContent = identityFocused ? "u" : fullUnitLabel;
+    unitLabel.setAttribute("data-full-label", fullUnitLabel);
 
     setAttributes(unitHandle, {
       cx: svgCoordinate(unitScreenX),
