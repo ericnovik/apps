@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Measure a falling test mass, estimate surface gravity, identify an unknown world, and program a launch home.">
+    <meta name="theme-color" content="#090b14">
+    <meta name="color-scheme" content="dark">
+    <title>Gravity Unknown</title>
+    <link rel="stylesheet" href="gravity-experiment.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body data-mission-phase="ready">
+    <div class="app-shell">
+        <h1 class="sr-only">Gravity Unknown</h1>
+        <div id="liveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+        <main class="workspace" aria-label="Gravity identification workspace">
+            <section class="panel scene-panel" aria-labelledby="sceneHeading">
+                <div class="panel-heading">
+                    <div>
+                        <span class="section-index">01 / Field scene</span>
+                        <h2 id="sceneHeading">Drop tower</h2>
+                    </div>
+                    <span class="panel-chip">100 m range</span>
+                </div>
+
+                <div class="scene-frame">
+                    <canvas
+                        id="scene"
+                        width="420"
+                        height="760"
+                        tabindex="0"
+                        role="button"
+                        aria-label="Run the drop experiment"
+                        aria-describedby="sceneSummary"
+                    >
+                        Interactive drop-tower scene.
+                    </canvas>
+                </div>
+                <p id="sceneSummary" class="sr-only">
+                    A neutral field scene with a drop tower, test mass, landed spacecraft, star field, and unmarked terrain. Activate the scene to begin a drop and record each flash.
+                </p>
+            </section>
+
+            <section class="panel experiment-panel" aria-labelledby="experimentHeading">
+                <div class="panel-heading">
+                    <div>
+                        <span class="section-index">02 / Observation</span>
+                        <h2 id="experimentHeading">Measurements</h2>
+                    </div>
+                    <span class="panel-chip panel-chip--live">Instrument ready</span>
+                </div>
+
+                <div class="clock-console">
+                    <span class="clock-label">Mission clock</span>
+                    <output id="clock" class="clock" aria-label="Elapsed time">0.00<span class="unit">s</span></output>
+                </div>
+
+                <dl class="experiment-status-grid">
+                    <div class="status-card">
+                        <dt>Marks recorded</dt>
+                        <dd id="markCount">0 / 20</dd>
+                    </div>
+                    <div class="status-card">
+                        <dt>Next mark</dt>
+                        <dd id="nextMark">5 m</dd>
+                    </div>
+                    <div class="status-card">
+                        <dt>Trial</dt>
+                        <dd id="trialCount">1</dd>
+                    </div>
+                </dl>
+
+                <div class="trial-toolbar">
+                    <label class="toggle-control" for="showFlash">
+                        <input id="showFlash" type="checkbox" checked>
+                        <span class="toggle-track" aria-hidden="true"><span></span></span>
+                        <span class="toggle-copy">
+                            <strong>Measurement flashes</strong>
+                            <small>Show the red signal at each distance mark</small>
+                        </span>
+                    </label>
+
+                    <div class="control-actions">
+                        <button id="resetBtn" class="btn btn-secondary" type="button">Reset</button>
+                        <button id="anotherTrialBtn" class="btn btn-primary" type="button" disabled>Another Trial</button>
+                        <button id="csvBtn" class="btn btn-secondary" type="button" disabled>Download CSV</button>
+                    </div>
+                </div>
+
+                <div class="subsection-heading">
+                    <div>
+                        <h3>Observed measurements</h3>
+                        <p>Instrument readings only</p>
+                    </div>
+                    <span class="data-format">x / t</span>
+                </div>
+
+                <div class="table-scroll measurement-table-wrap" tabindex="0" aria-label="Observed measurement table">
+                    <table class="data-table measurement-table">
+                        <caption class="sr-only">Observed drop measurements by trial and distance mark</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Trial</th>
+                                <th scope="col">Mark</th>
+                                <th scope="col">Distance <span class="table-unit">x (m)</span></th>
+                                <th scope="col">Observed <span class="table-unit">t (s)</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel analysis-panel" aria-labelledby="analysisHeading">
+                <div class="panel-heading">
+                    <div>
+                        <span class="section-index">03 / Analysis</span>
+                        <h2 id="analysisHeading">Model the fall</h2>
+                    </div>
+                    <span id="chartStatus" class="panel-chip">Awaiting observations</span>
+                </div>
+
+                <dl class="analysis-metrics">
+                    <div class="analysis-metric analysis-metric--primary">
+                        <dt>Estimated gravity <span>(m/s²)</span></dt>
+                        <dd id="gEstimate">—</dd>
+                    </div>
+                    <div class="analysis-metric">
+                        <dt>Reaction delay <span>(s)</span></dt>
+                        <dd id="reactionDelay">—</dd>
+                    </div>
+                    <div class="analysis-metric">
+                        <dt>Observations</dt>
+                        <dd id="observationCount">0</dd>
+                    </div>
+                </dl>
+
+                <div class="chart-frame">
+                    <canvas
+                        id="chart"
+                        width="720"
+                        height="390"
+                        role="img"
+                        aria-label="Observed distance versus time chart"
+                        aria-describedby="chartNote chartSummary"
+                    >
+                        A chart of observed distance against observed time will appear after measurements are recorded.
+                    </canvas>
+                </div>
+
+                <p id="chartNote" class="chart-note">
+                    Red observations are recorded clicks. The dashed indigo curve appears after enough evidence is available.
+                </p>
+                <p id="chartSummary" class="sr-only" aria-live="polite" aria-atomic="true">
+                    The chart has no observations yet.
+                </p>
+            </section>
+
+            <section class="panel decision-panel" aria-labelledby="decisionHeading">
+                <div class="panel-heading decision-heading">
+                    <div>
+                        <span class="section-index">04 / Navigation</span>
+                        <h2 id="decisionHeading">Identify your location</h2>
+                    </div>
+                    <div class="navigation-actions">
+                        <span class="panel-chip" id="navigationStatus">Launch locked</span>
+                        <button id="newMissionBtn" class="btn btn-secondary" type="button">New Mission</button>
+                    </div>
+                </div>
+
+                <div class="mission-status-inline" aria-label="Current mission status">
+                    <span class="mission-status-label">
+                        <span class="mission-status-dot" aria-hidden="true"></span>
+                        Mission
+                    </span>
+                    <strong id="missionStatus">Unknown world</strong>
+                </div>
+
+                <div class="identify-block">
+                    <form id="worldGuessForm" novalidate>
+                        <label class="guess-label" for="worldGuess">Which world are you on?</label>
+                        <p id="worldGuessHint" class="field-hint">Complete a trial to unlock navigation.</p>
+                        <div class="guess-entry-row">
+                            <input
+                                id="worldGuess"
+                                name="worldGuess"
+                                type="text"
+                                placeholder="Enter a world name"
+                                autocomplete="off"
+                                autocapitalize="words"
+                                aria-describedby="worldGuessHint guessFeedback"
+                                disabled
+                            >
+                            <button id="programLaunchBtn" class="btn btn-primary" type="submit" disabled>Program Launch</button>
+                        </div>
+                        <p id="guessFeedback" class="form-feedback" role="status" aria-live="polite"></p>
+                    </form>
+
+                    <div id="guessHistoryWrap" class="guess-history" hidden>
+                        <h3>Previous launch programs</h3>
+                        <ol id="guessHistory"></ol>
+                    </div>
+                </div>
+
+                <section id="missionOutcome" class="mission-outcome" hidden tabindex="-1" aria-labelledby="outcomeTitle">
+                    <div class="outcome-copy">
+                        <span class="micro-label">Mission result</span>
+                        <h3 id="outcomeTitle">Mission outcome</h3>
+                        <p id="outcomeMessage"></p>
+                    </div>
+
+                    <dl id="truthDetails" class="truth-details" hidden>
+                        <div>
+                            <dt>Confirmed world</dt>
+                            <dd><span id="revealedWorld"></span></dd>
+                        </div>
+                        <div>
+                            <dt>Classification</dt>
+                            <dd><span id="revealedClassification"></span></dd>
+                        </div>
+                        <div>
+                            <dt>Reference gravity</dt>
+                            <dd><span id="revealedGravity"></span></dd>
+                        </div>
+                        <div>
+                            <dt>Your estimate</dt>
+                            <dd><span id="revealedEstimate"></span></dd>
+                        </div>
+                        <div>
+                            <dt>Estimate error</dt>
+                            <dd><span id="revealedError"></span></dd>
+                        </div>
+                    </dl>
+
+                    <div class="outcome-actions">
+                        <button id="repairBtn" class="btn btn-danger" type="button" hidden>Repair and Try Again</button>
+                        <button id="outcomeNewMissionBtn" class="btn btn-success" type="button" hidden>New Mission</button>
+                    </div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="gravity-experiment.js"></script>
+</body>
+</html>
