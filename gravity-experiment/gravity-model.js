@@ -201,63 +201,93 @@ function copyObservations(records) {
   return observations;
 }
 
-function cleanNearZero(value) {
-  return Math.abs(value) <= 1e-12 || Object.is(value, -0) ? 0 : value;
-}
-
-export function estimateGravity(records) {
+export function estimateGravity(records, includeDelay = false) {
   const observations = copyObservations(records);
   if (observations === null || observations.length < MIN_OBSERVATIONS) {
     return null;
   }
 
   const predictors = observations.map(({ x }) => Math.sqrt(x));
-  const predictorMean = predictors.reduce((sum, value) => sum + value, 0)
-    / observations.length;
-  const timeMean = observations.reduce((sum, { tObs }) => sum + tObs, 0)
-    / observations.length;
-
-  if (!Number.isFinite(predictorMean) || !Number.isFinite(timeMean)) {
-    return null;
-  }
-
-  let predictorSumSquares = 0;
-  let covariance = 0;
+  const fitsDelay = includeDelay === true;
+  let slopeNumerator = 0;
+  let slopeDenominator = 0;
+  let delay = 0;
   let maximumPredictor = 0;
 
-  for (let index = 0; index < observations.length; index += 1) {
-    const predictor = predictors[index];
-    const predictorDelta = predictor - predictorMean;
-    const timeDelta = observations[index].tObs - timeMean;
-    predictorSumSquares += predictorDelta * predictorDelta;
-    covariance += predictorDelta * timeDelta;
-    maximumPredictor = Math.max(maximumPredictor, Math.abs(predictor));
+  for (const predictor of predictors) {
+    maximumPredictor = Math.max(maximumPredictor, predictor);
+  }
+
+  if (fitsDelay) {
+    const predictorMean = predictors.reduce((sum, predictor) => sum + predictor, 0)
+      / observations.length;
+    const timeMean = observations.reduce((sum, { tObs }) => sum + tObs, 0)
+      / observations.length;
+    if (!Number.isFinite(predictorMean) || !Number.isFinite(timeMean)) {
+      return null;
+    }
+
+    for (let index = 0; index < observations.length; index += 1) {
+      const predictorDelta = predictors[index] - predictorMean;
+      slopeNumerator += predictorDelta * (observations[index].tObs - timeMean);
+      slopeDenominator += predictorDelta * predictorDelta;
+    }
+
+  } else {
+    for (let index = 0; index < observations.length; index += 1) {
+      slopeNumerator += predictors[index] * observations[index].tObs;
+      slopeDenominator += predictors[index] * predictors[index];
+    }
   }
 
   const varianceTolerance = Number.EPSILON
     * Math.max(1, maximumPredictor * maximumPredictor)
     * observations.length;
-
-  if (!Number.isFinite(predictorSumSquares) || predictorSumSquares <= varianceTolerance) {
+  if (!Number.isFinite(slopeDenominator) || slopeDenominator <= varianceTolerance) {
     return null;
   }
 
-  const slope = covariance / predictorSumSquares;
-  if (!Number.isFinite(slope) || slope <= 0) {
-    return null;
+  const slope = slopeNumerator / slopeDenominator;
+  if (fitsDelay) {
+    const predictorMean = predictors.reduce((sum, predictor) => sum + predictor, 0)
+      / observations.length;
+    const timeMean = observations.reduce((sum, { tObs }) => sum + tObs, 0)
+      / observations.length;
+    delay = timeMean - slope * predictorMean;
   }
 
-  const intercept = timeMean - slope * predictorMean;
   const gravity = 2 / (slope * slope);
-  if (!Number.isFinite(intercept) || !Number.isFinite(gravity) || gravity <= 0) {
+  if (
+    !Number.isFinite(slope)
+    || slope <= 0
+    || !Number.isFinite(delay)
+    || !Number.isFinite(gravity)
+    || gravity <= 0
+  ) {
     return null;
   }
 
-  const delay = cleanNearZero(intercept);
+  const residualSumSquares = observations.reduce((sum, { tObs }, index) => {
+    const residual = tObs - delay - slope * predictors[index];
+    return sum + residual * residual;
+  }, 0);
+  const residualDegreesOfFreedom = observations.length - (fitsDelay ? 2 : 1);
+  const residualVariance = residualSumSquares / residualDegreesOfFreedom;
+  const slopeStandardError = Math.sqrt(residualVariance / slopeDenominator);
+  const standardError = 4 * slopeStandardError / (slope * slope * slope);
+  if (!Number.isFinite(standardError) || standardError < 0) {
+    return null;
+  }
+
+  const margin = 2 * standardError;
   return deepFreeze({
     gravity,
     delay,
-    intercept: delay,
+    standardError,
+    twoStandardErrorRange: {
+      lower: gravity - margin,
+      upper: gravity + margin
+    },
     slope,
     observationCount: observations.length
   });
@@ -303,90 +333,9 @@ export function aggregateObservations(completedTrials) {
   return deepFreeze(aggregate);
 }
 
-export function estimateGravityFromTrials(completedTrials) {
-  if (!Array.isArray(completedTrials)) {
-    return null;
-  }
-
-  const groups = [];
-  let observationCount = 0;
-  let slopeDegreesOfFreedom = 0;
-  let maximumPredictor = 0;
-
-  for (const trial of completedTrials) {
-    const observations = copyObservations(recordsFromTrial(trial));
-    if (observations === null) {
-      return null;
-    }
-    if (observations.length === 0) {
-      continue;
-    }
-
-    const predictors = observations.map(({ x }) => Math.sqrt(x));
-    const predictorMean = predictors.reduce((sum, value) => sum + value, 0)
-      / observations.length;
-    const timeMean = observations.reduce((sum, { tObs }) => sum + tObs, 0)
-      / observations.length;
-
-    if (!Number.isFinite(predictorMean) || !Number.isFinite(timeMean)) {
-      return null;
-    }
-
-    for (const predictor of predictors) {
-      maximumPredictor = Math.max(maximumPredictor, Math.abs(predictor));
-    }
-    observationCount += observations.length;
-    slopeDegreesOfFreedom += Math.max(0, observations.length - 1);
-    groups.push({ observations, predictors, predictorMean, timeMean });
-  }
-
-  if (
-    observationCount < MIN_OBSERVATIONS
-    || slopeDegreesOfFreedom < MIN_OBSERVATIONS - 1
-  ) {
-    return null;
-  }
-
-  let predictorSumSquares = 0;
-  let covariance = 0;
-  for (const group of groups) {
-    for (let index = 0; index < group.observations.length; index += 1) {
-      const predictorDelta = group.predictors[index] - group.predictorMean;
-      const timeDelta = group.observations[index].tObs - group.timeMean;
-      predictorSumSquares += predictorDelta * predictorDelta;
-      covariance += predictorDelta * timeDelta;
-    }
-  }
-
-  const varianceTolerance = Number.EPSILON
-    * Math.max(1, maximumPredictor * maximumPredictor)
-    * observationCount;
-  if (!Number.isFinite(predictorSumSquares) || predictorSumSquares <= varianceTolerance) {
-    return null;
-  }
-
-  const slope = covariance / predictorSumSquares;
-  const gravity = 2 / (slope * slope);
-  if (!Number.isFinite(slope) || slope <= 0 || !Number.isFinite(gravity) || gravity <= 0) {
-    return null;
-  }
-
-  const weightedDelay = groups.reduce((sum, group) => {
-    const trialDelay = group.timeMean - slope * group.predictorMean;
-    return sum + trialDelay * group.observations.length;
-  }, 0) / observationCount;
-  if (!Number.isFinite(weightedDelay)) {
-    return null;
-  }
-
-  const delay = cleanNearZero(weightedDelay);
-  return deepFreeze({
-    gravity,
-    delay,
-    intercept: delay,
-    slope,
-    observationCount
-  });
+export function estimateGravityFromTrials(completedTrials, includeDelay = false) {
+  const observations = aggregateObservations(completedTrials);
+  return observations === null ? null : estimateGravity(observations, includeDelay);
 }
 
 export const MISSION_PHASES = deepFreeze({
@@ -446,8 +395,14 @@ function isEstimate(value) {
     && isFiniteNumber(value.gravity)
     && value.gravity > 0
     && isFiniteNumber(value.delay)
-    && isFiniteNumber(value.intercept)
-    && value.delay === value.intercept
+    && isFiniteNumber(value.standardError)
+    && value.standardError >= 0
+    && value.twoStandardErrorRange !== null
+    && typeof value.twoStandardErrorRange === "object"
+    && isFiniteNumber(value.twoStandardErrorRange.lower)
+    && isFiniteNumber(value.twoStandardErrorRange.upper)
+    && value.twoStandardErrorRange.lower <= value.gravity
+    && value.twoStandardErrorRange.upper >= value.gravity
     && isFiniteNumber(value.slope)
     && value.slope > 0
     && Number.isInteger(value.observationCount)

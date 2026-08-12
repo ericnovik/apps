@@ -29,7 +29,7 @@
                     <canvas
                         id="scene"
                         width="420"
-                        height="760"
+                        height="900"
                         tabindex="0"
                         role="button"
                         aria-label="Run the drop experiment"
@@ -73,14 +73,25 @@
                 </dl>
 
                 <div class="trial-toolbar">
-                    <label class="toggle-control" for="showFlash">
-                        <input id="showFlash" type="checkbox" checked>
-                        <span class="toggle-track" aria-hidden="true"><span></span></span>
-                        <span class="toggle-copy">
-                            <strong>Measurement flashes</strong>
-                            <small>Show the red signal at each distance mark</small>
-                        </span>
-                    </label>
+                    <div class="trial-toggles">
+                        <label class="toggle-control toggle-control--delay" for="useDelayModel">
+                            <input id="useDelayModel" type="checkbox">
+                            <span class="toggle-track" aria-hidden="true"><span></span></span>
+                            <span class="toggle-copy">
+                                <strong>Delay model</strong>
+                                <small>Fit reaction delay δ</small>
+                            </span>
+                        </label>
+
+                        <label class="toggle-control toggle-control--markers" for="showRedMarkers">
+                            <input id="showRedMarkers" type="checkbox" checked>
+                            <span class="toggle-track" aria-hidden="true"><span></span></span>
+                            <span class="toggle-copy">
+                                <strong>Red markers</strong>
+                                <small>Show fixed tower markers</small>
+                            </span>
+                        </label>
+                    </div>
 
                     <div class="control-actions">
                         <button id="resetBtn" class="btn btn-secondary" type="button">Reset</button>
@@ -94,7 +105,7 @@
                         <h3>Observed measurements</h3>
                         <p>Instrument readings only</p>
                     </div>
-                    <span class="data-format">x / t</span>
+                    <span class="data-format">x / t_obs</span>
                 </div>
 
                 <div class="table-scroll measurement-table-wrap" tabindex="0" aria-label="Observed measurement table">
@@ -105,7 +116,7 @@
                                 <th scope="col">Trial</th>
                                 <th scope="col">Mark</th>
                                 <th scope="col">Distance <span class="table-unit">x (m)</span></th>
-                                <th scope="col">Observed <span class="table-unit">t (s)</span></th>
+                                <th scope="col">Observed time <span class="table-unit">t_obs (s)</span></th>
                             </tr>
                         </thead>
                         <tbody id="dataBody"></tbody>
@@ -124,14 +135,22 @@
 
                 <dl class="analysis-metrics">
                     <div class="analysis-metric analysis-metric--primary">
-                        <dt>Estimated gravity <span>(m/s²)</span></dt>
+                        <dt>Gravity <span>ĝ (m/s²)</span></dt>
                         <dd id="gEstimate">—</dd>
                     </div>
-                    <div class="analysis-metric">
-                        <dt>Reaction delay <span>(s)</span></dt>
-                        <dd id="reactionDelay">—</dd>
+
+                    <div id="delayMetric" class="analysis-metric analysis-metric--delay" hidden>
+                        <dt>Delay <span>δ̂ (s)</span></dt>
+                        <dd id="delayEstimate">—</dd>
                     </div>
-                    <div class="analysis-metric">
+
+                    <div class="analysis-metric analysis-metric--uncertainty">
+                        <dt>SE(ĝ) <span>(m/s²)</span></dt>
+                        <dd id="gStandardError">—</dd>
+                        <small id="gRange" class="analysis-metric-range">±2 SE: —</small>
+                    </div>
+
+                    <div class="analysis-metric analysis-metric--count">
                         <dt>Observations</dt>
                         <dd id="observationCount">0</dd>
                     </div>
@@ -143,7 +162,7 @@
                         width="720"
                         height="390"
                         role="img"
-                        aria-label="Observed distance versus time chart"
+                        aria-label="Distance x versus observed time t_obs chart"
                         aria-describedby="chartNote chartSummary"
                     >
                         A chart of observed distance against observed time will appear after measurements are recorded.
@@ -151,7 +170,7 @@
                 </div>
 
                 <p id="chartNote" class="chart-note">
-                    Red observations are recorded clicks. The dashed indigo curve appears after enough evidence is available.
+                    Red points show observed clicks. The dashed indigo fit appears after five observations.
                 </p>
                 <p id="chartSummary" class="sr-only" aria-live="polite" aria-atomic="true">
                     The chart has no observations yet.
@@ -236,7 +255,6 @@
 
                     <div class="outcome-actions">
                         <button id="repairBtn" class="btn btn-danger" type="button" hidden>Repair and Try Again</button>
-                        <button id="outcomeNewMissionBtn" class="btn btn-success" type="button" hidden>New Mission</button>
                     </div>
                 </section>
             </section>

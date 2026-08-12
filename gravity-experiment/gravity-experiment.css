@@ -426,37 +426,13 @@ body[data-mission-phase="launching-incorrect"] .mission-status-dot {
         inset 0 -30px 50px rgba(0, 0, 0, 0.2);
 }
 
-.scene-frame::before,
-.scene-frame::after {
-    position: absolute;
-    z-index: 2;
-    width: 25px;
-    height: 25px;
-    border-color: rgba(176, 180, 255, 0.42);
-    content: "";
-    pointer-events: none;
-}
-
-.scene-frame::before {
-    top: 11px;
-    left: 11px;
-    border-top: 1px solid;
-    border-left: 1px solid;
-}
-
-.scene-frame::after {
-    right: 11px;
-    bottom: 11px;
-    border-right: 1px solid;
-    border-bottom: 1px solid;
-}
 
 #scene {
     display: block;
     width: min(100%, 420px, 52.6svh);
     max-width: 100%;
     height: auto;
-    aspect-ratio: 420 / 760;
+    aspect-ratio: 420 / 900;
     border: 1px solid rgba(177, 185, 226, 0.12);
     border-radius: 11px;
     background: #070a13;
@@ -742,6 +718,15 @@ body[data-mission-phase="crashed"] #scene {
     transform: translateX(14px);
 }
 
+.toggle-control--markers input:checked + .toggle-track {
+    border-color: rgba(255, 100, 118, 0.58);
+    background: var(--observation-soft);
+}
+
+.toggle-control--markers input:checked + .toggle-track span {
+    background: var(--observation);
+}
+
 .toggle-control input:focus-visible + .toggle-track {
     outline: 3px solid rgba(176, 180, 255, 0.78);
     outline-offset: 3px;
@@ -936,12 +921,29 @@ body[data-mission-phase="crashed"] #scene {
 }
 
 .measurement-table {
-    min-width: 360px;
+    min-width: 0;
+    table-layout: fixed;
+}
+
+.measurement-table th:nth-child(1) {
+    width: 14%;
+}
+
+.measurement-table th:nth-child(2) {
+    width: 14%;
+}
+
+.measurement-table th:nth-child(3) {
+    width: 28%;
+}
+
+.measurement-table th:nth-child(4) {
+    width: 44%;
 }
 
 .data-table th,
 .data-table td {
-    padding: 7px 8px;
+    padding: 7px 5px;
     border-bottom: 1px solid rgba(166, 176, 221, 0.11);
     text-align: right;
     white-space: nowrap;
@@ -958,6 +960,17 @@ body[data-mission-phase="crashed"] #scene {
     letter-spacing: 0.045em;
     line-height: 1.25;
     text-transform: uppercase;
+}
+
+.measurement-table thead th {
+    vertical-align: top;
+    white-space: normal;
+}
+
+.measurement-table thead .table-unit {
+    display: block;
+    margin-top: 1px;
+    line-height: 1.15;
 }
 
 .data-table thead th:first-child,
@@ -987,13 +1000,30 @@ body[data-mission-phase="crashed"] #scene {
 }
 
 .analysis-metrics {
-    grid-template-columns: 1.25fr 1fr 0.78fr;
-    gap: 7px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.35fr) minmax(0, 0.7fr);
+    gap: 5px;
     margin-bottom: 10px;
 }
 
+.analysis-metrics.is-delay-model {
+    grid-template-columns:
+        minmax(0, 1.2fr)
+        minmax(0, 0.95fr)
+        minmax(0, 1.25fr)
+        minmax(0, 0.7fr);
+}
+
 .analysis-metric {
-    padding: 9px;
+    display: grid;
+    min-height: 55px;
+    grid-template-rows: auto auto;
+    align-content: start;
+    padding: 5px;
+}
+
+.analysis-metric dt {
+    min-height: 1.25em;
+    white-space: nowrap;
 }
 
 .analysis-metric dt span {
@@ -1002,7 +1032,7 @@ body[data-mission-phase="crashed"] #scene {
 }
 
 .analysis-metric dd {
-    margin-top: 5px;
+    margin-top: 3px;
     overflow: hidden;
     color: var(--text);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1020,6 +1050,19 @@ body[data-mission-phase="crashed"] #scene {
 
 .analysis-metric--primary dd {
     color: var(--indigo-bright);
+}
+
+.analysis-metric-range {
+    display: block;
+    margin-top: 3px;
+    overflow: hidden;
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chart-frame {
@@ -1044,25 +1087,10 @@ body[data-mission-phase="crashed"] #scene {
 }
 
 .chart-note {
-    position: relative;
     margin: 9px 2px 0;
-    padding-left: 16px;
     color: var(--muted);
-    font-size: 0.64rem;
+    font-size: 0.66rem;
     line-height: 1.45;
-}
-
-.chart-note::before {
-    position: absolute;
-    top: 0.45em;
-    left: 0;
-    width: 8px;
-    height: 8px;
-    border: 2px solid var(--observation);
-    border-radius: 50%;
-    background: transparent;
-    box-shadow: 12px 0 0 -3px var(--indigo);
-    content: "";
 }
 
 .decision-grid {
@@ -1331,7 +1359,7 @@ body[data-mission-phase="crashed"] #scene {
 }
 
 .outcome-actions {
-    grid-template-columns: repeat(2, minmax(0, max-content));
+    grid-template-columns: minmax(0, max-content);
     margin-top: 10px;
 }
 
@@ -1594,8 +1622,12 @@ body[data-mission-phase="crashed"] #scene {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .analysis-metric--primary {
+    .analysis-metric--count {
         grid-column: 1 / -1;
+    }
+
+    .analysis-metrics.is-delay-model .analysis-metric--count {
+        grid-column: auto;
     }
 
     .chart-frame {
@@ -1658,6 +1690,23 @@ body[data-mission-phase="crashed"] #scene {
 .trial-toolbar .toggle-control {
     margin-bottom: 7px;
     padding-block: 4px;
+}
+
+.trial-toggles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 7px;
+}
+
+.trial-toggles .toggle-control {
+    gap: 7px;
+    margin-bottom: 0;
+    padding-inline: 4px;
+}
+
+.trial-toggles .toggle-copy small {
+    white-space: normal;
 }
 
 .navigation-actions {
@@ -1726,7 +1775,10 @@ body[data-mission-phase="crashed"] #scene {
     }
 
     .workspace {
-        grid-template-columns: minmax(340px, 440px) minmax(290px, 0.8fr) minmax(390px, 1.2fr);
+        grid-template-columns:
+            clamp(340px, calc(46.667svh - 18px), 440px)
+            340px
+            minmax(390px, 1fr);
         grid-template-rows: minmax(0, 1fr) auto;
         align-items: stretch;
         gap: 12px;
@@ -1754,7 +1806,7 @@ body[data-mission-phase="crashed"] #scene {
         width: auto;
         max-width: 100%;
         height: auto;
-        max-height: calc(100svh - 104px);
+        max-height: calc(100svh - 120px);
     }
 
     .experiment-panel .panel-heading,
@@ -1777,16 +1829,32 @@ body[data-mission-phase="crashed"] #scene {
     }
 
     .analysis-panel {
+        display: flex;
         min-height: 0;
+        flex-direction: column;
         overflow: auto;
     }
 
+    .analysis-panel .panel-heading,
+    .analysis-panel .analysis-metrics,
+    .analysis-panel .chart-note {
+        flex: 0 0 auto;
+    }
+
     .chart-frame {
-        height: clamp(185px, 25svh, 255px);
+        height: auto;
+        min-height: 185px;
+        flex: 1;
     }
 
     .decision-panel {
         align-self: end;
+    }
+
+    body[data-mission-phase="launching-correct"] .identify-block,
+    body[data-mission-phase="revealed"] .identify-block,
+    body[data-mission-phase="complete"] .identify-block {
+        display: none;
     }
 
     .decision-heading {
@@ -1806,6 +1874,27 @@ body[data-mission-phase="crashed"] #scene {
 
     .truth-details > div {
         padding: 6px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .workspace {
+        grid-template-columns:
+            clamp(400px, calc(46.667svh - 18px), 440px)
+            350px
+            minmax(0, 1fr);
+    }
+
+    .analysis-metrics.is-delay-model {
+        grid-template-columns:
+            minmax(171px, 1.2fr)
+            minmax(140px, 0.95fr)
+            minmax(180px, 1.25fr)
+            minmax(96px, 0.7fr);
+    }
+
+    .analysis-metric {
+        min-height: 55px;
     }
 }
 

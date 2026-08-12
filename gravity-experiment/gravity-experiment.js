@@ -32,15 +32,20 @@ const elements = {
   markCount: document.getElementById("markCount"),
   nextMark: document.getElementById("nextMark"),
   trialCount: document.getElementById("trialCount"),
-  showFlash: document.getElementById("showFlash"),
+  useDelayModel: document.getElementById("useDelayModel"),
+  showRedMarkers: document.getElementById("showRedMarkers"),
   resetButton: document.getElementById("resetBtn"),
   anotherTrialButton: document.getElementById("anotherTrialBtn"),
   csvButton: document.getElementById("csvBtn"),
   dataBody: document.getElementById("dataBody"),
   chartCanvas: document.getElementById("chart"),
   chartStatus: document.getElementById("chartStatus"),
+  analysisMetrics: document.querySelector(".analysis-metrics"),
   gravityEstimate: document.getElementById("gEstimate"),
-  reactionDelay: document.getElementById("reactionDelay"),
+  delayMetric: document.getElementById("delayMetric"),
+  delayEstimate: document.getElementById("delayEstimate"),
+  gravityStandardError: document.getElementById("gStandardError"),
+  gravityRange: document.getElementById("gRange"),
   observationCount: document.getElementById("observationCount"),
   chartNote: document.getElementById("chartNote"),
   chartSummary: document.getElementById("chartSummary"),
@@ -64,8 +69,7 @@ const elements = {
   revealedGravity: document.getElementById("revealedGravity"),
   revealedEstimate: document.getElementById("revealedEstimate"),
   revealedError: document.getElementById("revealedError"),
-  repairButton: document.getElementById("repairBtn"),
-  outcomeNewMissionButton: document.getElementById("outcomeNewMissionBtn")
+  repairButton: document.getElementById("repairBtn")
 };
 
 const context = elements.canvas.getContext("2d");
@@ -83,16 +87,15 @@ const BALL_RADIUS = 5;
 const SHIP_ORIGIN_X = SCENE_WIDTH * 0.23;
 const SHIP_ORIGIN_Y = GROUND_Y - 2;
 
-const STARS = Array.from({ length: 92 }, (_, index) => ({
-  x: (index * 83 + 19) % SCENE_WIDTH,
-  y: (index * 149 + 31) % (GROUND_Y - 24),
-  radius: index % 7 === 0 ? 1.45 : index % 3 === 0 ? 1 : 0.65,
-  alpha: 0.24 + ((index * 37) % 58) / 100
-}));
+const skyImage = new Image();
+skyImage.decoding = "async";
+skyImage.addEventListener("load", () => drawScene());
+skyImage.src = new URL("./sky.png", import.meta.url).href;
 
 let mission = null;
 let trial = null;
-let showFlash = elements.showFlash.checked;
+let useDelayModel = elements.useDelayModel.checked;
+let showRedMarkers = elements.showRedMarkers.checked;
 let chart = null;
 let animationFrameId = null;
 let previousFrameTime = 0;
@@ -220,7 +223,6 @@ function renderExperiment(view) {
   const isAnimating = view.phase === MISSION_PHASES.LAUNCHING_CORRECT
     || view.phase === MISSION_PHASES.LAUNCHING_INCORRECT;
   const missionComplete = view.phase === MISSION_PHASES.COMPLETE;
-  const active = view.phase === MISSION_PHASES.ACTIVE;
 
   setClock(trial.simTime);
   elements.markCount.textContent = `${trial.records.length} / ${MARK_COUNT}`;
@@ -236,11 +238,11 @@ function renderExperiment(view) {
   elements.trialCount.textContent = String(currentTrialNumber());
 
 
-  elements.resetButton.disabled = !active || isAnimating || missionComplete;
+  elements.resetButton.disabled = isAnimating || missionComplete;
   elements.anotherTrialButton.disabled = isAnimating
     || missionComplete
     || !(trial.status === "complete" || view.phase === MISSION_PHASES.CRASHED);
-  elements.showFlash.disabled = isAnimating || missionComplete;
+
   elements.csvButton.disabled = rowsForDisplay().length === 0;
 
   const canGuess = view.canSubmitGuess
@@ -284,31 +286,43 @@ function renderMeasurements() {
 }
 
 function liveEstimate() {
-  return estimateGravityFromTrials(currentAnalysisTrials());
+  return estimateGravityFromTrials(currentAnalysisTrials(), useDelayModel);
 }
 
 function renderAnalysis(view) {
   const estimate = liveEstimate();
   const observations = currentAnalysisObservations();
+  elements.analysisMetrics.classList.toggle("is-delay-model", useDelayModel);
+  elements.delayMetric.hidden = !useDelayModel;
   elements.gravityEstimate.textContent = estimate ? estimate.gravity.toFixed(3) : "—";
-  elements.reactionDelay.textContent = estimate
+  elements.delayEstimate.textContent = estimate && useDelayModel
     ? `${estimate.delay >= 0 ? "+" : ""}${estimate.delay.toFixed(3)}`
     : "—";
+  elements.gravityStandardError.textContent = estimate
+    ? estimate.standardError.toFixed(3)
+    : "—";
+  elements.gravityRange.textContent = estimate
+    ? `±2 SE: [${estimate.twoStandardErrorRange.lower.toFixed(3)}, ${estimate.twoStandardErrorRange.upper.toFixed(3)}]`
+    : "±2 SE: —";
   elements.observationCount.textContent = String(observations.length);
+
+  const fitDescription = useDelayModel
+    ? "Dashed indigo: delay-adjusted fit."
+    : "Dashed indigo: through-origin fit.";
 
   if (view.reveal) {
     elements.chartStatus.textContent = "Reference revealed";
-    elements.chartNote.textContent = "Red observations are recorded clicks, the dashed indigo curve is your estimate, and the solid mint curve is the revealed reference model.";
-    elements.chartSummary.textContent = `The chart contains ${observations.length} observations, an estimated gravity curve, and the revealed ${view.reveal.world.name} reference curve.`;
+    elements.chartNote.textContent = `Red points: observed clicks. ${fitDescription} Solid mint: revealed reference.`;
+    elements.chartSummary.textContent = `The chart shows ${observations.length} observations, an estimated gravity curve, and the revealed ${view.reveal.world.name} reference curve.`;
   } else if (estimate) {
     elements.chartStatus.textContent = trial.status === "falling" ? "Fit updating" : "Estimate ready";
-    elements.chartNote.textContent = "Red observations are recorded clicks. The dashed indigo curve is the current gravity estimate; the reference model remains hidden.";
-    elements.chartSummary.textContent = `The chart contains ${observations.length} observations and an estimated gravity curve. The reference curve is hidden.`;
+    elements.chartNote.textContent = `Red points: observed clicks. ${fitDescription} The reference remains hidden.`;
+    elements.chartSummary.textContent = `The chart shows ${observations.length} observations and an estimated gravity curve. The reference curve is hidden.`;
   } else {
     elements.chartStatus.textContent = observations.length ? "Gathering evidence" : "Awaiting observations";
-    elements.chartNote.textContent = "Red observations are recorded clicks. The dashed indigo curve appears after enough evidence is available.";
+    elements.chartNote.textContent = "Red points show observed clicks. The dashed indigo fit appears after five observations.";
     elements.chartSummary.textContent = observations.length
-      ? `The chart contains ${observations.length} observations, not yet enough for a stable estimate.`
+      ? `The chart shows ${observations.length} observations, not yet enough for a stable estimate.`
       : "The chart has no observations yet.";
   }
 
@@ -343,7 +357,9 @@ function chartDatasets(estimate, view) {
 
   datasets.push({
     id: "estimate",
-    label: "Estimated fit: x = ½ĝ(t − δ̂)²",
+    label: useDelayModel
+      ? "Fit: x = ½ĝ(t_obs − δ̂)²"
+      : "Fit: x = ½ĝt_obs²",
     data: estimate ? makeEstimatedCurve(estimate) : [],
     type: "line",
     borderColor: "#858cff",
@@ -393,14 +409,14 @@ function renderChart(estimate, view) {
       animation: reducedMotionQuery.matches ? false : { duration: 320 },
       scales: {
         x: {
-          title: { display: true, text: "observed time t (s)", color: "#969fbd" },
+          title: { display: true, text: "observed time t_obs (s)", color: "#969fbd" },
           min: 0,
           max: CHART_MAX_TIME,
           grid: { color: "rgba(255, 255, 255, 0.055)" },
           ticks: { color: "#969fbd", maxTicksLimit: 8 }
         },
         y: {
-          title: { display: true, text: "distance fallen x (m)", color: "#969fbd" },
+          title: { display: true, text: "distance x (m)", color: "#969fbd" },
           min: 0,
           max: HEIGHT,
           grid: { color: "rgba(255, 255, 255, 0.055)" },
@@ -458,7 +474,6 @@ function renderOutcome(view) {
   elements.missionOutcome.classList.toggle("outcome--failure", failed);
   elements.missionOutcome.classList.toggle("outcome--success", succeeded);
   elements.repairButton.hidden = view.phase !== MISSION_PHASES.CRASHED;
-  elements.outcomeNewMissionButton.hidden = view.phase !== MISSION_PHASES.COMPLETE;
 
   if (failed) {
     elements.outcomeTitle.textContent = view.phase === MISSION_PHASES.CRASHED
@@ -473,6 +488,7 @@ function renderOutcome(view) {
   }
 
   if (succeeded && view.reveal) {
+    const estimate = liveEstimate() ?? view.estimate;
     elements.outcomeTitle.textContent = `World confirmed: ${view.reveal.world.name}`;
     elements.outcomeMessage.textContent = view.phase === MISSION_PHASES.COMPLETE
       ? "Navigation solution accepted. The spacecraft has cleared the surface."
@@ -481,8 +497,10 @@ function renderOutcome(view) {
     elements.revealedWorld.textContent = view.reveal.world.name;
     elements.revealedClassification.textContent = view.reveal.world.classification;
     elements.revealedGravity.textContent = `${view.reveal.trueGravity.toFixed(2)} m/s²`;
-    elements.revealedEstimate.textContent = `${view.estimate.gravity.toFixed(3)} m/s²`;
-    elements.revealedError.textContent = `${view.reveal.percentageError.toFixed(1)}%`;
+    elements.revealedEstimate.textContent = `${estimate.gravity.toFixed(3)} m/s²`;
+    const percentageError = (Math.abs(estimate.gravity - view.reveal.trueGravity)
+      / view.reveal.trueGravity) * 100;
+    elements.revealedError.textContent = `${percentageError.toFixed(1)}%`;
     return;
   }
 
@@ -576,13 +594,14 @@ function finishDrop() {
   }
   trial.status = "complete";
   trial.simTime = Math.max(trial.simTime, trueTimeAt(HEIGHT, selectedWorld().gravity));
+  trial.flashes = [];
   trial.committed = true;
   mission = completeTrial(mission, trial.records);
   renderAll();
 
-  const view = getMissionViewModel(mission);
-  if (view.estimate) {
-    announce(`Trial complete. Estimated gravity ${view.estimate.gravity.toFixed(3)} meters per second squared. Navigation is unlocked.`);
+  const estimate = liveEstimate();
+  if (estimate) {
+    announce(`Trial complete. Estimated gravity ${estimate.gravity.toFixed(3)} meters per second squared. Navigation is unlocked.`);
     elements.worldGuess.focus({ preventScroll: true });
   } else {
     announce("Trial complete. At least five observations are needed; run another trial.");
@@ -810,6 +829,10 @@ function downloadCsv() {
 }
 
 function activeFlash(markIndex) {
+  if (trial.status !== "falling" && trial.status !== "landed") {
+    return null;
+  }
+
   for (let index = trial.flashes.length - 1; index >= 0; index -= 1) {
     const flash = trial.flashes[index];
     if (flash.index === markIndex && trial.simTime - flash.startedAt < FLASH_DURATION) {
@@ -820,21 +843,16 @@ function activeFlash(markIndex) {
 }
 
 function drawBackground() {
-  const sky = context.createLinearGradient(0, 0, 0, SCENE_HEIGHT);
-  sky.addColorStop(0, "#050711");
-  sky.addColorStop(0.66, "#11162b");
-  sky.addColorStop(1, "#1c2134");
-  context.fillStyle = sky;
-  context.fillRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
-
-  for (const star of STARS) {
-    context.globalAlpha = star.alpha;
-    context.fillStyle = "#dbe1ff";
-    context.beginPath();
-    context.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-    context.fill();
+  if (skyImage.complete && skyImage.naturalWidth > 0) {
+    context.drawImage(skyImage, 0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+  } else {
+    const sky = context.createLinearGradient(0, 0, 0, SCENE_HEIGHT);
+    sky.addColorStop(0, "#050711");
+    sky.addColorStop(0.66, "#11162b");
+    sky.addColorStop(1, "#1c2134");
+    context.fillStyle = sky;
+    context.fillRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
   }
-  context.globalAlpha = 1;
 
   const horizonGlow = context.createLinearGradient(0, GROUND_Y - 130, 0, GROUND_Y);
   horizonGlow.addColorStop(0, "rgba(71, 79, 126, 0)");
@@ -897,9 +915,12 @@ function drawTower() {
   context.textBaseline = "middle";
   for (let index = 0; index < MARKS.length; index += 1) {
     const y = DROP_TOP + MARKS[index] * PIXELS_PER_METER;
-    const flash = showFlash ? activeFlash(index) : null;
+    const flash = showRedMarkers ? null : activeFlash(index);
 
-    if (flash) {
+    if (showRedMarkers) {
+      context.fillStyle = "#a33f59";
+      context.fillRect(TOWER_X, y - 1.5, TOWER_WIDTH, 3);
+    } else if (flash) {
       const fade = Math.max(0, 1 - (trial.simTime - flash.startedAt) / FLASH_DURATION);
       context.save();
       context.shadowColor = "#ff6476";
@@ -907,9 +928,6 @@ function drawTower() {
       context.fillStyle = `rgba(255, 100, 118, ${0.55 + fade * 0.45})`;
       context.fillRect(TOWER_X - 5, y - 2.5, TOWER_WIDTH + 10, 5);
       context.restore();
-    } else {
-      context.fillStyle = "#a33f59";
-      context.fillRect(TOWER_X, y - 1.5, TOWER_WIDTH, 3);
     }
 
     if (MARKS[index] % 25 === 0) {
@@ -1135,26 +1153,12 @@ function drawShip() {
   context.restore();
 }
 
-function drawSceneHud() {
-  context.save();
-  context.fillStyle = "rgba(7, 10, 18, 0.7)";
-  context.fillRect(12, 12, 174, 34);
-  context.strokeStyle = "rgba(176, 180, 255, 0.25)";
-  context.strokeRect(12.5, 12.5, 173, 33);
-  context.fillStyle = "#b0b4ff";
-  context.font = "700 9px ui-monospace, SFMono-Regular, monospace";
-  context.textAlign = "left";
-  context.fillText("UNKNOWN SITE // VISUAL ID OFFLINE", 22, 33);
-  context.restore();
-}
-
 function drawScene() {
   drawBackground();
   drawGround();
   drawShip();
   drawTower();
   drawBall();
-  drawSceneHud();
 }
 
 function bindEvents() {
@@ -1169,8 +1173,16 @@ function bindEvents() {
   });
 
 
-  elements.showFlash.addEventListener("change", () => {
-    showFlash = elements.showFlash.checked;
+  elements.useDelayModel.addEventListener("change", () => {
+    useDelayModel = elements.useDelayModel.checked;
+    renderAll();
+    announce(useDelayModel
+      ? "Delay model enabled. The fit now estimates a reaction-time intercept."
+      : "Delay model disabled. The fit now passes through the origin.");
+  });
+
+  elements.showRedMarkers.addEventListener("change", () => {
+    showRedMarkers = elements.showRedMarkers.checked;
     drawScene();
   });
 
@@ -1178,7 +1190,6 @@ function bindEvents() {
   elements.anotherTrialButton.addEventListener("click", () => startFreshTrial());
   elements.csvButton.addEventListener("click", downloadCsv);
   elements.newMissionButton.addEventListener("click", startNewMission);
-  elements.outcomeNewMissionButton.addEventListener("click", startNewMission);
   elements.repairButton.addEventListener("click", repairCraft);
   elements.guessForm.addEventListener("submit", handleGuessSubmit);
   elements.worldGuess.addEventListener("input", () => {

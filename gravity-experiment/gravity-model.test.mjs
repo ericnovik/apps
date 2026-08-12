@@ -39,6 +39,24 @@ function closeTo(actual, expected, tolerance = EPSILON, message = undefined) {
   );
 }
 
+function assertEstimateShape(estimate) {
+  assert.deepEqual(
+    Object.keys(estimate).sort(),
+    [
+      "delay",
+      "gravity",
+      "observationCount",
+      "slope",
+      "standardError",
+      "twoStandardErrorRange"
+    ]
+  );
+  assert.deepEqual(
+    Object.keys(estimate.twoStandardErrorRange).sort(),
+    ["lower", "upper"]
+  );
+}
+
 function assertDeeplyFrozen(value, seen = new WeakSet()) {
   if (value === null || typeof value !== "object" || seen.has(value)) {
     return;
@@ -61,10 +79,10 @@ function markDistances(count = MARK_COUNT) {
   return Array.from({ length: count }, (_, index) => (index + 1) * MARK_STEP);
 }
 
-function observationsFor(gravity, delay = 0, distances = markDistances()) {
+function observationsFor(gravity, distances = markDistances()) {
   return distances.map((x) => ({
     x,
-    tObs: trueTimeAt(x, gravity) + delay
+    tObs: trueTimeAt(x, gravity)
   }));
 }
 
@@ -284,53 +302,179 @@ test("perfect observable records recover every approved gravity without reading 
     }
 
     const estimate = estimateGravity(observations);
+    assertEstimateShape(estimate);
+    assert.deepEqual(estimateGravity(observations, false), estimate);
     closeTo(estimate.gravity, world.gravity, 1e-12);
     closeTo(estimate.delay, 0, 1e-12);
-    assert.equal(estimate.intercept, estimate.delay);
+    closeTo(estimate.slope, Math.sqrt(2 / world.gravity), 1e-12);
+    closeTo(estimate.standardError, 0, 1e-12);
+    closeTo(estimate.twoStandardErrorRange.lower, estimate.gravity, 1e-12);
+    closeTo(estimate.twoStandardErrorRange.upper, estimate.gravity, 1e-12);
     assert.equal(estimate.observationCount, MARK_COUNT);
-    assert.ok(estimate.slope > 0);
     assertDeeplyFrozen(estimate);
   }
 });
 
-test("linear regression separates a constant reaction delay from gravity", () => {
+test("through-origin estimation follows deterministic zero-mean timing noise", () => {
+  const gravity = 1.43;
+  const distances = markDistances(6);
+  const timingNoise = [-2.5, -3.5, -4.5, 3.5, 3.5, 3.5];
+  const observations = observationsFor(gravity, distances).map((record, index) => ({
+    ...record,
+    tObs: record.tObs + timingNoise[index],
+    tTrue: -9999,
+    hiddenGravity: 9999
+  }));
+  const predictorSumSquares = observations.reduce((sum, { x }) => sum + x, 0);
+  const expectedSlope = observations.reduce(
+    (sum, { x, tObs }) => sum + Math.sqrt(x) * tObs,
+    0
+  ) / predictorSumSquares;
+  const expectedGravity = 2 / (expectedSlope * expectedSlope);
+  const residualSSE = observations.reduce((sum, { x, tObs }) => {
+    const residual = tObs - expectedSlope * Math.sqrt(x);
+    return sum + residual * residual;
+  }, 0);
+  const residualVariance = residualSSE / (observations.length - 1);
+  const expectedSlopeStandardError = Math.sqrt(
+    residualVariance / predictorSumSquares
+  );
+  const expectedStandardError = 4 * expectedSlopeStandardError
+    / (expectedSlope * expectedSlope * expectedSlope);
+  const expectedLower = expectedGravity - 2 * expectedStandardError;
+  const expectedUpper = expectedGravity + 2 * expectedStandardError;
+  const estimate = estimateGravity(observations);
+
+  closeTo(timingNoise.reduce((sum, value) => sum + value, 0), 0);
+  assert.ok(Math.abs(expectedGravity - gravity) > 1e-4);
+  assert.ok(expectedLower < 0, "Expected this fixture to detect a clamped lower bound");
+  assertEstimateShape(estimate);
+  closeTo(estimate.slope, expectedSlope, 1e-12);
+  closeTo(estimate.gravity, expectedGravity, 1e-12);
+  closeTo(estimate.delay, 0, 1e-12);
+  closeTo(estimate.standardError, expectedStandardError, 1e-12);
+  closeTo(estimate.twoStandardErrorRange.lower, expectedLower, 1e-12);
+  closeTo(estimate.twoStandardErrorRange.upper, expectedUpper, 1e-12);
+  assert.equal(estimate.observationCount, observations.length);
+  assertDeeplyFrozen(estimate);
+});
+
+test("delay mode recovers every approved gravity and a known constant delay", () => {
   const delays = [0.18, 0.37, 0.62, 1.05, 0.44];
 
   for (let index = 0; index < WORLD_CATALOG.length; index += 1) {
     const world = WORLD_CATALOG[index];
     const delay = delays[index];
-    const observations = observationsFor(world.gravity, delay).map((record) => ({
+    const observations = observationsFor(world.gravity).map((record) => ({
       ...record,
+      tObs: record.tObs + delay,
       tTrue: -9999,
       hiddenGravity: 9999
     }));
-    const estimate = estimateGravity(observations);
+    const estimate = estimateGravity(observations, true);
 
+    assertEstimateShape(estimate);
     closeTo(estimate.gravity, world.gravity, 1e-12);
     closeTo(estimate.delay, delay, 1e-12);
-    closeTo(estimate.intercept, delay, 1e-12);
+    closeTo(estimate.slope, Math.sqrt(2 / world.gravity), 1e-12);
+    closeTo(estimate.standardError, 0, 1e-12);
+    closeTo(estimate.twoStandardErrorRange.lower, estimate.gravity, 1e-12);
+    closeTo(estimate.twoStandardErrorRange.upper, estimate.gravity, 1e-12);
+    assert.equal(estimate.observationCount, observations.length);
+    assertDeeplyFrozen(estimate);
   }
+});
+
+test("delay-mode OLS uncertainty follows exact centered formulas with deterministic noise", () => {
+  const gravity = 1.32;
+  const delay = 0.45;
+  const distances = [1, 4, 9, 16, 25, 36];
+  const timingNoise = [0.08, -0.16, 0.08, -0.05, 0.1, -0.05];
+  const observations = observationsFor(gravity, distances).map((record, index) => ({
+    ...record,
+    tObs: record.tObs + delay + timingNoise[index]
+  }));
+  const predictors = observations.map(({ x }) => Math.sqrt(x));
+  const predictorMean = predictors.reduce((sum, value) => sum + value, 0)
+    / observations.length;
+  const timeMean = observations.reduce((sum, { tObs }) => sum + tObs, 0)
+    / observations.length;
+  let predictorSumSquares = 0;
+  let covariance = 0;
+
+  for (let index = 0; index < observations.length; index += 1) {
+    const predictorDelta = predictors[index] - predictorMean;
+    predictorSumSquares += predictorDelta * predictorDelta;
+    covariance += predictorDelta * (observations[index].tObs - timeMean);
+  }
+
+  const expectedSlope = covariance / predictorSumSquares;
+  const expectedDelay = timeMean - expectedSlope * predictorMean;
+  const expectedGravity = 2 / (expectedSlope * expectedSlope);
+  const residualSSE = observations.reduce((sum, { tObs }, index) => {
+    const residual = tObs - expectedDelay - expectedSlope * predictors[index];
+    return sum + residual * residual;
+  }, 0);
+  const residualVariance = residualSSE / (observations.length - 2);
+  const expectedSlopeStandardError = Math.sqrt(
+    residualVariance / predictorSumSquares
+  );
+  const expectedStandardError = 4 * expectedSlopeStandardError
+    / (expectedSlope * expectedSlope * expectedSlope);
+  const expectedLower = expectedGravity - 2 * expectedStandardError;
+  const expectedUpper = expectedGravity + 2 * expectedStandardError;
+  const estimate = estimateGravity(observations, true);
+
+  closeTo(timingNoise.reduce((sum, value) => sum + value, 0), 0);
+  closeTo(
+    timingNoise.reduce((sum, value, index) => sum + value * predictors[index], 0),
+    0
+  );
+  closeTo(expectedSlope, Math.sqrt(2 / gravity), 1e-12);
+  closeTo(expectedDelay, delay, 1e-12);
+  assert.ok(expectedStandardError > 0);
+  assertEstimateShape(estimate);
+  closeTo(estimate.gravity, expectedGravity, 1e-12);
+  closeTo(estimate.delay, expectedDelay, 1e-12);
+  closeTo(estimate.slope, expectedSlope, 1e-12);
+  closeTo(estimate.standardError, expectedStandardError, 1e-12);
+  closeTo(estimate.twoStandardErrorRange.lower, expectedLower, 1e-12);
+  closeTo(estimate.twoStandardErrorRange.upper, expectedUpper, 1e-12);
+  assert.equal(estimate.observationCount, observations.length);
+  assertDeeplyFrozen(estimate);
 });
 
 test("estimation rejects insufficient, malformed, and degenerate observations", () => {
   const valid = observationsFor(1.43);
+  const repeatedDistance = Array.from({ length: MIN_OBSERVATIONS }, () => ({
+    x: 25,
+    tObs: trueTimeAt(25, 1.43)
+  }));
+
+  const repeatedDistanceEstimate = estimateGravity(repeatedDistance);
+  closeTo(repeatedDistanceEstimate.gravity, 1.43, 1e-12);
+  closeTo(repeatedDistanceEstimate.delay, 0, 1e-12);
+  assert.equal(estimateGravity(repeatedDistance, true), null);
   assert.equal(estimateGravity(valid.slice(0, MIN_OBSERVATIONS - 1)), null);
   assert.equal(estimateGravity(null), null);
   assert.equal(estimateGravity({ records: valid }), null);
   assert.equal(estimateGravity([...valid.slice(0, 5), { x: "30", tObs: 2 }]), null);
   assert.equal(estimateGravity(valid.map((record) => ({ ...record, tObs: -1 }))), null);
   assert.equal(
-    estimateGravity(markDistances(5).map((_, index) => ({ x: 25, tObs: index + 1 }))),
+    estimateGravity(Array.from(
+      { length: MIN_OBSERVATIONS },
+      (_, index) => ({ x: 0, tObs: index + 1 })
+    )),
     null
   );
   assert.equal(
-    estimateGravity(markDistances(5).map((x) => ({ x, tObs: 100 - Math.sqrt(x) }))),
+    estimateGravity(markDistances(MIN_OBSERVATIONS).map((x) => ({ x, tObs: 0 }))),
     null
   );
 });
 
-test("completed-trial aggregation combines observations while preserving trial intercepts", () => {
-  const all = observationsFor(1.32, 0.41, markDistances(6)).map((record) => ({
+test("completed-trial aggregation pools observable records under one through-origin fit", () => {
+  const all = observationsFor(1.32, markDistances(6)).map((record) => ({
     ...record,
     tTrue: 123456
   }));
@@ -345,12 +489,16 @@ test("completed-trial aggregation combines observations while preserving trial i
   assert.ok(aggregate.every((record) => Object.keys(record).join(",") === "x,tObs"));
   assertDeeplyFrozen(aggregate);
 
-  const estimate = estimateGravityFromTrials([
+  const completedTrials = [
     { observations: first },
     { records: second }
-  ]);
+  ];
+  const estimate = estimateGravityFromTrials(completedTrials);
+  assertEstimateShape(estimate);
+  assert.deepEqual(estimateGravityFromTrials(completedTrials, false), estimate);
   closeTo(estimate.gravity, 1.32, 1e-12);
-  closeTo(estimate.delay, 0.41, 1e-12);
+  closeTo(estimate.delay, 0, 1e-12);
+  closeTo(estimate.slope, Math.sqrt(2 / 1.32), 1e-12);
   assert.equal(estimate.observationCount, 6);
 
   const empty = aggregateObservations([]);
@@ -361,37 +509,105 @@ test("completed-trial aggregation combines observations while preserving trial i
   assert.equal(estimateGravityFromTrials([{}]), null);
 });
 
-test("multi-trial fitting separates different reaction delays from one shared gravity", () => {
+test("multi-trial fitting pools every observation under one through-origin model", () => {
   const gravity = 1.32;
   const firstDistances = markDistances(10);
   const secondDistances = Array.from({ length: 9 }, (_, index) => (index + 11) * MARK_STEP);
-  const first = observationsFor(gravity, 0.2, firstDistances);
-  const second = observationsFor(gravity, 0.4, secondDistances);
-  const flatEstimate = estimateGravity([...first, ...second]);
+  const first = observationsFor(gravity, firstDistances).map((record) => ({
+    ...record,
+    tObs: record.tObs + 0.2
+  }));
+  const second = observationsFor(gravity, secondDistances).map((record) => ({
+    ...record,
+    tObs: record.tObs + 0.4
+  }));
+  const pooled = [...first, ...second];
+  const expectedSlope = pooled.reduce(
+    (sum, { x, tObs }) => sum + Math.sqrt(x) * tObs,
+    0
+  ) / pooled.reduce((sum, { x }) => sum + x, 0);
+  const expectedGravity = 2 / (expectedSlope * expectedSlope);
+  const flatEstimate = estimateGravity(pooled);
   const groupedEstimate = estimateGravityFromTrials([
     { observations: first },
     { observations: second }
   ]);
-  const expectedAverageDelay = (0.2 * first.length + 0.4 * second.length)
-    / (first.length + second.length);
 
-  assert.ok(Math.abs(flatEstimate.gravity - gravity) > 0.04);
-  closeTo(groupedEstimate.gravity, gravity, 1e-12);
-  closeTo(groupedEstimate.delay, expectedAverageDelay, 1e-12);
-  assert.equal(groupedEstimate.observationCount, first.length + second.length);
+  assert.ok(Math.abs(expectedGravity - gravity) > 0.04);
+  closeTo(flatEstimate.slope, expectedSlope, 1e-12);
+  closeTo(flatEstimate.gravity, expectedGravity, 1e-12);
+  closeTo(flatEstimate.delay, 0, 1e-12);
+  assertEstimateShape(groupedEstimate);
+  closeTo(groupedEstimate.slope, expectedSlope, 1e-12);
+  closeTo(groupedEstimate.gravity, expectedGravity, 1e-12);
+  closeTo(groupedEstimate.delay, 0, 1e-12);
+  closeTo(groupedEstimate.standardError, flatEstimate.standardError, 1e-12);
+  closeTo(
+    groupedEstimate.twoStandardErrorRange.lower,
+    flatEstimate.twoStandardErrorRange.lower,
+    1e-12
+  );
+  closeTo(
+    groupedEstimate.twoStandardErrorRange.upper,
+    flatEstimate.twoStandardErrorRange.upper,
+    1e-12
+  );
+  assert.equal(groupedEstimate.observationCount, pooled.length);
   assertDeeplyFrozen(groupedEstimate);
 });
 
-test("singleton trials do not satisfy the minimum slope-evidence requirement", () => {
-  const observations = observationsFor(1.32, 0.2, markDistances(5));
-  const estimate = estimateGravityFromTrials([
-    { observations: observations.slice(0, 2) },
-    { observations: observations.slice(2, 3) },
-    { observations: observations.slice(3, 4) },
-    { observations: observations.slice(4, 5) }
-  ]);
+test("delay-mode multi-trial fitting uses one shared pooled intercept", () => {
+  const gravity = 1.32;
+  const firstDistances = markDistances(10);
+  const secondDistances = Array.from({ length: 9 }, (_, index) => (index + 11) * MARK_STEP);
+  const first = observationsFor(gravity, firstDistances).map((record) => ({
+    ...record,
+    tObs: record.tObs + 0.2
+  }));
+  const second = observationsFor(gravity, secondDistances).map((record) => ({
+    ...record,
+    tObs: record.tObs + 0.4
+  }));
+  const pooled = [...first, ...second];
+  const flatEstimate = estimateGravity(pooled, true);
+  const groupedEstimate = estimateGravityFromTrials([
+    { observations: first },
+    { observations: second }
+  ], true);
 
-  assert.equal(estimate, null);
+  assert.ok(Math.abs(flatEstimate.gravity - gravity) > 1e-3);
+  assertEstimateShape(flatEstimate);
+  assertEstimateShape(groupedEstimate);
+  closeTo(groupedEstimate.gravity, flatEstimate.gravity, 1e-12);
+  closeTo(groupedEstimate.delay, flatEstimate.delay, 1e-12);
+  closeTo(groupedEstimate.slope, flatEstimate.slope, 1e-12);
+  closeTo(groupedEstimate.standardError, flatEstimate.standardError, 1e-12);
+  closeTo(
+    groupedEstimate.twoStandardErrorRange.lower,
+    flatEstimate.twoStandardErrorRange.lower,
+    1e-12
+  );
+  closeTo(
+    groupedEstimate.twoStandardErrorRange.upper,
+    flatEstimate.twoStandardErrorRange.upper,
+    1e-12
+  );
+  assert.equal(groupedEstimate.observationCount, pooled.length);
+  assertDeeplyFrozen(groupedEstimate);
+});
+
+test("singleton trials contribute to the pooled minimum observation count", () => {
+  const gravity = 1.32;
+  const observations = observationsFor(gravity, markDistances(MIN_OBSERVATIONS));
+  const estimate = estimateGravityFromTrials(observations.map((observation) => ({
+    observations: [observation]
+  })));
+
+  assertEstimateShape(estimate);
+  closeTo(estimate.gravity, gravity, 1e-12);
+  closeTo(estimate.delay, 0, 1e-12);
+  closeTo(estimate.slope, Math.sqrt(2 / gravity), 1e-12);
+  assert.equal(estimate.observationCount, MIN_OBSERVATIONS);
 });
 
 test("newMission injects selection and returns a deeply immutable initial state", () => {
@@ -427,7 +643,7 @@ test("newMission injects selection and returns a deeply immutable initial state"
 test("mission trial completion stores observable copies and computes an aggregate estimate", () => {
   const initial = newMission(() => 0);
   const worldId = initial.worldId;
-  const observations = observationsFor(1.8, 0.25, markDistances(6)).map((record) => ({
+  const observations = observationsFor(1.8, markDistances(6)).map((record) => ({
     ...record,
     tTrue: -1
   }));
@@ -438,8 +654,10 @@ test("mission trial completion stores observable copies and computes an aggregat
   assert.equal(first.completedTrials.length, 1);
   assert.equal(first.estimate, null);
   assert.equal(second.completedTrials.length, 2);
+  assertEstimateShape(second.estimate);
   closeTo(second.estimate.gravity, 1.8, 1e-12);
-  closeTo(second.estimate.delay, 0.25, 1e-12);
+  closeTo(second.estimate.delay, 0, 1e-12);
+  closeTo(second.estimate.slope, Math.sqrt(2 / 1.8), 1e-12);
   assert.equal(second.estimate.observationCount, 6);
   assert.ok(second.completedTrials.every((trial) => (
     trial.observations.every((record) => !Object.hasOwn(record, "tTrue"))
@@ -518,7 +736,7 @@ test("a crashed mission can collect another trial and repair without losing miss
   const mission = missionWithEstimate(0.42);
   const failedLaunch = submitGuess(mission, "Io");
   const crashed = completeLaunchAnimation(failedLaunch);
-  const extraRecords = observationsFor(1.43, 0.12, markDistances(5));
+  const extraRecords = observationsFor(1.43, markDistances(5));
   const withExtraTrial = completeTrial(crashed, extraRecords);
   const repaired = repairMission(withExtraTrial);
 
@@ -636,7 +854,7 @@ test("world identity survives every reset, trial, failure, crash, repair, and su
   const measured = completeTrial(additional, observationsFor(1.32));
   const failed = submitGuess(measured, "Callisto");
   const crashed = completeLaunchAnimation(failed);
-  const crashedWithTrial = completeTrial(crashed, observationsFor(1.32, 0.2));
+  const crashedWithTrial = completeTrial(crashed, observationsFor(1.32));
   const repaired = repairMission(crashedWithTrial);
   const successful = submitGuess(repaired, "Europa");
   const complete = completeLaunchAnimation(successful);
