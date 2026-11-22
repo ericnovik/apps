@@ -1,198 +1,284 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fourier Series Explorer</title>
-  <link rel="stylesheet" href="fourier.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" />
-</head>
-<body>
-  <div class="app">
-    <header class="top-bar">
-      <div class="audio-group">
-        <button id="audioToggle">Play</button>
-        <div class="audio-controls">
-          <label for="freqSlider">f0 (Hz): <span id="freqValue">220</span></label>
-          <input type="range" id="freqSlider" min="50" max="880" step="1" value="220" />
-        </div>
-        <div class="audio-controls">
-          <label for="volumeSlider">Volume: <span id="volumeValue">0.30</span></label>
-          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.3" />
-        </div>
-        <label class="checkbox">
-          <input type="checkbox" id="removeDc" checked />
-          Remove DC
-        </label>
-      </div>
-      <div class="preset-group">
-        <label for="presetSelect">Preset:</label>
-        <select id="presetSelect">
-          <option value="none">Custom</option>
-          <option value="pure">Pure tone</option>
-          <option value="square">Square wave</option>
-          <option value="sawtooth">Sawtooth</option>
-          <option value="triangle">Triangle</option>
-          <option value="spike">Spike (Dirichlet-ish)</option>
-          <option value="randomDecay">Random phase with decay</option>
-        </select>
-      </div>
-      <div class="top-actions">
-        <button id="copyUrlBtn">Copy URL</button>
-        <button id="resetBtn">Reset</button>
-        <label class="checkbox">
-          <input type="checkbox" id="normalizeRms" />
-          Normalize RMS
-        </label>
-        <label class="checkbox">
-          <input type="checkbox" id="autoScalePlot" checked />
-          Auto-scale plot
-        </label>
-        <label class="checkbox">
-          <input type="checkbox" id="derivativeToggle" />
-          Derivative view
-        </label>
-        <a id="explainerLink" class="explainer-btn" href="explainer.html">Explainer</a>
-      </div>
-    </header>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3eee5">
+    <meta name="description" content="A visual instrument for building periodic signals from harmonics. Connect Fourier coefficients, waveforms, rotating vectors, and sound.">
+    <title>Fourier Series Explorer</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="fourier.css">
+  </head>
+  <body class="fourier-page">
+    <a class="skip-link" href="#visual</head></title>Stage">Skip to the synchronized views</a>
 
-    <div class="main">
-      <aside class="controls">
-        <section class="control-section">
-          <h3>Global</h3>
-          <div class="control-row">
-            <label for="harmonicsSlider">Max harmonics (N): <span id="harmonicsValue">32</span></label>
-            <input type="range" id="harmonicsSlider" min="1" max="64" value="32" />
+    <div class="instrument-shell">
+      <header class="toolbar" aria-label="Fourier Series Explorer controls">
+        <div class="brand-lockup">
+          <span class="brand-rule" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">Synchronized instrument</p>
+            <h1>Fourier Series Explorer</h1>
           </div>
-          <div class="control-row">
-            <label for="a0Slider">a0: <span id="a0Value">0.000</span></label>
-            <input type="range" id="a0Slider" min="-2" max="2" step="0.001" value="0" />
-          </div>
-          <div class="control-row">
-            <label for="t0Slider">Time shift t0: <span id="t0Value">0.000</span></label>
-            <input type="range" id="t0Slider" min="0" max="1" step="0.001" value="0" />
-          </div>
-          <div class="control-row inline">
-            <label class="checkbox">
-              <input type="checkbox" id="evenOnly" />
-              Even harmonics
-            </label>
-            <label class="checkbox">
-              <input type="checkbox" id="oddOnly" />
-              Odd harmonics
-            </label>
-          </div>
-        </section>
+        </div>
 
-        <section class="control-section">
-          <h3>Partial Sums</h3>
-          <label class="checkbox">
-            <input type="checkbox" id="showPartial" />
-            Show partial sum
+        <div class="audio-group" role="group" aria-label="Sound controls">
+          <button id="audioToggle" class="button button--primary" type="button" aria-pressed="false">Play sound</button>
+          <div class="control-field frequency-control">
+            <label class="control-label" for="freqSlider">Pitch <span class="control-value"><output id="freqValue" for="freqSlider">220</output> Hz</span></label>
+            <input type="range" id="freqSlider" min="50" max="880" step="1" value="220">
+          </div>
+          <div class="control-field volume-control">
+            <label class="control-label" for="volumeSlider">Volume <output id="volumeValue" class="control-value" for="volumeSlider">0.30</output></label>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.3">
+          </div>
+          <label class="checkbox" title="Remove the constant offset from the sound only">
+            <input type="checkbox" id="removeDc" checked>
+            Remove DC
           </label>
-          <div class="control-row">
-            <label for="partialSlider">N<sub>partial</sub>: <span id="partialValue">8</span></label>
-            <input type="range" id="partialSlider" min="1" max="32" value="8" />
-          </div>
-          <label class="checkbox">
-            <input type="checkbox" id="showLadder" />
-            Show convergence ladder (5/10/20/N)
-          </label>
-        </section>
+        </div>
 
-        <section class="control-section">
-          <h3>Edit Mode</h3>
-          <div class="tab-row">
-            <button id="modeAb" class="tab active">aₙ, bₙ</button>
-            <button id="modeAphi" class="tab">Aₙ, φₙ</button>
-          </div>
-          <div class="control-row">
-            <label for="harmonicSelect">Harmonic n:</label>
-            <select id="harmonicSelect"></select>
-          </div>
-          <div id="abControls">
-            <div class="control-row">
-              <label for="aSlider">aₙ: <span id="aValue">0.000</span></label>
-              <input type="range" id="aSlider" min="-2" max="2" step="0.001" value="0" />
-            </div>
-            <div class="control-row">
-              <label for="bSlider">bₙ: <span id="bValue">0.000</span></label>
-              <input type="range" id="bSlider" min="-2" max="2" step="0.001" value="0" />
-            </div>
-          </div>
-          <div id="aphiControls" class="hidden">
-            <div class="control-row">
-              <label for="ampSlider">Aₙ: <span id="ampValue">0.000</span></label>
-              <input type="range" id="ampSlider" min="0" max="2" step="0.001" value="0" />
-            </div>
-            <div class="control-row">
-              <label for="phiSlider">φₙ: <span id="phiValue">0.000</span></label>
-              <input type="range" id="phiSlider" min="-3.1416" max="3.1416" step="0.001" value="0" />
-            </div>
-          </div>
-        </section>
+        <nav class="top-actions" aria-label="Explorer actions">
+          <button id="resetBtn" class="button button--quiet" type="button">Reset</button>
+          <button id="copyUrlBtn" class="button button--quiet" type="button" title="Copy a link to the current coefficients and settings">Copy URL</button>
+          <a id="explainerLink" class="button" href="explainer.html">Explainer <span aria-hidden="true">↗</span></a>
+        </nav>
+      </header>
 
-        <section class="control-section">
-          <h3>Apply to All</h3>
-          <div class="control-row">
-            <label for="decaySlider">Power-law decay p: <span id="decayValue">1.0</span></label>
-            <input type="range" id="decaySlider" min="0" max="3" step="0.1" value="1" />
-            <button id="applyDecayBtn">Apply 1/nᵖ</button>
-          </div>
-          <div class="control-row">
-            <button id="randomPhaseBtn">Randomize phases</button>
-          </div>
-          <div class="control-row">
-            <button id="lowPassBtn">Low-pass</button>
-            <button id="bandPassBtn">Band-pass</button>
-            <button id="highPassBtn">High-pass</button>
-          </div>
-        </section>
-      </aside>
-
-      <section class="plots">
-        <div class="plot-card waveform-card">
-          <h3>Waveform</h3>
-          <canvas id="waveformCanvas" width="800" height="300"></canvas>
-          <div id="waveformReadout" class="waveform-readout hidden"></div>
+      <section class="preset-strip" aria-labelledby="presetHeading">
+        <div class="strip-heading">
+          <p class="eyebrow">Choose a starting point</p>
+          <h2 id="presetHeading">A family of waves</h2>
         </div>
-        <div class="plot-card">
-          <h3>Spectrum &amp; phase</h3>
-          <div class="spectrum-card">
-            <canvas id="spectrumCanvas" width="800" height="300"></canvas>
-            <div id="spectrumReadout" class="spectrum-readout hidden"></div>
-          </div>
-          <div class="spectrum-legend">
-            <span class="legend-item"><span class="legend-swatch legend-mag"></span><span class="legend-tex" data-tex="A_n = \sqrt{a_n^2 + b_n^2}"></span></span>
-            <span class="legend-item"><span class="legend-swatch legend-phi"></span><span class="legend-tex" data-tex="\phi_n = \operatorname{atan2}(a_n, b_n)"></span></span>
-          </div>
+        <div class="preset-chips" role="group" aria-label="Waveform presets">
+          <button class="preset-chip" type="button" data-preset="none" aria-pressed="true" title="Clear the coefficients to start a custom wave">
+            <svg viewBox="0 0 32 18" aria-hidden="true"><path d="M1 9H31" stroke-dasharray="3 3"/></svg>
+            Custom
+          </button>
+          <button class="preset-chip" type="button" data-preset="pure" aria-pressed="false">
+            <svg viewBox="0 0 32 18" aria-hidden="true"><path d="M1 9C6-3 10-3 16 9S26 21 31 9"/></svg>
+            Pure tone
+          </button>
+          <button class="preset-chip" type="button" data-preset="square" aria-pressed="false">
+            <svg viewBox="0 0 32 18" aria-hidden="true"><path d="M1 14V4H16V14H31V4"/></svg>
+            Square
+          </button>
+          <button class="preset-chip" type="button" data-preset="sawtooth" aria-pressed="false">
+            <svg viewBox="0 0 32 18" aria-hidden="true"><path d="M1 14L16 4V14L31 4"/></svg>
+            Sawtooth
+          </button>
+          <button class="preset-chip" type="button" data-preset="triangle" aria-pressed="false">
+            <svg viewBox="0 0 32 18" aria-hidden="true"><path d="M1 14L9 4L23 14L31 4"/></svg>
+            Triangle
+          </button>
+          <button class="preset-chip" type="button" data-preset="spike" aria-pressed="false">
+            <svg viewBox="0 0 32 18" aria-hidden="true"><path d="M1 14H12L16 3L20 14H31"/></svg>
+            Spike
+          </button>
+          <button class="preset-chip" type="button" data-preset="randomDecay" aria-pressed="false" aria-label="Random phase with decay" title="Random phases with power-law amplitude decay">
+            <svg viewBox="0 0 32 18" aria-hidden="true"><path d="M1 9L4 4L8 12L12 2L16 15L20 6L24 12L28 5L31 9"/></svg>
+            Random
+          </button>
         </div>
-        <div class="plot-card">
-          <h3>Phasor view</h3>
-          <p class="phasor-caption">Each harmonic is a rotating vector; they are chained head-to-tail. The vertical position of the final tip is the waveform value f(t).</p>
-          <div class="spectrum-card">
-            <canvas id="phasorCanvas" width="800" height="320"></canvas>
-          </div>
-        </div>
-        <div class="plot-card">
-          <h3>Build the wave</h3>
-          <p class="phasor-caption">Partial sums S<sub>1</sub>, S<sub>2</sub>, …: harmonics are added one by one so you see the series converge.</p>
-          <div class="spectrum-card">
-            <canvas id="buildWaveCanvas" width="800" height="300"></canvas>
-          </div>
-          <div id="buildWaveTerms" class="build-wave-terms"></div>
-          <div class="build-wave-term-mode">
-            <label class="radio-label"><input type="radio" name="buildWaveTermMode" value="aphi" /> Amplitude–Phase</label>
-            <label class="radio-label"><input type="radio" name="buildWaveTermMode" value="ab" checked /> Sin–Cos</label>
-            <label class="radio-label"><input type="radio" name="buildWaveTermMode" value="complex" /> Complex</label>
-          </div>
-        </div>
+        <button id="animationToggle" class="button button--quiet motion-button" type="button" aria-pressed="false" aria-controls="phasorCanvas buildWaveCanvas">Play motion</button>
       </section>
-    </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
-  <script src="fourier.js"></script>
-</body>
+      <section class="equation-strip" aria-labelledby="equationHeading">
+        <div class="strip-heading">
+          <p class="eyebrow">Many harmonics</p>
+          <h2 id="equationHeading">One periodic signal</h2>
+        </div>
+        <div class="series-equation legend-tex" data-tex="f(t)=\frac{a_0}{2}+\sum_{n=1}^{N}\bigl[a_n\cos(2\pi nt)+b_n\sin(2\pi nt)\bigr]">
+          f(t) = a₀/2 + Σ [aₙ cos(2πnt) + bₙ sin(2πnt)]
+        </div>
+        <dl class="readout-grid" aria-label="Current series measurements">
+          <div class="readout readout--harmonics"><dt>Harmonics</dt><dd><output id="summaryHarmonics">32</output></dd></div>
+          <div class="readout readout--active"><dt>Nonzero</dt><dd><output id="summaryActive">0</output></dd></div>
+          <div class="readout readout--rms"><dt>Plot RMS</dt><dd><output id="summaryRms">0.000</output></dd></div>
+        </dl>
+      </section>
+
+      <main class="instrument-main">
+        <aside class="controls" aria-label="Series and coefficient controls">
+          <div class="control-pair">
+            <section class="control-section" aria-labelledby="seriesHeading">
+              <header class="section-heading"><p class="eyebrow">01 / The whole signal</p><h2 id="seriesHeading">Shape the series</h2></header>
+              <div class="control-row">
+                <label for="harmonicsSlider">Harmonics <var>N</var> <output id="harmonicsValue" for="harmonicsSlider">32</output></label>
+                <input type="range" id="harmonicsSlider" min="1" max="64" value="32">
+              </div>
+              <div class="control-row">
+                <label for="a0Slider">Constant term <var>a</var><sub>0</sub> <output id="a0Value" for="a0Slider">0.000</output></label>
+                <input type="range" id="a0Slider" min="-2" max="2" step="0.001" value="0">
+              </div>
+              <div class="control-row">
+                <label for="t0Slider">Time shift <var>t</var><sub>0</sub> <output id="t0Value" for="t0Slider">0.000</output></label>
+                <input type="range" id="t0Slider" min="0" max="1" step="0.001" value="0">
+              </div>
+              <div class="check-row" role="group" aria-label="Keep harmonic parity">
+                <label class="checkbox"><input type="checkbox" id="evenOnly">Even only</label>
+                <label class="checkbox"><input type="checkbox" id="oddOnly">Odd only</label>
+              </div>
+            </section>
+
+            <section class="control-section coefficient-section" aria-labelledby="coefficientHeading">
+              <header class="section-heading"><p class="eyebrow">02 / A single component</p><h2 id="coefficientHeading">Edit a harmonic</h2></header>
+              <div class="tab-row" role="group" aria-label="Coefficient representation">
+                <button id="modeAb" class="tab active" type="button" aria-pressed="true" aria-controls="abControls">Sine &amp; cosine</button>
+                <button id="modeAphi" class="tab" type="button" aria-pressed="false" aria-controls="aphiControls">Amplitude &amp; phase</button>
+              </div>
+              <div class="harmonic-picker">
+                <label for="harmonicSelect">Harmonic <var>n</var></label>
+                <select id="harmonicSelect"></select>
+              </div>
+              <div id="abControls" class="coefficient-inputs">
+                <div class="control-row coefficient--cosine">
+                  <label for="aSlider">Cosine <var>a</var><sub>n</sub> <output id="aValue" for="aSlider">0.000</output></label>
+                  <input type="range" id="aSlider" min="-2" max="2" step="0.001" value="0">
+                </div>
+                <div class="control-row coefficient--sine">
+                  <label for="bSlider">Sine <var>b</var><sub>n</sub> <output id="bValue" for="bSlider">0.000</output></label>
+                  <input type="range" id="bSlider" min="-2" max="2" step="0.001" value="0">
+                </div>
+              </div>
+              <div id="aphiControls" class="coefficient-inputs hidden">
+                <div class="control-row coefficient--amplitude">
+                  <label for="ampSlider">Amplitude <var>A</var><sub>n</sub> <output id="ampValue" for="ampSlider">0.000</output></label>
+                  <input type="range" id="ampSlider" min="0" max="2" step="0.001" value="0">
+                </div>
+                <div class="control-row coefficient--phase">
+                  <label for="phiSlider">Phase <var>φ</var><sub>n</sub> <output id="phiValue" for="phiSlider">0.000</output></label>
+                  <input type="range" id="phiSlider" min="-3.1416" max="3.1416" step="0.001" value="0">
+                </div>
+              </div>
+              <p class="control-hint">Select a bar in the spectrum, or choose <var>n</var> above.</p>
+            </section>
+          </div>
+
+          <div class="control-pair">
+            <section class="control-section" aria-labelledby="partialHeading">
+              <header class="section-heading"><p class="eyebrow">03 / Watch it converge</p><h2 id="partialHeading">Compare partial sums</h2></header>
+              <label class="checkbox"><input type="checkbox" id="showPartial">Overlay a partial sum</label>
+              <div class="control-row coefficient--sine">
+                <label for="partialSlider">Terms in the sum <output id="partialValue" for="partialSlider">8</output></label>
+                <input type="range" id="partialSlider" min="1" max="32" value="8">
+              </div>
+              <label class="checkbox"><input type="checkbox" id="showLadder">Convergence ladder · 5 / 10 / 20 / N</label>
+            </section>
+
+            <section class="control-section shaping-tools" aria-labelledby="shapingHeading">
+              <header class="section-heading"><p class="eyebrow">04 / The harmonic family</p><h2 id="shapingHeading">Shape all harmonics</h2></header>
+              <div class="shaping-content">
+                <div class="control-row">
+                  <label for="decaySlider">Power-law decay <var>p</var> <output id="decayValue" for="decaySlider">1.0</output></label>
+                  <input type="range" id="decaySlider" min="0" max="3" step="0.1" value="1">
+                </div>
+                <div class="button-row">
+                  <button id="applyDecayBtn" class="button" type="button">Apply 1/nᵖ</button>
+                  <button id="randomPhaseBtn" class="button" type="button">Randomize phases</button>
+                </div>
+                <div class="button-row filter-buttons" role="group" aria-label="Frequency filters">
+                  <button id="lowPassBtn" class="button button--quiet" type="button">Low-pass</button>
+                  <button id="bandPassBtn" class="button button--quiet" type="button">Band-pass</button>
+                  <button id="highPassBtn" class="button button--quiet" type="button">High-pass</button>
+                </div>
+                <p class="control-hint">Filters keep the lower, middle, or upper third of the harmonics.</p>
+              </div>
+            </section>
+          </div>
+        </aside>
+
+        <section class="visual-stage" id="visualStage" aria-label="Synchronized Fourier views" tabindex="-1">
+          <figure class="view-card waveform-card">
+            <figcaption class="view-card__header">
+              <div><p class="view-kicker">Time domain</p><h2>Waveform</h2></div>
+              <span class="quantity-key"><span class="key-dot key-dot--wave" aria-hidden="true"></span><span id="waveformLabel">f(t)</span></span>
+            </figcaption>
+            <div class="view-frame">
+              <div class="view-surface">
+                <canvas id="waveformCanvas" width="800" height="300" role="img" aria-label="Waveform over one period. Choose a preset or edit coefficients to change the signal.">The sum of the selected sine and cosine harmonics over one period.</canvas>
+                <div id="waveformReadout" class="plot-readout hidden"></div>
+              </div>
+              <div class="axis-labels" aria-hidden="true"><span>0</span><span>¼</span><span>½</span><span>¾</span><span>1 period</span></div>
+            </div>
+            <div class="view-options" role="group" aria-label="Display and normalization options">
+              <label class="checkbox"><input type="checkbox" id="autoScalePlot" checked>Auto-scale</label>
+              <label class="checkbox"><input type="checkbox" id="derivativeToggle">Derivative</label>
+              <label class="checkbox"><input type="checkbox" id="normalizeRms">Normalize RMS</label>
+            </div>
+          </figure>
+
+          <figure class="view-card spectrum-view">
+            <figcaption class="view-card__header">
+              <div><p class="view-kicker">Frequency domain</p><h2>Spectrum &amp; phase</h2></div>
+              <span class="view-instruction">Select a harmonic <span aria-hidden="true">↗</span></span>
+            </figcaption>
+            <div class="view-frame">
+              <div class="view-surface">
+                <canvas id="spectrumCanvas" width="800" height="300" tabindex="0" role="img" aria-label="Harmonic amplitudes and phases. Click a bar or use the left and right arrow keys to select a harmonic. The harmonic dropdown provides the same control.">Teal bars show amplitude; violet bars show phase. Select a harmonic using the dropdown to edit its coefficients.</canvas>
+                <div id="spectrumReadout" class="plot-readout hidden"></div>
+              </div>
+              <p class="axis-caption">Harmonic number <var>n</var> →</p>
+            </div>
+            <div class="spectrum-legend">
+              <span class="legend-item"><span class="key-dot key-dot--amplitude" aria-hidden="true"></span><span class="legend-tex" data-tex="A_n=\sqrt{a_n^2+b_n^2}">Aₙ = √(aₙ² + bₙ²)</span></span>
+              <span class="legend-item"><span class="key-dot key-dot--phase" aria-hidden="true"></span><span class="legend-tex" data-tex="\phi_n=\operatorname{atan2}(a_n,b_n)">φₙ = atan2(aₙ, bₙ)</span></span>
+            </div>
+          </figure>
+
+          <figure class="view-card phasor-card">
+            <figcaption class="view-card__header">
+              <div><p class="view-kicker">From rotation to oscillation</p><h2>Phasor view</h2></div>
+              <span class="quantity-key"><span class="key-dot key-dot--phase" aria-hidden="true"></span>Head to tail</span>
+            </figcaption>
+            <div class="view-frame">
+              <div class="view-surface">
+                <canvas id="phasorCanvas" width="800" height="320" role="img" aria-label="Rotating harmonic vectors and their resulting waveform. Use Pause motion to stop the animation.">Harmonic vectors are chained head to tail. The vertical position of their final tip is the waveform value.</canvas>
+              </div>
+            </div>
+            <p class="view-note">Each harmonic is a rotating vector. The final tip’s height gives the signal value.</p>
+          </figure>
+
+          <figure class="view-card build-wave-card">
+            <figcaption class="view-card__header">
+              <div><p class="view-kicker">From components to a whole</p><h2>Build the wave</h2></div>
+              <span class="progress-readout"><span class="control-label">Terms</span><output id="buildWaveProgress">1 / 32</output></span>
+            </figcaption>
+            <div class="view-frame">
+              <div class="view-surface">
+                <canvas id="buildWaveCanvas" width="800" height="300" role="img" aria-label="Animated partial sum, adding harmonics one at a time. The Terms readout shows the current count.">Successive partial sums show how the signal builds as each harmonic is added.</canvas>
+              </div>
+            </div>
+            <p class="view-note">Add harmonics one by one: S₁, S₂, …, S<sub>N</sub>. More terms reveal finer detail.</p>
+          </figure>
+
+        </section>
+
+        <section class="notation-dock" aria-labelledby="notationHeading">
+          <header class="notation-header">
+            <div><p class="eyebrow">Read the coefficients</p><h2 id="notationHeading">One series, three forms</h2></div>
+          </header>
+          <div class="notation-columns">
+            <section class="notation-form" aria-labelledby="notationAbHeading">
+              <h3 id="notationAbHeading">Sine–cosine</h3>
+              <div id="buildWaveTermsAb" class="build-wave-terms" tabindex="0">Sine and cosine terms appear here.</div>
+            </section>
+            <section class="notation-form" aria-labelledby="notationAphiHeading">
+              <h3 id="notationAphiHeading">Amplitude–phase</h3>
+              <div id="buildWaveTermsAphi" class="build-wave-terms" tabindex="0">Amplitude and phase terms appear here.</div>
+            </section>
+            <section class="notation-form" aria-labelledby="notationComplexHeading">
+              <h3 id="notationComplexHeading">Complex</h3>
+              <div id="buildWaveTermsComplex" class="build-wave-terms" tabindex="0">Complex exponential terms appear here.</div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+    <script src="fourier.js"></script>
+  </body>
 </html>

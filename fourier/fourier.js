@@ -1,6 +1,20 @@
 const MAX_N = 128;
 const M = 1024;
 const TWO_PI = Math.PI * 2;
+const PALETTE = {
+  paper: "#fffdf8",
+  warm: "#fbf7ef",
+  ink: "#27251f",
+  muted: "#716c62",
+  grid: "rgba(76, 70, 61, 0.09)",
+  axes: "#625e57",
+  blue: "#245d8f",
+  teal: "#187b77",
+  violet: "#7256a4",
+  coral: "#cf6158",
+  amber: "#bc7a1e"
+};
+const PHASOR_COLORS = [PALETTE.violet, PALETTE.teal, PALETTE.blue, PALETTE.coral];
 
 const state = {
   N: 32,
@@ -16,7 +30,7 @@ const state = {
   normalizeRMS: false,
   autoScalePlot: true,
   derivativeView: false,
-  buildWaveTermMode: "ab",
+
   audio: {
     enabled: false,
     f0: 220,
@@ -35,6 +49,9 @@ let harmonicFilterSnapshot = null;
 let phasorTrail = [];
 let buildWaveK = 1;
 let buildWaveLastAdvance = 0;
+let motionRunning = false;
+let motionElapsedMs = 0;
+let motionFrameId = null;
 const PHASOR_TRAIL_LEN = 120;
 const PHASOR_PERIOD_SEC = 2;
 const BUILD_WAVE_INTERVAL_MS = 380;
@@ -46,6 +63,7 @@ const els = {};
 
 function init() {
   cacheElements();
+
   bindEvents();
   buildHarmonicOptions();
   renderSpectrumLegend();
@@ -54,14 +72,11 @@ function init() {
   if (restored) {
     updatePartialMax();
     buildHarmonicOptions();
-    if (els.presetSelect) els.presetSelect.value = currentPreset;
   } else {
     applyPreset("none");
   }
   updateUIFromState();
   scheduleRender();
-  if (els.phasorCanvas) startPhasorAnimation();
-  if (els.buildWaveCanvas) startBuildWaveAnimation();
 }
 
 function getStatePayload() {
@@ -79,7 +94,7 @@ function getStatePayload() {
     normalizeRMS: state.normalizeRMS,
     autoScalePlot: state.autoScalePlot,
     derivativeView: state.derivativeView,
-    buildWaveTermMode: state.buildWaveTermMode,
+
     audio: { ...state.audio },
     currentPreset
   };
@@ -97,7 +112,7 @@ function applyStatePayload(payload) {
   state.normalizeRMS = !!payload.normalizeRMS;
   state.autoScalePlot = payload.autoScalePlot !== false;
   state.derivativeView = !!payload.derivativeView;
-  state.buildWaveTermMode = (payload.buildWaveTermMode === "aphi" || payload.buildWaveTermMode === "complex") ? payload.buildWaveTermMode : "ab";
+
   if (payload.audio && typeof payload.audio === "object") {
     state.audio.f0 = Number(payload.audio.f0) || 220;
     const vol = Number(payload.audio.volume);
@@ -189,49 +204,52 @@ function renderSpectrumLegend() {
 
 function updateBuildWaveTerms() {
   if (!window.katex || typeof window.katex.render !== "function") return;
-  if (!els.buildWaveTerms) return;
   const { aUse, bUse } = getEffectiveCoeffs();
   const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
-  const absFmt = (x) => Math.abs(Number(x)).toFixed(2);
-  const lines = [];
-  const mode = state.buildWaveTermMode || "ab";
-  const ns = [1, 2, 3];
+  const absFmt = (x) => Math.abs(x).toFixed(2);
+  const lines = { ab: [], aphi: [], complex: [] };
+  const ns = Array.from({ length: Math.min(3, state.N) }, (_, i) => i + 1);
   if (state.N > 3) ns.push(state.N);
 
   ns.forEach((n) => {
     const a = Number(aShift[n]);
     const b = Number(bShift[n]);
-    if (mode === "ab") {
-      const aStr = a >= 0 ? a.toFixed(2) : "- " + absFmt(a);
-      const signB = b >= 0 ? "+" : "-";
-      const bStr = absFmt(b);
-      lines.push("n=" + n + ":&\\quad&" + aStr + "&\\cos(2\\pi " + n + " t)&" + signB + "&" + bStr + "&\\sin(2\\pi " + n + " t)");
-    } else if (mode === "aphi") {
-      const A = Math.sqrt(a * a + b * b);
-      const phi = Math.atan2(a, b);
-      const AStr = A.toFixed(2);
-      const phiStr = phi >= 0 ? phi.toFixed(2) : "- " + absFmt(phi);
-      lines.push("n=" + n + ":&\\quad&" + AStr + "&\\sin(2\\pi " + n + " t + " + phiStr + ")");
-    } else {
-      const re = (a / 2).toFixed(2);
-      const im = Math.abs(b / 2).toFixed(2);
-      const c_n_imSign = b >= 0 ? "-" : "+";
-      const c_neg_imSign = b >= 0 ? "+" : "-";
-      const c_n = "(" + re + " " + c_n_imSign + " " + im + "\\,\\mathrm{i})";
-      const c_neg = "(" + re + " " + c_neg_imSign + " " + im + "\\,\\mathrm{i})";
-      lines.push("n=" + n + ":&\\quad&" + c_n + "&\\mathrm{e}^{\\mathrm{i}2\\pi " + n + " t}&+&" + c_neg + "\\,\\mathrm{e}^{-\\mathrm{i}2\\pi " + n + " t}");
-    }
+    const angle = n === 1 ? "2\\pi t" : "2\\pi " + n + "t";
+    const prefix = "n=" + n + ":&\\;";
+    const signB = b >= 0 ? "+" : "-";
+    lines.ab.push(prefix + a.toFixed(2) + "\\cos(" + angle + ")" + signB + absFmt(b) + "\\sin(" + angle + ")");
+
+    const A = Math.sqrt(a * a + b * b);
+    const phi = Math.atan2(a, b);
+    const signPhi = phi >= 0 ? "+" : "-";
+    lines.aphi.push(prefix + A.toFixed(2) + "\\sin(" + angle + signPhi + absFmt(phi) + ")");
+
+    const re = (a / 2).toFixed(2);
+    const im = absFmt(b / 2);
+    const c_n = "(" + re + (b >= 0 ? "-" : "+") + im + "\\,\\mathrm{i})";
+    const c_neg = "(" + re + signB + im + "\\,\\mathrm{i})";
+    lines.complex.push(prefix + c_n + "\\mathrm{e}^{\\mathrm{i}" + angle + "}+" + c_neg + "\\mathrm{e}^{-\\mathrm{i}" + angle + "}");
   });
-  const tex = "\\begin{aligned}" + lines.join("\\\\") + "\\end{aligned}";
-  try {
-    window.katex.render(tex, els.buildWaveTerms, { throwOnError: false, displayMode: true });
-  } catch (e) {
-    els.buildWaveTerms.textContent = "n=1: … n=2: … n=3: …";
+
+  for (const [mode, target] of Object.entries(els.buildWaveTerms)) {
+    if (!target) continue;
+    const tex = "\\begin{aligned}" + lines[mode].join("\\\\") + "\\end{aligned}";
+    try {
+      window.katex.render(tex, target, { throwOnError: false, displayMode: true });
+    } catch (e) {
+      target.textContent = "Unable to render this representation.";
+    }
   }
 }
 
 function cacheElements() {
-  els.presetSelect = document.getElementById("presetSelect");
+
+  els.presetChips = document.querySelectorAll("[data-preset]");
+  els.animationToggle = document.getElementById("animationToggle");
+  els.summaryHarmonics = document.getElementById("summaryHarmonics");
+  els.summaryActive = document.getElementById("summaryActive");
+  els.summaryRms = document.getElementById("summaryRms");
+  els.waveformLabel = document.getElementById("waveformLabel");
   els.copyUrlBtn = document.getElementById("copyUrlBtn");
   els.resetBtn = document.getElementById("resetBtn");
   els.explainerLink = document.getElementById("explainerLink");
@@ -278,10 +296,12 @@ function cacheElements() {
   els.spectrumCanvas = document.getElementById("spectrumCanvas");
   els.phasorCanvas = document.getElementById("phasorCanvas");
   els.buildWaveCanvas = document.getElementById("buildWaveCanvas");
-  els.buildWaveTerms = document.getElementById("buildWaveTerms");
-  els.buildWaveTermModeAphi = document.querySelector('input[name="buildWaveTermMode"][value="aphi"]');
-  els.buildWaveTermModeAb = document.querySelector('input[name="buildWaveTermMode"][value="ab"]');
-  els.buildWaveTermModeComplex = document.querySelector('input[name="buildWaveTermMode"][value="complex"]');
+  els.buildWaveTerms = {
+    ab: document.getElementById("buildWaveTermsAb"),
+    aphi: document.getElementById("buildWaveTermsAphi"),
+    complex: document.getElementById("buildWaveTermsComplex")
+  };
+  els.buildWaveProgress = document.getElementById("buildWaveProgress");
   els.waveformReadout = document.getElementById("waveformReadout");
   els.spectrumReadout = document.getElementById("spectrumReadout");
 
@@ -314,9 +334,11 @@ function bindEvents() {
       window.location.href = "explainer.html";
     });
   }
-  els.presetSelect.addEventListener("change", () => {
-    applyPreset(els.presetSelect.value);
+
+  els.presetChips.forEach((button) => {
+    button.addEventListener("click", () => applyPreset(button.dataset.preset));
   });
+  if (els.animationToggle) els.animationToggle.addEventListener("click", toggleAnimation);
   els.resetBtn.addEventListener("click", () => {
     resetState();
   });
@@ -395,15 +417,7 @@ function bindEvents() {
     state.showLadder = els.showLadder.checked;
     scheduleRender();
   });
-  if (els.buildWaveTermModeAb) {
-    els.buildWaveTermModeAb.addEventListener("change", () => { state.buildWaveTermMode = "ab"; scheduleRender(); });
-  }
-  if (els.buildWaveTermModeAphi) {
-    els.buildWaveTermModeAphi.addEventListener("change", () => { state.buildWaveTermMode = "aphi"; scheduleRender(); });
-  }
-  if (els.buildWaveTermModeComplex) {
-    els.buildWaveTermModeComplex.addEventListener("change", () => { state.buildWaveTermMode = "complex"; scheduleRender(); });
-  }
+
 
   els.modeAb.addEventListener("click", () => switchMode("ab"));
   els.modeAphi.addEventListener("click", () => switchMode("Aphi"));
@@ -412,6 +426,7 @@ function bindEvents() {
     state.selectedHarmonic = parseInt(els.harmonicSelect.value, 10);
     updateHarmonicSliders();
     currentPreset = "none";
+    scheduleRender();
   });
 
   els.aSlider.addEventListener("input", () => {
@@ -453,12 +468,12 @@ function bindEvents() {
     els.decayValue.textContent = parseFloat(els.decaySlider.value).toFixed(1);
   });
   els.applyDecayBtn.addEventListener("click", () => {
-    applyDecay(parseFloat(els.decaySlider.value));
     currentPreset = "none";
+    applyDecay(parseFloat(els.decaySlider.value));
   });
   els.randomPhaseBtn.addEventListener("click", () => {
-    randomizePhases();
     currentPreset = "none";
+    randomizePhases();
   });
   els.lowPassBtn.addEventListener("click", () => applyFilter("low"));
   els.bandPassBtn.addEventListener("click", () => applyFilter("band"));
@@ -489,12 +504,24 @@ function bindEvents() {
     els.spectrumReadout.classList.add("hidden");
   });
   els.spectrumCanvas.addEventListener("click", handleSpectrumClick);
+  els.spectrumCanvas.addEventListener("keydown", handleSpectrumKeydown);
+}
+
+function updatePresetControls() {
+
+  els.presetChips.forEach((button) => {
+    const active = button.dataset.preset === currentPreset;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
 }
 
 function switchMode(mode) {
   state.editMode = mode;
   els.modeAb.classList.toggle("active", mode === "ab");
   els.modeAphi.classList.toggle("active", mode === "Aphi");
+  els.modeAb.setAttribute("aria-pressed", String(mode === "ab"));
+  els.modeAphi.setAttribute("aria-pressed", String(mode === "Aphi"));
   els.abControls.classList.toggle("hidden", mode !== "ab");
   els.aphiControls.classList.toggle("hidden", mode !== "Aphi");
   updateHarmonicSliders();
@@ -539,10 +566,11 @@ function updateUIFromState() {
   els.volumeSlider.value = state.audio.volume;
   els.volumeValue.textContent = state.audio.volume.toFixed(2);
   els.removeDc.checked = state.audio.removeDC;
-  if (els.buildWaveTermModeAb) els.buildWaveTermModeAb.checked = state.buildWaveTermMode === "ab";
-  if (els.buildWaveTermModeAphi) els.buildWaveTermModeAphi.checked = state.buildWaveTermMode === "aphi";
-  if (els.buildWaveTermModeComplex) els.buildWaveTermModeComplex.checked = state.buildWaveTermMode === "complex";
-  updateHarmonicSliders();
+
+  updatePresetControls();
+  updateAnimationButton();
+  updateAudioButton();
+  switchMode(state.editMode);
 }
 
 function updateHarmonicSliders() {
@@ -630,6 +658,7 @@ function computeRMS(samples) {
 }
 
 function scheduleRender() {
+  updatePresetControls();
   scheduleHashUpdate();
   if (pendingRender) return;
   pendingRender = true;
@@ -647,15 +676,31 @@ function render() {
 
   drawWaveform(scaledSamples);
   drawSpectrum();
+  updateSummary(scaledSamples, aUse, bUse);
+  phasorTrail = [];
+  drawPhasor((motionElapsedMs / 1000 / PHASOR_PERIOD_SEC) % 1);
+  buildWaveK = Math.min(buildWaveK, state.N);
+  drawBuildWave(buildWaveK);
   updateBuildWaveTerms();
   if (osc) updateAudioWave();
+}
+
+function updateSummary(samples, aUse, bUse) {
+  let active = 0;
+  for (let n = 1; n <= state.N; n++) {
+    if (aUse[n] !== 0 || bUse[n] !== 0) active++;
+  }
+  if (els.summaryHarmonics) els.summaryHarmonics.textContent = String(state.N);
+  if (els.summaryActive) els.summaryActive.textContent = String(active);
+  if (els.summaryRms) els.summaryRms.textContent = computeRMS(samples).toFixed(3);
+  if (els.waveformLabel) els.waveformLabel.textContent = state.derivativeView ? "f′(t)" : "f(t)";
 }
 
 function drawWaveform(samples) {
   const ctx = els.waveformCanvas.getContext("2d");
   const w = els.waveformCanvas.width;
   const h = els.waveformCanvas.height;
-  ctx.clearRect(0, 0, w, h);
+  clearPlot(ctx, w, h);
   drawGrid(ctx, w, h);
   drawZeroLine(ctx, w, h);
 
@@ -695,7 +740,7 @@ function drawWaveform(samples) {
     sharedScale = (usableHeight * 0.5) / (maxAbs * 1.05);
   }
 
-  const mainColor = "#2c3e50";
+  const mainColor = PALETTE.blue;
   drawSeries(ctx, samples, w, h, mainColor, [], state.autoScalePlot, sharedScale);
 
   if (state.showPartial) {
@@ -705,7 +750,7 @@ function drawWaveform(samples) {
     const rms = computeRMS(partialSamples);
     const rmsScale = state.normalizeRMS && rms > 0 ? 0.7 / rms : 1;
     const scaled = partialSamples.map(v => v * rmsScale);
-    drawSeries(ctx, scaled, w, h, "#e67e22", [6, 4], false, sharedScale);
+    drawSeries(ctx, scaled, w, h, PALETTE.coral, [6, 4], false, sharedScale);
   }
 
   if (state.showLadder) {
@@ -716,8 +761,10 @@ function drawWaveform(samples) {
       const rms = computeRMS(partial);
       const rmsScale = state.normalizeRMS && rms > 0 ? 0.7 / rms : 1;
       const scaled = partial.map(v => v * rmsScale);
-      const alpha = 0.2 + idx * 0.15;
-      drawSeries(ctx, scaled, w, h, `rgba(52, 152, 219, ${alpha})`, [4, 4], false, sharedScale);
+      ctx.save();
+      ctx.globalAlpha = 0.2 + idx * 0.15;
+      drawSeries(ctx, scaled, w, h, PALETTE.coral, [4, 4], false, sharedScale);
+      ctx.restore();
     });
   }
 
@@ -730,7 +777,11 @@ function drawSpectrum() {
   const ctx = els.spectrumCanvas.getContext("2d");
   const w = els.spectrumCanvas.width;
   const h = els.spectrumCanvas.height;
-  ctx.clearRect(0, 0, w, h);
+  clearPlot(ctx, w, h);
+  const phaseBandRatio = 0.22;
+  const phaseBandTop = h * (1 - phaseBandRatio);
+  ctx.fillStyle = PALETTE.warm;
+  ctx.fillRect(0, phaseBandTop, w, h - phaseBandTop);
   drawGrid(ctx, w, h);
   drawZeroLine(ctx, w, h);
 
@@ -745,12 +796,20 @@ function drawSpectrum() {
   }
 
   /* Amplitude bars in top portion; phase band at bottom (overlaid in same plot). */
-  const phaseBandRatio = 0.22;
-  const phaseBandTop = h * (1 - phaseBandRatio);
   const barAreaHeight = phaseBandTop - 10;
   const refMagnitude = 1.0;
   const barWidth = w / state.N;
-  const MAG_COLOR = "#4ade80";
+  const selectedX = (state.selectedHarmonic - 1) * barWidth;
+  ctx.save();
+  ctx.fillStyle = PALETTE.amber;
+  ctx.globalAlpha = 0.1;
+  ctx.fillRect(selectedX, 0, barWidth, h);
+  ctx.strokeStyle = PALETTE.amber;
+  ctx.globalAlpha = 0.65;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(selectedX + 0.5, 0.5, barWidth - 1, h - 1);
+  ctx.restore();
+  const MAG_COLOR = PALETTE.teal;
   for (let i = 0; i < state.N; i++) {
     const A = Math.min(magnitudes[i] / refMagnitude, 1);
     const barHeight = A * barAreaHeight;
@@ -761,7 +820,9 @@ function drawSpectrum() {
   }
 
   /* Phase bars in bottom band, scaled to fit; alpha 1/2. */
-  const PHI_COLOR = "rgba(168, 85, 247, 0.5)";
+  const PHI_COLOR = PALETTE.violet;
+  ctx.save();
+  ctx.globalAlpha = 0.5;
   const phaseBandH = h - phaseBandTop;
   const phaseCenterY = phaseBandTop + phaseBandH / 2;
   const phaseBarRange = (phaseBandH / 2) * 0.85;
@@ -781,6 +842,7 @@ function drawSpectrum() {
       ctx.fillRect(x + 2, phaseCenterY, barWidth - 4, barHeight);
     }
   }
+  ctx.restore();
 }
 
 function drawBuildWave(k) {
@@ -788,28 +850,56 @@ function drawBuildWave(k) {
   const ctx = els.buildWaveCanvas.getContext("2d");
   const w = els.buildWaveCanvas.width;
   const h = els.buildWaveCanvas.height;
-  ctx.clearRect(0, 0, w, h);
+  clearPlot(ctx, w, h);
   drawGrid(ctx, w, h);
   drawZeroLine(ctx, w, h);
   const Nk = Math.min(Math.max(1, k), state.N);
   const { aUse, bUse, a0Use } = getEffectiveCoeffs();
   const partialSamples = evaluateWaveform(a0Use, aUse, bUse, Nk, M, state.t0);
-  drawSeries(ctx, partialSamples, w, h, "#2c3e50", [], true);
+  drawSeries(ctx, partialSamples, w, h, PALETTE.coral, [], true);
+  if (els.buildWaveProgress) els.buildWaveProgress.textContent = `${Nk} / ${state.N}`;
 }
 
-function startBuildWaveAnimation() {
-  function loop() {
-    if (els.buildWaveCanvas) {
-      drawBuildWave(buildWaveK);
-      const now = performance.now();
-      if (now - buildWaveLastAdvance >= BUILD_WAVE_INTERVAL_MS) {
-        buildWaveLastAdvance = now;
-        buildWaveK = buildWaveK >= state.N ? 1 : buildWaveK + 1;
+function updateAnimationButton() {
+  if (!els.animationToggle) return;
+  els.animationToggle.textContent = motionRunning ? "Pause motion" : "Play motion";
+  els.animationToggle.setAttribute("aria-pressed", String(motionRunning));
+  els.animationToggle.setAttribute("aria-label", motionRunning
+    ? "Pause phasor and wave-building animations"
+    : "Play phasor and wave-building animations");
+}
+
+function toggleAnimation() {
+  motionRunning = !motionRunning;
+  updateAnimationButton();
+  if (motionRunning) {
+    startMotionAnimation();
+  } else {
+    cancelAnimationFrame(motionFrameId);
+    motionFrameId = null;
+  }
+}
+
+function startMotionAnimation() {
+  if (!motionRunning || motionFrameId !== null) return;
+  if (!els.phasorCanvas && !els.buildWaveCanvas) return;
+  // Keep the animation clock separate from wall time so pausing preserves both views.
+  let lastFrame = performance.now();
+  function loop(now) {
+    motionElapsedMs += now - lastFrame;
+    lastFrame = now;
+    drawPhasor((motionElapsedMs / 1000 / PHASOR_PERIOD_SEC) % 1);
+    if (els.buildWaveCanvas && motionElapsedMs - buildWaveLastAdvance >= BUILD_WAVE_INTERVAL_MS) {
+      buildWaveLastAdvance = motionElapsedMs;
+      const nextK = buildWaveK >= state.N ? 1 : buildWaveK + 1;
+      if (nextK !== buildWaveK) {
+        buildWaveK = nextK;
+        drawBuildWave(buildWaveK);
       }
     }
-    requestAnimationFrame(loop);
+    motionFrameId = requestAnimationFrame(loop);
   }
-  requestAnimationFrame(loop);
+  motionFrameId = requestAnimationFrame(loop);
 }
 
 function drawPhasor(t) {
@@ -817,7 +907,7 @@ function drawPhasor(t) {
   const ctx = els.phasorCanvas.getContext("2d");
   const w = els.phasorCanvas.width;
   const h = els.phasorCanvas.height;
-  ctx.clearRect(0, 0, w, h);
+  clearPlot(ctx, w, h);
 
   const { aUse, bUse, a0Use } = getEffectiveCoeffs();
   const { aShift, bShift } = applyTimeShift(aUse, bUse, state.N, state.t0);
@@ -833,6 +923,8 @@ function drawPhasor(t) {
     totalRadius += A;
   }
   const diagramW = w * 0.45;
+  ctx.fillStyle = PALETTE.warm;
+  ctx.fillRect(0, 0, diagramW, h);
   const diagramH = h * 0.9;
   const cx = diagramW * 0.5;
   const cy = h / 2;
@@ -861,7 +953,9 @@ function drawPhasor(t) {
   phasorTrail.push({ x: tipScreen.x, y: tipScreen.y });
   if (phasorTrail.length > PHASOR_TRAIL_LEN) phasorTrail.shift();
 
-  ctx.strokeStyle = "rgba(42, 157, 143, 0.35)";
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = PALETTE.violet;
   ctx.lineWidth = 2;
   ctx.beginPath();
   phasorTrail.forEach((p, i) => {
@@ -869,13 +963,13 @@ function drawPhasor(t) {
     else ctx.lineTo(p.x, p.y);
   });
   ctx.stroke();
+  ctx.restore();
 
-  const hueStep = 280 / Math.max(state.N, 1);
   for (let n = 0; n < points.length - 1; n++) {
     const from = points[n];
     const to = points[n + 1];
-    const hue = (200 + n * hueStep) % 360;
-    ctx.strokeStyle = `hsl(${hue}, 65%, 45%)`;
+    const color = PHASOR_COLORS[n % PHASOR_COLORS.length];
+    ctx.strokeStyle = color;
     ctx.lineWidth = n === points.length - 2 ? 3 : 2;
     ctx.beginPath();
     ctx.moveTo(from.x, from.y);
@@ -889,7 +983,7 @@ function drawPhasor(t) {
     const uy = ay / len;
     const perpX = -uy;
     const perpY = ux;
-    ctx.fillStyle = `hsl(${hue}, 65%, 45%)`;
+    ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(to.x, to.y);
     ctx.lineTo(to.x - ux * arrLen + perpX * arrLen * 0.4, to.y - uy * arrLen + perpY * arrLen * 0.4);
@@ -898,8 +992,8 @@ function drawPhasor(t) {
     ctx.fill();
   }
 
-  ctx.fillStyle = "#1a1a2e";
   points.forEach((p, i) => {
+    ctx.fillStyle = i === points.length - 1 ? PALETTE.amber : i === 0 ? PALETTE.ink : PALETTE.muted;
     ctx.beginPath();
     ctx.arc(p.x, p.y, i === points.length - 1 ? 5 : 3, 0, TWO_PI);
     ctx.fill();
@@ -917,7 +1011,7 @@ function drawPhasor(t) {
   }
   const waveScale = (waveH * 0.45) / maxAbs;
   const waveMidY = waveTop + waveH / 2;
-  ctx.strokeStyle = "#2c3e50";
+  ctx.strokeStyle = PALETTE.blue;
   ctx.lineWidth = 2;
   ctx.beginPath();
   for (let i = 0; i < samples.length; i++) {
@@ -928,7 +1022,7 @@ function drawPhasor(t) {
   }
   ctx.stroke();
   const cursorX = waveLeft + t * waveW;
-  ctx.strokeStyle = "#e74c3c";
+  ctx.strokeStyle = PALETTE.amber;
   ctx.lineWidth = 2;
   ctx.setLineDash([4, 4]);
   ctx.beginPath();
@@ -936,23 +1030,20 @@ function drawPhasor(t) {
   ctx.lineTo(cursorX, waveTop + waveH);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = "#e74c3c";
+  ctx.fillStyle = PALETTE.amber;
   ctx.beginPath();
   ctx.arc(cursorX, waveMidY - samples[Math.round(t * (M - 1))] * waveScale, 4, 0, TWO_PI);
   ctx.fill();
 }
 
-function startPhasorAnimation() {
-  function loop() {
-    const t = ((performance.now() / 1000) / PHASOR_PERIOD_SEC) % 1;
-    drawPhasor(t);
-    requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
+function clearPlot(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = PALETTE.paper;
+  ctx.fillRect(0, 0, w, h);
 }
 
 function drawGrid(ctx, w, h) {
-  ctx.strokeStyle = "#e0e0e0";
+  ctx.strokeStyle = PALETTE.grid;
   ctx.lineWidth = 1;
   const rows = 4;
   const cols = 8;
@@ -973,7 +1064,7 @@ function drawGrid(ctx, w, h) {
 }
 
 function drawZeroLine(ctx, w, h) {
-  ctx.strokeStyle = "#999";
+  ctx.strokeStyle = PALETTE.axes;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, h / 2);
@@ -1083,9 +1174,7 @@ function resetState() {
   harmonicFilterSnapshot = null;
   if (els.evenOnly) els.evenOnly.checked = false;
   if (els.oddOnly) els.oddOnly.checked = false;
-  if (els.presetSelect) {
-    els.presetSelect.value = "none";
-  }
+
   updateUIFromState();
   scheduleRender();
 }
@@ -1112,6 +1201,7 @@ function randomizePhases() {
 }
 
 function applyFilter(type) {
+  currentPreset = "none";
   const N = state.N;
   const low = Math.floor(N / 3);
   const high = Math.floor((2 * N) / 3);
@@ -1209,13 +1299,24 @@ function harmonicFromSpectrumClick(event, canvas) {
 function handleSpectrumClick(event) {
   state.selectedHarmonic = harmonicFromSpectrumClick(event, els.spectrumCanvas);
   updateHarmonicSliders();
+  scheduleRender();
+}
+
+function handleSpectrumKeydown(event) {
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  const step = event.key === "ArrowRight" ? 1 : -1;
+  state.selectedHarmonic = Math.min(state.N, Math.max(1, state.selectedHarmonic + step));
+  updateHarmonicSliders();
+  scheduleRender();
 }
 
 function drawGibbsMarkers(ctx, w, h) {
   const positions = [0, 0.5, 1];
   ctx.save();
-  ctx.strokeStyle = "#c0392b";
-  ctx.fillStyle = "#c0392b";
+  ctx.strokeStyle = PALETTE.coral;
+  ctx.fillStyle = PALETTE.coral;
   positions.forEach(t => {
     const x = t * w;
     ctx.beginPath();
@@ -1229,6 +1330,13 @@ function drawGibbsMarkers(ctx, w, h) {
   ctx.restore();
 }
 
+function updateAudioButton() {
+  const label = state.audio.enabled ? "Stop sound" : "Play sound";
+  els.audioToggle.textContent = label;
+  els.audioToggle.setAttribute("aria-pressed", String(state.audio.enabled));
+  els.audioToggle.setAttribute("aria-label", label);
+}
+
 async function toggleAudio() {
   if (!audioCtx) {
     audioCtx = new AudioContext();
@@ -1240,7 +1348,6 @@ async function toggleAudio() {
     osc = null;
     gainNode = null;
     state.audio.enabled = false;
-    els.audioToggle.textContent = "Play";
   } else {
     osc = audioCtx.createOscillator();
     gainNode = audioCtx.createGain();
@@ -1250,8 +1357,8 @@ async function toggleAudio() {
     osc.connect(gainNode).connect(audioCtx.destination);
     osc.start();
     state.audio.enabled = true;
-    els.audioToggle.textContent = "Stop";
   }
+  updateAudioButton();
 }
 
 function updateAudioWave() {
